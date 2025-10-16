@@ -10,7 +10,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * @author lordl
+ * @author CyberCaelum
  * @version 1.0
  * @description: 简历类
  * @date 2025/10/15 下午8:19

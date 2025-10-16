@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * @author lordl
+ * @author CyberCaelum
  * @version 1.0
  * @description: 用户相关接口
  * @date 2025/10/15 下午8:55
@@ -15,4 +15,5 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/user")
 @Slf4j
 public class UserController {
+
 }

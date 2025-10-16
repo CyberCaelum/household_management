@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * @author lordl
+ * @author CyberCaelum
  * @version 1.0
  * @description: 招募信息
  * @date 2025/10/15 下午8:27
