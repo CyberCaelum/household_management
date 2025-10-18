@@ -1,21 +1,44 @@
 server:
   port: 8080
+spring:
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: false
+  datasource:
+    druid:
+      driver-class-name: ${household.datasource.driver-class-name}
+      url: jdbc:mysql://${household.datasource.host}:${household.datasource.port}/${household.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+      username: ${household.datasource.username}
+      password: ${household.datasource.password}
+mybatis:
+  #mapper配置文件
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.cybercaelum.household-management.pojo.entity
+  configuration:
+    #开启驼峰命名
+    map-underscore-to-camel-case: true
+
 springdoc:
-  api-docs:
-    path: /api-docs  # OpenAPI JSON 路径
   swagger-ui:
-    path: /swagger-ui.html  # UI 界面路径
-    operations-sorter: method  # 按方法排序
-    tags-sorter: alpha        # 按字母排序标签
+    path: /doc.html
+    tags-sorter: alpha
+    operations-sorter: method
+    enabled: true
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  cache:
+    disabled: true
   info:
-    title: 项目 API 文档
+    title: 家政
     version: 1.0.0
-    description: 项目接口文档说明
-  household:
-    jwt:
-      # 密钥
-      user-secret-key: cybercaelum
-      # 过期时间
-      user-ttl: 720000
-      #令牌名字
-      user-token-name: token
+
+household:
+  jwt:
+    # 密钥
+    user-secret-key: ${household.jwt.user-secret-key}
+    # 过期时间
+    user-ttl: ${springdoc.household.jwt.user-ttl}
+    #令牌名字
+    user-token-name: ${springdoc.household.jwt.user-token-name}
