@@ -47,8 +47,8 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
     public OpenAPI skyTakeoutOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("苍穹外卖项目接口文档")
+                        .title("家政")
                         .version("1.0")
-                        .description("苍穹外卖项目接口文档"));
+                        .description("家政接口文档"));
     }
 }
