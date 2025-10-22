@@ -30,7 +30,7 @@ import java.util.Map;
  * @date 2025/10/20 下午7:43
  */
 @Service
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
@@ -84,43 +84,45 @@ public class UserServiceImpl implements UserService {
         String password = userRegisterDTO.getPassword();
         String phoneNumber = userRegisterDTO.getPhoneNumber();
         String username = userRegisterDTO.getUsername();
-        Boolean phoneNumBeUsed = false;
-        User user = userMapper.getByPhoneNumber(phoneNumber);
+        User user = userMapper.getByUserName(username);
+        if (user != null){
+            //用户名已存在
+            throw new UsernameExistException(MessageConstant.USERNAME_EXIST);
+        }
+        user = userMapper.getByPhoneNumber(phoneNumber);
         if (user != null){
             if (user.getStatus() == 1){//账号在使用
                 //电话号已使用
                 throw new PhoneNumberUsedException(MessageConstant.PHONE_NUMBER_USED);
             }
-            //注销账号
-            phoneNumBeUsed = true;
         }
-        user = userMapper.getByUserName(username);
-        if (user != null){
-                //用户名已存在
-                throw new UsernameExistException(MessageConstant.USERNAME_EXIST);
-        }
+
         //加密密码
         password = DigestUtils.md5DigestAsHex(password.getBytes());
-        //新用户注册
-        if (!phoneNumBeUsed){
-            User user1 = User.builder()
-                    .password(password)
-                    .profileUrl("111")
-                    .username(username)
-                    .role(1)
-                    .status(1)
-                    .createTIme(LocalDateTime.now())
-                    .phoneNumber(phoneNumber)
-                    .build();
-            userMapper.insertNewUser(user1);
-        }
-        //注销账号信息更新
-        else {
-
-        }
-
-
-
-        return null;
+        User user1 = User.builder()
+                .password(password)
+                .profileUrl("111")
+                .username(username)
+                .role(1)
+                .status(1)
+                .createTime(LocalDateTime.now())
+                .phoneNumber(phoneNumber)
+                .build();
+        //新用户注
+        userMapper.insertNewUser(user1);
+        //生成jwt令牌
+        Map<String,Object> claims = new HashMap<>();
+        claims.put(JwtClaimsConstant.USER_ID,user1.getId());
+        claims.put(JwtClaimsConstant.USER_ROLE,user1.getRole());
+        String token = JwtUtil.createJWT(
+                jwtProperties.getUserSecretKey(),
+                jwtProperties.getUserTtl(),
+                claims
+        );
+        return UserLoginVO.builder()
+                .username(user1.getUsername())
+                .profileUrl(user1.getProfileUrl())
+                .token(token)
+                .build();
     }
 }

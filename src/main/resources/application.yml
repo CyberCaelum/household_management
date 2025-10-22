@@ -1,12 +1,12 @@
 server:
-  port: 8080
+  port: 90
 spring:
   profiles:
     active: dev
   main:
     allow-circular-references: false
+    allow-bean-definition-overriding: true
   datasource:
-    druid:
       driver-class-name: ${household.datasource.driver-class-name}
       url: jdbc:mysql://${household.datasource.host}:${household.datasource.port}/${household.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
       username: ${household.datasource.username}
@@ -25,11 +25,9 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     enabled: true
-    path: /swagger-ui.html
-  info:
-    title: "家政"
-    version: "1.0"
-    description: "家政接口文档"
+    path: /swagger-ui/index.html
+    url: /v3/api-docs
+    disable-swagger-default-url: false
 
 household:
   jwt:

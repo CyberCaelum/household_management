@@ -23,7 +23,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  */
 @Component
 @Slf4j
-@RequiredArgsConstructor(onConstructor_ = {@Autowired})
+@RequiredArgsConstructor
 public class JwtTokenInterceptor implements HandlerInterceptor {
 
     private final JwtProperties jwtProperties;

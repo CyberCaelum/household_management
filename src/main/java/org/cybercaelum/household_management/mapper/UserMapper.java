@@ -35,6 +35,6 @@ public interface UserMapper {
      * @param user 电话号，用户名，密码，创建时间，状态，角色，头像地址
      **/
     @Insert("insert into user (phone_number,username,password,create_time,status,role,profile_url) " +
-            "values #{phoneNumber},#{username},#{password},#{createTime},#{status},#{role},#{profileUrl}")
+            "values (#{phoneNumber},#{username},#{password},#{createTime},#{status},#{role},#{profileUrl})")
     void insertNewUser(User user);
 }
