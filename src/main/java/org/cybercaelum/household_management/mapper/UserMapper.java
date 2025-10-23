@@ -3,6 +3,7 @@ package org.cybercaelum.household_management.mapper;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import org.cybercaelum.household_management.pojo.entity.User;
 
 @Mapper
@@ -34,7 +35,33 @@ public interface UserMapper {
      * @date 下午9:22 2025/10/20
      * @param user 电话号，用户名，密码，创建时间，状态，角色，头像地址
      **/
-    @Insert("insert into user (phone_number,username,password,create_time,status,role,profile_url) " +
-            "values (#{phoneNumber},#{username},#{password},#{createTime},#{status},#{role},#{profileUrl})")
     void insertNewUser(User user);
+
+    /**
+     * @description 通过id查找用户
+     * @author CyberCaelum
+     * @date 下午7:40 2025/10/23
+     * @param id 主键
+     * @return org.cybercaelum.household_management.pojo.entity.User
+     **/
+    @Select("select * from user where id = #{id}")
+    User getById(Integer id);
+
+    /**
+     * @description 更新用户的用户名，密码，手机号，头像
+     * @author CyberCaelum
+     * @date 下午7:50 2025/10/23
+     * @param user 用户类
+     **/
+    @Update("update user set phone_number = #{phoneNumber},username = #{username},password = #{password},profile_url = {profileUrl} where id = #{id}")
+    void updateUser(User user);
+
+    /**
+     * @description 注销账户
+     * @author CyberCaelum
+     * @date 下午8:33 2025/10/23
+     * @param userId 用户主键
+     **/
+    @Update("update user set status = 0 where id = #{userid}")
+    void deleteUserById(Long userId);
 }

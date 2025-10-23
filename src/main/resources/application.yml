@@ -37,3 +37,8 @@ household:
     user-ttl: ${springdoc.household.jwt.user-ttl}
     #令牌名字
     user-token-name: ${springdoc.household.jwt.user-token-name}
+  alioss:
+    endpoint: ${household.alioss.endpoint}
+    access-key-id: ${household.alioss.access-key-id}
+    access-key-secret: ${household.alioss.access-key-secret}
+    bucket-name: ${household.alioss.bucket-name}

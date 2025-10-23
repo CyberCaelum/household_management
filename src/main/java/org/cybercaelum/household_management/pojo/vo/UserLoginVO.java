@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 public class UserLoginVO {
+    private String id; //主键
     private String username; //用户名
     private String profileUrl; //头像地址
     private String token; //token
