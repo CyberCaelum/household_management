@@ -61,6 +61,7 @@ public class UserServiceImpl implements UserService {
                 jwtProperties.getUserTtl(),
                 claims);
         return UserLoginVO.builder()
+                .id(user.getId())
                 .username(user.getUsername())
                 .profileUrl(user.getProfileUrl())
                 .token(token)
@@ -142,7 +143,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserLoginVO updateUser(UserUpdateDTO userUpdateDTO) {
         User user = new User();
+        String password = userUpdateDTO.getPassword();
+        password = DigestUtils.md5DigestAsHex(password.getBytes());
         BeanUtils.copyProperties(userUpdateDTO, user);
+        user.setPassword(password);
         userMapper.updateUser(user);
         return newLogin(user);
     }
@@ -159,6 +163,7 @@ public class UserServiceImpl implements UserService {
         //设置用户发过的招聘为不可见
         //删除线程的信息
     }
+
 
 
 }

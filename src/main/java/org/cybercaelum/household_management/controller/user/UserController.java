@@ -1,6 +1,7 @@
 package org.cybercaelum.household_management.controller.user;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class UserController {
     @Operation(summary = "用户登录",description = "用户登录获取token")
     @PostMapping("/login")
     public Result<UserLoginVO> login(UserLoginDTO userLoginDTO) {
+        log.info("用户登录{}",userLoginDTO);
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
         BaseContext.remove();
         return Result.success(userLoginVO);
@@ -58,6 +60,7 @@ public class UserController {
     @Operation(summary = "用户注册",description = "用户注册获取token")
     @PostMapping("/register")
     public Result<UserLoginVO> register(UserRegisterDTO userRegisterDTO) {
+        log.info("用户登录{}",userRegisterDTO);
         UserLoginVO userLoginVO = userService.register(userRegisterDTO);
         BaseContext.remove();
         return Result.success(userLoginVO);
@@ -69,9 +72,11 @@ public class UserController {
      * @date 下午6:41 2025/10/23
      * @return org.cybercaelum.household_management.pojo.entity.Result<java.lang.String>
      **/
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "退出登录",description = "用户退出登录")
     @PostMapping("/logout")
     public Result<String> logout(){
+        log.info("用户退出登录");
         BaseContext.remove();
         return Result.success();
     }
@@ -83,9 +88,11 @@ public class UserController {
      * @param userUpdateDTO id,用户名，电话号，密码，头像
      * @return org.cybercaelum.household_management.pojo.entity.Result<org.cybercaelum.household_management.pojo.vo.UserLoginVO>
      **/
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "更新用户信息",description = "用户更新信息")
     @PostMapping("update")
     public Result<UserLoginVO> updateUser(UserUpdateDTO userUpdateDTO){
+        log.info("用户更新{}",userUpdateDTO);
         UserLoginVO userLoginVO = userService.updateUser(userUpdateDTO);
         BaseContext.remove();
         return Result.success(userLoginVO);
@@ -97,9 +104,11 @@ public class UserController {
      * @date 下午8:04 2025/10/23
      * @return org.cybercaelum.household_management.pojo.entity.Result<java.lang.String>
      **/
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "注销账号",description = "用户注销")
-    @DeleteMapping
+    @DeleteMapping("/cancel")
     public Result<String> cancel(){
+        log.info("用户注销");
         userService.cancel();
         BaseContext.remove();
         return Result.success();

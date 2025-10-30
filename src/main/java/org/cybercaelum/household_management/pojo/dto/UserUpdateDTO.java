@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class UserUpdateDTO {
-    private Integer id;//主键
+    private Long id;//主键
     private String phoneNumber; //电话号
     private String username; //用户名
     private String password; //密码
