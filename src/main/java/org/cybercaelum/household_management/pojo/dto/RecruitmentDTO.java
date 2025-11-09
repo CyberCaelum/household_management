@@ -1,8 +1,10 @@
-package org.cybercaelum.household_management.pojo.entity;
+package org.cybercaelum.household_management.pojo.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.cybercaelum.household_management.constant.MessageConstant;
@@ -16,16 +18,13 @@ import java.time.LocalDateTime;
 /**
  * @author CyberCaelum
  * @version 1.0
- * @description: 招募信息
- * @date 2025/10/15 下午8:27
+ * @description: 发布招募信息DTO
+ * @date 2025/11/9 下午5:18
  */
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class Recruitment implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
+public class RecruitmentDTO implements Serializable {
 
     private Long id; //主键
 
@@ -53,9 +52,6 @@ public class Recruitment implements Serializable {
     private String districtCode; //区县编号
     private String districtName; //区县名称
     private String detail; //详细地址信息
-    private String userId; //发布人id
-    private LocalDateTime createTime; //创建时间
-    private LocalDateTime updateTime; //更新时间
 
     @AssertTrue(message = MessageConstant.SALARY_RANGE_ERROR)//薪资范围错误
     public Boolean isSalaryRangeValid(){
@@ -70,7 +66,7 @@ public class Recruitment implements Serializable {
                 && startTime.isAfter(LocalDate.now()) //开始时间大于现在时间
                 && startTime.isBefore(endTime); //开始时间早于结束时间
     }
-    
+
     @AssertTrue(message = MessageConstant.STATUS_ERROR)//状态错误
     public Boolean isStatusValid(){
         return status != null && (status == 0 || status == 1 || status == 2 || status == 3);

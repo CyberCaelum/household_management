@@ -6,7 +6,6 @@ import org.cybercaelum.household_management.pojo.dto.UserUpdateDTO;
 import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.springframework.stereotype.Service;
 
-@Service
 public interface UserService {
     /**
      * @description 用户登录

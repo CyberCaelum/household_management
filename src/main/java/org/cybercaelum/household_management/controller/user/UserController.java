@@ -3,6 +3,7 @@ package org.cybercaelum.household_management.controller.user;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.context.BaseContext;
@@ -13,10 +14,7 @@ import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.cybercaelum.household_management.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @author CyberCaelum
@@ -43,7 +41,7 @@ public class UserController {
      **/
     @Operation(summary = "用户登录",description = "用户登录获取token")
     @PostMapping("/login")
-    public Result<UserLoginVO> login(UserLoginDTO userLoginDTO) {
+    public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO) {
         log.info("用户登录{}",userLoginDTO);
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
         BaseContext.remove();
@@ -59,7 +57,7 @@ public class UserController {
      **/
     @Operation(summary = "用户注册",description = "用户注册获取token")
     @PostMapping("/register")
-    public Result<UserLoginVO> register(UserRegisterDTO userRegisterDTO) {
+    public Result<UserLoginVO> register(@Valid @RequestBody UserRegisterDTO userRegisterDTO) {
         log.info("用户登录{}",userRegisterDTO);
         UserLoginVO userLoginVO = userService.register(userRegisterDTO);
         BaseContext.remove();
@@ -91,7 +89,7 @@ public class UserController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "更新用户信息",description = "用户更新信息")
     @PostMapping("update")
-    public Result<UserLoginVO> updateUser(UserUpdateDTO userUpdateDTO){
+    public Result<UserLoginVO> updateUser(@RequestBody UserUpdateDTO userUpdateDTO){
         log.info("用户更新{}",userUpdateDTO);
         UserLoginVO userLoginVO = userService.updateUser(userUpdateDTO);
         BaseContext.remove();
