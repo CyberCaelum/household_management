@@ -29,7 +29,13 @@ public class RecruitmentController {
 
     private final RecruitmentService recruitmentService;
 
-    //新增招募
+    /**
+     * @description 新增招募
+     * @author CyberCaelum
+     * @date 下午8:51 2025/11/10
+     * @param recruitmentDTO 招募信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
     @PostMapping("/add")
     public Result addRecruitment(@Valid @RequestBody RecruitmentDTO recruitmentDTO) {
         log.info("新增招募：{}", recruitmentDTO);

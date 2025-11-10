@@ -53,7 +53,7 @@ public class Recruitment implements Serializable {
     private String districtCode; //区县编号
     private String districtName; //区县名称
     private String detail; //详细地址信息
-    private String userId; //发布人id
+    private Long userId; //发布人id
     private LocalDateTime createTime; //创建时间
     private LocalDateTime updateTime; //更新时间
 

@@ -26,8 +26,6 @@ import java.time.LocalDateTime;
 @Data
 public class RecruitmentDTO implements Serializable {
 
-    private Long id; //主键
-
     @NotBlank(message = MessageConstant.TITLE_IS_EMPTY)//标题不能为空
     @Size(max = 30, message = MessageConstant.TITLE_TOO_LONG)//标题字数小于30
     private String title; //标题

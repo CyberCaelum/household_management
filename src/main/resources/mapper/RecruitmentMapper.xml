@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cybercaelum.household_management.mapper.RecruitmentMapper">
+    <insert id="insertRecruitment" useGeneratedKeys="true" keyProperty="id">
+        insert into recruitment (title, mine_salary, max_salary, start_time, end_time,
+             requirement, status, province_code, province_name, city_code, city_name,
+             district_code, district_name, detail, user_id, create_time, update_time)
+            values (#{title},#{mineSalary},#{maxSalary},#{startTime},#{endTime},#{requirement},
+            #{status},#{provinceCode},#{provinceName},#{cityCode},#{cityName},
+            #{districtCode},#{districtName},#{detail},#{userId},#{createTime},#{updateTime});
+    </insert>
+</mapper>
