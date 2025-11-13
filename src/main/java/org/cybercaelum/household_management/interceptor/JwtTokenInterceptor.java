@@ -11,6 +11,7 @@ import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.properties.JwtProperties;
 import org.cybercaelum.household_management.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -24,6 +25,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 @Slf4j
 @RequiredArgsConstructor
+@Configuration
 public class JwtTokenInterceptor implements HandlerInterceptor {
 
     private final JwtProperties jwtProperties;
@@ -45,13 +47,24 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
         }
         //从请求头中获取令牌
         String token = request.getHeader(jwtProperties.getUserTokenName());
+        if (token != null && token.startsWith("Bearer ")) {
+            // 从 Authorization: Bearer <token> 格式提取
+            token = token.substring(7);
+            log.info("从Authorization头获取token: {}", token);
+        } else {
+            // 回退到原来的方式
+            token = request.getHeader(jwtProperties.getUserTokenName());
+            log.info("从{}头获取token: {}", jwtProperties.getUserTokenName(), token);
+        }
         //校验令牌
         try {
             log.info("jwt令牌校验:{}",token);
-            Claims claims = JwtUtil.parseJWT(jwtProperties.getUserTokenName(), token);
+            Claims claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
             //从jwt中获得用户id和用户的角色
             Long userId = Long.valueOf(claims.get(JwtClaimsConstant.USER_ID).toString());
+            log.info("userId:{}",userId);
             Integer userRole = Integer.valueOf(claims.get(JwtClaimsConstant.USER_ROLE).toString());
+            log.info("userRole:{}",userRole);
             //将id和角色存入线程局部存储
             BaseContext.set(JwtClaimsConstant.USER_ID, userId);
             BaseContext.set(JwtClaimsConstant.USER_ROLE, userRole);

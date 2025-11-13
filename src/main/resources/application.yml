@@ -25,9 +25,19 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     enabled: true
-    path: /swagger-ui/index.html
-    url: /v3/api-docs
-    disable-swagger-default-url: false
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    # 添加认证持久化配置
+    persist-authorization: true
+    # 添加标签排序
+    tags-sorter: alpha
+    # 添加操作排序
+    operations-sorter: method
+  # info 配置移到 info 节点下
+  info:
+    title: "家政"
+    version: "1.0"
+    description: "家政接口文档"
 
 household:
   jwt:

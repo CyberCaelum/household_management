@@ -1,5 +1,7 @@
 package org.cybercaelum.household_management.context;
 
+import org.cybercaelum.household_management.constant.JwtClaimsConstant;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +47,7 @@ public class BaseContext {
      * @param userId 用户id
      **/
     public static void setUserId(Long userId) {
-        set("userId", userId);
+        set(JwtClaimsConstant.USER_ID, userId);
     }
     /**
      * @description 获得用户id
@@ -54,7 +56,7 @@ public class BaseContext {
      * @return java.lang.Long
      **/
     public static Long getUserId() {
-        return (Long) get("userId");
+        return (Long) get(JwtClaimsConstant.USER_ID);
     }
     /**
      * @description 设置用户的角色

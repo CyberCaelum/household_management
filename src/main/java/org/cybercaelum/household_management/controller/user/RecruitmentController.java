@@ -1,9 +1,12 @@
 package org.cybercaelum.household_management.controller.user;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentDTO;
 import org.cybercaelum.household_management.pojo.entity.Recruitment;
 import org.cybercaelum.household_management.pojo.entity.Result;
@@ -36,9 +39,12 @@ public class RecruitmentController {
      * @param recruitmentDTO 招募信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "新增招募",description = "新增招募")
     @PostMapping("/add")
     public Result addRecruitment(@Valid @RequestBody RecruitmentDTO recruitmentDTO) {
         log.info("新增招募：{}", recruitmentDTO);
+        log.info("userId{}", BaseContext.getUserId());
         recruitmentService.addRecruitment(recruitmentDTO);
         return Result.success();
     }
