@@ -46,7 +46,7 @@ public class RecruitmentController {
     @PostMapping("/add")
     public Result addRecruitment(@Valid @RequestBody RecruitmentDTO recruitmentDTO) {
         log.info("新增招募：{}", recruitmentDTO);
-        log.info("userId{}", BaseContext.getUserId());
+        log.info("userId: {}", BaseContext.getUserId());
         recruitmentService.addRecruitment(recruitmentDTO);
         return Result.success();
     }

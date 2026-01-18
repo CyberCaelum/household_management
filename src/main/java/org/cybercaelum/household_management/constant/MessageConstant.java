@@ -19,6 +19,7 @@ public class MessageConstant {
     public static final String USERNAME_EXIST = "用户名已存在";
     public static final String TITLE_IS_EMPTY = "标题不能为空";
     public static final String TITLE_TOO_LONG = "标题不能超过30字";
+    public static final String MIN_SALARY_MINIMUM = "最小薪资不能低于0";
     public static final String MAX_SALARY_MAXIMUM = "最大薪资不能超过100000元";
     public static final String SALARY_RANGE_ERROR = "薪资范围不合理";
     public static final String TIME_RANGE_ERROR = "时间范围不合理";

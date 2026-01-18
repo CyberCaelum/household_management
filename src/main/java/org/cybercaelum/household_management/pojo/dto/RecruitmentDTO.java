@@ -1,19 +1,14 @@
 package org.cybercaelum.household_management.pojo.dto;
 
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.cybercaelum.household_management.constant.MessageConstant;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
  * @author CyberCaelum
@@ -30,10 +25,13 @@ public class RecruitmentDTO implements Serializable {
     @Size(max = 30, message = MessageConstant.TITLE_TOO_LONG)//标题字数小于30
     private String title; //标题
 
+    @DecimalMin(value = "0.0", inclusive = true, message = MessageConstant.MIN_SALARY_MINIMUM)//最低薪资不能低于0
+    @NotNull(message = "最低薪资不能为空")  // 非空验证
     private BigDecimal mineSalary; //最低薪资
 
-    //最高薪资小于等于10000.0
-    @DecimalMax(value = "10000.0", inclusive = true, message = MessageConstant.MAX_SALARY_MAXIMUM)
+
+    @DecimalMax(value = "10000.0", inclusive = true, message = MessageConstant.MAX_SALARY_MAXIMUM)//最高薪资小于等于10000.0
+    @NotNull(message = "最低薪资不能为空")  // 非空验证
     private BigDecimal maxSalary; //最高薪资
 
     private LocalDate startTime; //开始时间
@@ -51,27 +49,29 @@ public class RecruitmentDTO implements Serializable {
     private String districtName; //区县名称
     private String detail; //详细地址信息
 
-    @AssertTrue(message = MessageConstant.SALARY_RANGE_ERROR)//薪资范围错误
-    public Boolean isSalaryRangeValid(){
-        return mineSalary != null && maxSalary != null //薪资都不为空
-                && mineSalary.compareTo(new BigDecimal(0)) > 0 //最小薪资大于0
-                && maxSalary.compareTo(mineSalary) > 0; //最大薪资大于最小薪资
+    @AssertTrue(message = MessageConstant.SALARY_RANGE_ERROR)
+    private boolean isSalaryRangeValid() {
+        if (mineSalary == null || maxSalary == null) {
+            return true; // 由 @NotNull 处理
+        }
+        return mineSalary.compareTo(BigDecimal.ZERO) > 0
+                && maxSalary.compareTo(mineSalary) > 0;
     }
 
     @AssertTrue(message = MessageConstant.TIME_RANGE_ERROR)//时间范围错误
-    public Boolean isTimeRangeValid(){
+    private boolean isTimeRangeValid(){
         return startTime != null && endTime != null //时间都不为空
                 && startTime.isAfter(LocalDate.now()) //开始时间大于现在时间
                 && startTime.isBefore(endTime); //开始时间早于结束时间
     }
 
     @AssertTrue(message = MessageConstant.STATUS_ERROR)//状态错误
-    public Boolean isStatusValid(){
+    public boolean isStatusValid(){
         return status != null && (status == 0 || status == 1 || status == 2 || status == 3);
     }
 
     @AssertTrue(message = MessageConstant.ADDRESS_ERROR) //地址错误
-    public Boolean isAddressValid(){
+    public boolean isAddressValid(){
         return provinceCode != null && provinceName != null &&
                 cityCode != null && cityName != null && detail != null;
     }
