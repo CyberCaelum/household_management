@@ -12,6 +12,7 @@ import org.cybercaelum.household_management.pojo.entity.Recruitment;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.service.RecruitmentService;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RequiredArgsConstructor
 @Tag(name = "招募服务",description = "招募服务")
+@Validated
 public class RecruitmentController {
 
     private final RecruitmentService recruitmentService;

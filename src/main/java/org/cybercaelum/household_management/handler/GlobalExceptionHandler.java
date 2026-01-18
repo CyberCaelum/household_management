@@ -1,5 +1,6 @@
 package org.cybercaelum.household_management.handler;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.exception.BaseException;
 import org.cybercaelum.household_management.pojo.entity.Result;
@@ -45,6 +46,23 @@ public class GlobalExceptionHandler {
 
         log.error("参数验证异常: {}", errorMessage);
         return Result.error("验证失败: " + errorMessage);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Result handleConstraintViolationException(ConstraintViolationException ex) {
+        String errorMessage = ex.getConstraintViolations()
+                .stream()
+                .map(violation -> {
+                    String path = violation.getPropertyPath().toString();
+                    // 提取方法参数名或字段名
+                    String[] pathParts = path.split("\\.");
+                    String fieldName = pathParts[pathParts.length - 1];
+                    return fieldName + ": " + violation.getMessage();
+                })
+                .collect(Collectors.joining("; "));
+
+        log.error("约束违反异常: {}", errorMessage);
+        return Result.error("参数错误: " + errorMessage);
     }
 
     /**
