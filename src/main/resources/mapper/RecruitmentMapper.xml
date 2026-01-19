@@ -11,4 +11,66 @@
             #{status},#{provinceCode},#{provinceName},#{cityCode},#{cityName},
             #{districtCode},#{districtName},#{detail},#{userId},#{createTime},#{updateTime});
     </insert>
+    <update id="updateRecruitment">
+        update recruitment
+        <set>
+            <if test="title != null">
+                title = #{title},
+            </if>
+            <if test="mineSalary != null">
+                mine_salary = #{mineSalary},
+            </if>
+            <if test="maxSalary != null">
+                max_salary = #{maxSalary},
+            </if>
+            <if test="startTime != null">
+                start_time = #{startTime},
+            </if>
+            <if test="endTime != null">
+                end_time = #{endTime},
+            </if>
+            <if test="requirement != null and requirement != ''">
+                requirement = #{requirement},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="provinceCode != null">
+                province_code = #{provinceCode},
+            </if>
+            <if test="provinceName != null and provinceName != ''">
+                province_name = #{provinceName},
+            </if>
+            <if test="cityCode != null">
+                city_code = #{cityCode},
+            </if>
+            <if test="cityName = null and cityName != ''">
+                city_name = #{cityName},
+            </if>
+            <if test="districtCode != null">
+                district_code = #{districtCode},
+            </if>
+            <if test="districtName != null and districtName != ''">
+                district_name = #{districtName},
+            </if>
+            <if test="detail != null and detail != ''">
+                detail = #{detail},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime}
+            </if>
+        </set>
+        where id = #{id}
+    </update>
 </mapper>
+
+
+
+
+
+
+
+
+
+
+

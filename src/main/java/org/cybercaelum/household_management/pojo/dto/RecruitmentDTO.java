@@ -49,7 +49,7 @@ public class RecruitmentDTO implements Serializable {
     private String districtName; //区县名称
     private String detail; //详细地址信息
 
-    @AssertTrue(message = MessageConstant.SALARY_RANGE_ERROR)
+    @AssertTrue(message = MessageConstant.SALARY_RANGE_ERROR)//薪资范围错误
     private boolean isSalaryRangeValid() {
         if (mineSalary == null || maxSalary == null) {
             return true; // 由 @NotNull 处理

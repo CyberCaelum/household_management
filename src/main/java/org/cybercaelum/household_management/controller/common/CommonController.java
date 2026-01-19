@@ -1,11 +1,10 @@
-package org.cybercaelum.household_management.controller.user;
+package org.cybercaelum.household_management.controller.common;
 
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.service.CommonService;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

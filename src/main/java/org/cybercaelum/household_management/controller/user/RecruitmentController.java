@@ -8,15 +8,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentDTO;
-import org.cybercaelum.household_management.pojo.entity.Recruitment;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.service.RecruitmentService;
-import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @author CyberCaelum
@@ -50,8 +45,24 @@ public class RecruitmentController {
         recruitmentService.addRecruitment(recruitmentDTO);
         return Result.success();
     }
-    //修改招募状态
+    /**
+     * @description 修改招募状态
+     * @author CyberCaelum
+     * @date 下午3:51 2026/1/19
+     * @param status 状态信息，0删除，1发布，2隐藏，3结束
+     * @param recruitmentId 招募主键
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "修改招募状态",description = "修改招募状态")
+    @PostMapping("/status/{status}")
+    public Result updateRecruitmentStatus(@PathVariable int status, Long recruitmentId) {
+        log.info("修改招募id: {},状态：{}", recruitmentId,status);
+        recruitmentService.updateRecruitmentStatus(status,recruitmentId);
+        return Result.success();
+    }
     //修改招募
+
     //招募分页查询
     //删除招募
     //根据薪资范围查询招募
