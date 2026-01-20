@@ -8,10 +8,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentDTO;
+import org.cybercaelum.household_management.pojo.dto.RecruitmentPageDTO;
+import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.pojo.vo.RecruitmentVO;
 import org.cybercaelum.household_management.service.RecruitmentService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * @author CyberCaelum
@@ -61,9 +66,36 @@ public class RecruitmentController {
         recruitmentService.updateRecruitmentStatus(status,recruitmentId);
         return Result.success();
     }
-    //修改招募
 
-    //招募分页查询
+    /**
+     * @description 修改招募信息
+     * @author CyberCaelum
+     * @date 下午3:34 2026/1/20
+     * @param recruitmentDTO 招募信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "修改招募信息",description = "修改招募信息")
+    @PutMapping
+    public Result updateRecruitment(@Valid @RequestBody RecruitmentDTO recruitmentDTO) {
+        log.info("修改招募信息：{}", recruitmentDTO);
+        recruitmentService.updateRecruitment(recruitmentDTO);
+        return Result.success();
+    }
+
+    /**
+     * @description 分页查询招募
+     * @author CyberCaelum
+     * @date 下午4:06 2026/1/20
+     * @param recruitmentPageDTO 分页信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @GetMapping("/page")
+    public Result pageRecruitment(RecruitmentPageDTO recruitmentPageDTO){
+        log.info("分页查询招募信息：{}", recruitmentPageDTO);
+        PageResult pageResult = recruitmentService.pageRecruitment(recruitmentPageDTO);
+        return Result.success(pageResult);
+    }
     //删除招募
     //根据薪资范围查询招募
     //根据开始结束时间查找招募

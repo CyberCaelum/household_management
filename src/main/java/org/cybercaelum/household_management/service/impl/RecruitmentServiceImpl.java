@@ -1,18 +1,22 @@
 package org.cybercaelum.household_management.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cybercaelum.household_management.constant.MessageConstant;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.*;
 import org.cybercaelum.household_management.mapper.RecruitmentMapper;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentDTO;
+import org.cybercaelum.household_management.pojo.dto.RecruitmentPageDTO;
+import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Recruitment;
+import org.cybercaelum.household_management.pojo.vo.RecruitmentVO;
 import org.cybercaelum.household_management.service.RecruitmentService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -53,6 +57,7 @@ public class RecruitmentServiceImpl implements RecruitmentService {
     public void updateRecruitmentStatus(int status, Long recruitmentId) {
         //查找招募
         Recruitment recruitment = recruitmentMapper.selectRecruitmentById(recruitmentId);
+        //判断招募是否存在
         if (recruitment == null) {
             throw new RequirementNullException("招募不存在");
         }
@@ -67,5 +72,42 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         //修改招募状态
         recruitment.setStatus(status);
         recruitmentMapper.updateRecruitment(recruitment);
+    }
+
+    /**
+     * @description 修改招募信息
+     * @author CyberCaelum
+     * @date 下午3:35 2026/1/20
+     * @param recruitmentDTO 招募信息
+     **/
+    @Override
+    public void updateRecruitment(RecruitmentDTO recruitmentDTO) {
+        //查找招募
+        Recruitment recruitment = recruitmentMapper.selectRecruitmentById(recruitmentDTO.getId());
+        //判断招募是否存在
+        if (recruitment == null) {
+            throw new RequirementNullException("招募不存在");
+        }
+        //判断是否是本人
+        if (!Objects.equals(BaseContext.getUserId(), recruitment.getUserId())) {
+            throw new PermissionException("招募状态修改失败");
+        }
+        //修改招募
+        recruitmentMapper.updateRecruitment(recruitment);
+    }
+
+    /**
+     * @param recruitmentPageDTO 分页信息
+     * @return java.util.List<org.cybercaelum.household_management.pojo.vo.RecruitmentVO>
+     * @description 分页查询招募信息
+     * @author CyberCaelum
+     * @date 下午4:20 2026/1/20
+     **/
+    @Override
+    public PageResult pageRecruitment(RecruitmentPageDTO recruitmentPageDTO) {
+        PageHelper.startPage(recruitmentPageDTO.getPage(),recruitmentPageDTO.getPageSize());
+        Page<RecruitmentVO> page =recruitmentMapper.pageRecruitment(recruitmentPageDTO);
+        return new PageResult(page.getTotal(),page.getResult());
+        return null;
     }
 }
