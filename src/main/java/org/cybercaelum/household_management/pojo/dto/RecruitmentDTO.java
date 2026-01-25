@@ -27,12 +27,12 @@ public class RecruitmentDTO implements Serializable {
     private String title; //标题
 
     @DecimalMin(value = "0.0", inclusive = true, message = MessageConstant.MIN_SALARY_MINIMUM)//最低薪资不能低于0
-    @NotNull(message = "最低薪资不能为空")  // 非空验证
+    @NotNull(message = MessageConstant.MIN_SALARY_IS_NULL)  // 非空验证
     private BigDecimal mineSalary; //最低薪资
 
 
     @DecimalMax(value = "10000.0", inclusive = true, message = MessageConstant.MAX_SALARY_MAXIMUM)//最高薪资小于等于10000.0
-    @NotNull(message = "最低薪资不能为空")  // 非空验证
+    @NotNull(message = MessageConstant.MAX_SALARY_IS_NULL)  // 非空验证
     private BigDecimal maxSalary; //最高薪资
 
     private LocalDate startTime; //开始时间

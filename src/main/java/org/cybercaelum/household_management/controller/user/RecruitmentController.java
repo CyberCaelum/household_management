@@ -13,6 +13,7 @@ import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.RecruitmentVO;
 import org.cybercaelum.household_management.service.RecruitmentService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,6 +51,7 @@ public class RecruitmentController {
         recruitmentService.addRecruitment(recruitmentDTO);
         return Result.success();
     }
+
     /**
      * @description 修改招募状态
      * @author CyberCaelum
@@ -96,9 +98,17 @@ public class RecruitmentController {
         PageResult pageResult = recruitmentService.pageRecruitment(recruitmentPageDTO);
         return Result.success(pageResult);
     }
-    //删除招募
-    //根据薪资范围查询招募
-    //根据开始结束时间查找招募
-    //根据时间长度查找
-    //城市查询
+
+    /**
+     * @description 删除招募
+     * @author CyberCaelum
+     * @date 下午3:07 2026/1/23
+     * @param Ids 招募id列表
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    public Result deleteRecruitment(@RequestParam List<Long> Ids){
+        log.info("删除招募:{}",Ids);
+        recruitmentService.deleteRecruitment(Ids);
+        return Result.success();
+    }
 }

@@ -12,6 +12,8 @@ import org.cybercaelum.household_management.pojo.dto.RecruitmentPageDTO;
 import org.cybercaelum.household_management.pojo.entity.Recruitment;
 import org.cybercaelum.household_management.pojo.vo.RecruitmentVO;
 
+import java.util.List;
+
 @Mapper
 public interface RecruitmentMapper {
     /**
@@ -50,4 +52,12 @@ public interface RecruitmentMapper {
      * @return com.github.pagehelper.Page<org.cybercaelum.household_management.pojo.vo.RecruitmentVO>
      **/
     Page<RecruitmentVO> pageRecruitment(RecruitmentPageDTO recruitmentPageDTO);
+
+    /**
+     * @description 删除招募
+     * @author CyberCaelum
+     * @date 下午3:28 2026/1/23
+     * @param ids id列表
+     **/
+    void deleteRecruitment(List<Long> ids);
 }

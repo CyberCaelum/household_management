@@ -62,6 +62,80 @@
         </set>
         where id = #{id}
     </update>
+    <select id="pageRecruitment" resultType="org.cybercaelum.household_management.pojo.vo.RecruitmentVO">
+        select * from recruitment
+        <where>
+            <!-- 只查询已发布的 -->
+            AND status = 1
+
+            <!-- 标题模糊匹配 -->
+            <if test="title != null and title != ''">
+                AND title LIKE CONCAT('%', #{title}, '%')
+            </if>
+
+            <!-- 地区查询：市级别 -->
+            <if test="cityCode != null and cityCode != ''">
+                AND city_code = #{cityCode}
+            </if>
+
+            <!-- 时长匹配 -->
+            <if test="durationType != null">
+                <choose>
+                    <!-- 7天以内 -->
+                    <when test="durationType == 1">
+                        AND DATEDIFF(end_time, start_time) &lt;= 7
+                    </when>
+                    <!-- 15天以内 -->
+                    <when test="durationType == 2">
+                        AND DATEDIFF(end_time, start_time) &lt;= 15
+                    </when>
+                    <!-- 30天以内 -->
+                    <when test="durationType == 3">
+                        AND DATEDIFF(end_time, start_time) &lt;= 30
+                    </when>
+                    <!-- 60天以内 -->
+                    <when test="durationType == 4">
+                        AND DATEDIFF(end_time, start_time) &lt;= 60
+                    </when>
+                    <!-- 60天以外 -->
+                    <when test="durationType == 5">
+                        AND DATEDIFF(end_time, start_time) &gt; 60
+                    </when>
+                </choose>
+            </if>
+
+            <!-- 薪资匹配：范围重叠查询（两个薪资范围有交集） -->
+            <if test="minSalary != null and maxSalary != null">
+                AND (
+                <!-- 用户薪资范围与招聘薪资范围有重叠 -->
+                (#{minSalary} BETWEEN mine_salary AND max_salary)
+                OR (#{maxSalary} BETWEEN mine_salary AND max_salary)
+                OR (mine_salary BETWEEN #{minSalary} AND #{maxSalary})
+                OR (max_salary BETWEEN #{minSalary} AND #{maxSalary})
+                )
+            </if>
+
+            <!-- 薪资匹配：单边条件查询 -->
+            <if test="minSalary != null and maxSalary == null">
+                AND max_salary &gt;= #{minSalary}
+            </if>
+            <if test="maxSalary != null and minSalary == null">
+                AND mine_salary &lt;= #{maxSalary}
+            </if>
+
+            <!-- 薪资匹配：精确包含查询（目标薪资完全在招聘薪资范围内） -->
+            <if test="exactMinSalary != null and exactMaxSalary != null">
+                AND mine_salary &lt;= #{exactMinSalary}
+                AND max_salary &gt;= #{exactMaxSalary}
+            </if>
+        </where>
+    </select>
+    <update id="deleteRecruitment">
+        update recruitment set status = 0 WHERE
+        <foreach collection="ids" item="id" separator=" OR ">
+            id = #{id}
+        </foreach>
+    </update>
 </mapper>
 
 

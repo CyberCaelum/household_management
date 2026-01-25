@@ -4,6 +4,8 @@ import org.cybercaelum.household_management.pojo.dto.RecruitmentDTO;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentPageDTO;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
 
+import java.util.List;
+
 public interface RecruitmentService {
     void addRecruitment(RecruitmentDTO recruitmentDTO);
 
@@ -12,4 +14,6 @@ public interface RecruitmentService {
     void updateRecruitment(RecruitmentDTO recruitmentDTO);
 
     PageResult pageRecruitment(RecruitmentPageDTO recruitmentPageDTO);
+
+    void deleteRecruitment(List<Long> ids);
 }

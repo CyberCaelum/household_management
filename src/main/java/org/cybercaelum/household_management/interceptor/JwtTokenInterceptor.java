@@ -76,6 +76,22 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
             return false;
         }
     }
+    /**
+     * @description 每次请求处理后清理线程
+     * @author CyberCaelum
+     * @date 下午3:23 2026/1/23
+     * @param request 请求信息
+     * @param response 返回信息
+     * @param handler 拦截的资源
+     * @param ex 错误
+     **/
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
+                                Object handler, Exception ex) {
+        // 确保每个请求完成后都清理 ThreadLocal
+        BaseContext.remove();
+        log.info("ThreadLocal 已清理");
+    }
 }
 
 

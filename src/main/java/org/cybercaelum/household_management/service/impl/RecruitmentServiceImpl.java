@@ -63,7 +63,7 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         }
         //判断是否是本人
         if (!Objects.equals(BaseContext.getUserId(), recruitment.getUserId())) {
-            throw new PermissionException("招募状态修改失败");
+            throw new PermissionException("没有权限");
         }
         //判断状态是否正确
         if (status != 0 && status != 1 && status != 2 && status != 3){
@@ -90,7 +90,7 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         }
         //判断是否是本人
         if (!Objects.equals(BaseContext.getUserId(), recruitment.getUserId())) {
-            throw new PermissionException("招募状态修改失败");
+            throw new PermissionException("没有权限");
         }
         //修改招募
         recruitmentMapper.updateRecruitment(recruitment);
@@ -108,6 +108,30 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         PageHelper.startPage(recruitmentPageDTO.getPage(),recruitmentPageDTO.getPageSize());
         Page<RecruitmentVO> page =recruitmentMapper.pageRecruitment(recruitmentPageDTO);
         return new PageResult(page.getTotal(),page.getResult());
-        return null;
     }
+
+    /**
+     * @description 删除招募
+     * @author CyberCaelum
+     * @date 下午3:27 2026/1/23
+     * @param ids 招募id列表
+     **/
+    @Override
+    public void deleteRecruitment(List<Long> ids) {
+        for (Long id : ids) {
+            //查找招募
+            Recruitment recruitment = recruitmentMapper.selectRecruitmentById(id);
+            //判断招募是否存在
+            if (recruitment == null) {
+                throw new RequirementNullException("招募不存在");
+            }
+            //判断是否是本人
+            if (!Objects.equals(BaseContext.getUserId(), recruitment.getUserId())) {
+                throw new PermissionException("没有权限");
+            }
+        }
+        recruitmentMapper.deleteRecruitment(ids);
+    }
+
+
 }

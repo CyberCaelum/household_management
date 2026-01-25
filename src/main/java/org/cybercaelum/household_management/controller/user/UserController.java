@@ -44,7 +44,6 @@ public class UserController {
     public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO) {
         log.info("用户登录{}",userLoginDTO);
         UserLoginVO userLoginVO = userService.login(userLoginDTO);
-        BaseContext.remove();
         return Result.success(userLoginVO);
     }
 
@@ -60,7 +59,6 @@ public class UserController {
     public Result<UserLoginVO> register(@Valid @RequestBody UserRegisterDTO userRegisterDTO) {
         log.info("用户登录{}",userRegisterDTO);
         UserLoginVO userLoginVO = userService.register(userRegisterDTO);
-        BaseContext.remove();
         return Result.success(userLoginVO);
     }
 
@@ -75,7 +73,6 @@ public class UserController {
     @PostMapping("/logout")
     public Result<String> logout(){
         log.info("用户退出登录");
-        BaseContext.remove();
         return Result.success();
     }
 
@@ -92,7 +89,6 @@ public class UserController {
     public Result<UserLoginVO> updateUser(@RequestBody UserUpdateDTO userUpdateDTO){
         log.info("用户更新{}",userUpdateDTO);
         UserLoginVO userLoginVO = userService.updateUser(userUpdateDTO);
-        BaseContext.remove();
         return Result.success(userLoginVO);
     }
 
@@ -108,7 +104,6 @@ public class UserController {
     public Result<String> cancel(){
         log.info("用户注销");
         userService.cancel();
-        BaseContext.remove();
         return Result.success();
     }
 }
