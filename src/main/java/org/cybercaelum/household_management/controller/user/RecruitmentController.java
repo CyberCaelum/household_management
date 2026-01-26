@@ -10,6 +10,7 @@ import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentDTO;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentPageDTO;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
+import org.cybercaelum.household_management.pojo.entity.Recruitment;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.RecruitmentVO;
 import org.cybercaelum.household_management.service.RecruitmentService;
@@ -92,6 +93,7 @@ public class RecruitmentController {
      * @param recruitmentPageDTO 分页信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @Operation(summary = "分页查询招募",description = "分页查询招募")
     @GetMapping("/page")
     public Result pageRecruitment(RecruitmentPageDTO recruitmentPageDTO){
         log.info("分页查询招募信息：{}", recruitmentPageDTO);
@@ -106,9 +108,27 @@ public class RecruitmentController {
      * @param Ids 招募id列表
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "删除招募",description = "删除招募")
+    @DeleteMapping("/delete")
     public Result deleteRecruitment(@RequestParam List<Long> Ids){
         log.info("删除招募:{}",Ids);
         recruitmentService.deleteRecruitment(Ids);
         return Result.success();
+    }
+
+    /**
+     * @description 根据id查询招募详细信息
+     * @author CyberCaelum
+     * @date 下午6:24 2026/1/26
+     * @param id
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "根据id查询招募信息",description = "根据id查询招募信息")
+    @GetMapping("/{id}")
+    public Result getRecruitment(@PathVariable Long id){
+        log.info("根据id查询招募详细信息：{}",id);
+        RecruitmentVO recruitmentVO = recruitmentService.getRecruitment(id);
+        return Result.success(recruitmentVO);
     }
 }

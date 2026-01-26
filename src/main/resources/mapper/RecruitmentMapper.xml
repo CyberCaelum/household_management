@@ -63,7 +63,7 @@
         where id = #{id}
     </update>
     <select id="pageRecruitment" resultType="org.cybercaelum.household_management.pojo.vo.RecruitmentVO">
-        select * from recruitment
+        select recruitment.id, title, mine_salary, max_salary, start_time, end_time, recruitment.status, province_code, province_name, city_code, city_name, district_code, district_name, detail, username, profile_url, update_time from recruitment,user
         <where>
             <!-- 只查询已发布的 -->
             AND status = 1

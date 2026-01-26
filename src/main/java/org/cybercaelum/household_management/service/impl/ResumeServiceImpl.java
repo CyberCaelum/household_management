@@ -6,6 +6,7 @@ import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.mapper.ResumeMapper;
 import org.cybercaelum.household_management.pojo.dto.ResumeDTO;
 import org.cybercaelum.household_management.pojo.entity.Resume;
+import org.cybercaelum.household_management.pojo.vo.ResumeVO;
 import org.cybercaelum.household_management.service.ResumeService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -32,5 +33,11 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setUserId(BaseContext.getUserId());
         //存入数据库
         resumeMapper.addResume(resume);
+    }
+
+    @Override
+    public ResumeVO getResume(Long id) {
+        ResumeVO resumeVO = resumeMapper.getResumeByUserId(id);
+        return resumeVO;
     }
 }

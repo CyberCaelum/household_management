@@ -1,6 +1,7 @@
 package org.cybercaelum.household_management.service;
 
 import org.cybercaelum.household_management.pojo.dto.ResumeDTO;
+import org.cybercaelum.household_management.pojo.vo.ResumeVO;
 
 /**
  * @author CyberCaelum
@@ -10,4 +11,6 @@ import org.cybercaelum.household_management.pojo.dto.ResumeDTO;
  */
 public interface ResumeService {
     void addResume(ResumeDTO resumeDTO);
+
+    ResumeVO getResume(Long id);
 }

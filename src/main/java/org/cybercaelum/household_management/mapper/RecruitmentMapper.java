@@ -32,7 +32,10 @@ public interface RecruitmentMapper {
      * @param recruitmentId 招募id
      * @return org.cybercaelum.household_management.pojo.entity.Recruitment
      **/
-    @Select("select * from recruitment where id = #{recruitmentId}")
+    @Select("select id, title, mine_salary, max_salary, start_time, end_time," +
+            " status, province_code, province_name, city_code, city_name, district_code, " +
+            "district_name, detail, user_id, create_time, update_time " +
+            "from recruitment where id = #{recruitmentId}")
     Recruitment selectRecruitmentById(Long recruitmentId);
 
     /**
@@ -60,4 +63,14 @@ public interface RecruitmentMapper {
      * @param ids id列表
      **/
     void deleteRecruitment(List<Long> ids);
+
+    /**
+     * @description 根据招募id查询招募和用户信息
+     * @author CyberCaelum
+     * @date 下午6:30 2026/1/26
+     * @param id 招募id
+     * @return org.cybercaelum.household_management.pojo.entity.Recruitment
+     **/
+    @Select("select recruitment.id, title, mine_salary, max_salary, start_time, end_time, requirement, recruitment.status, province_code, province_name, city_code, city_name, district_code, district_name, detail, user_id, recruitment.create_time, update_time,username,profile_url from recruitment,user where recruitment.id = #{id}")
+    RecruitmentVO selectRecruitmentUserInfoById(Long id);
 }

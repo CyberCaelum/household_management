@@ -9,11 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.pojo.dto.ResumeDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.entity.Resume;
+import org.cybercaelum.household_management.pojo.vo.ResumeVO;
 import org.cybercaelum.household_management.service.ResumeService;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @author CyberCaelum
@@ -32,7 +31,7 @@ public class ResumeController {
     private final ResumeService resumeService;
 
     /**
-     * @description 新增简介
+     * @description 新增简历
      * @author CyberCaelum
      * @date 下午7:43 2026/1/25
      * @param resumeDTO 简介信息
@@ -40,10 +39,27 @@ public class ResumeController {
      **/
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/add")
-    @Operation(summary = "新增简介",description = "新增简介")
+    @Operation(summary = "新增简历",description = "新增简历")
     public Result addResume(@Valid ResumeDTO resumeDTO) {
-        log.info("新增简介：{}", resumeDTO);
+        log.info("新增简历：{}", resumeDTO);
         resumeService.addResume(resumeDTO);
         return Result.success();
     }
+
+    //增删改查
+    /**
+     * @description 根据用户id查询简历
+     * @author CyberCaelum
+     * @date 下午7:03 2026/1/26
+     * @param id 用户id
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "根据用户id查找简历",description = "根据用户id查找简历")
+    @GetMapping("/{id}")
+    public Result getResume(@PathVariable Long id) {
+        log.info("根据用户id查找简历信息：{}",id);
+        ResumeVO resumeVO = resumeService.getResume(id);
+        return Result.success(resumeVO);
+    }
+
 }

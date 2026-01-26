@@ -133,5 +133,15 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         recruitmentMapper.deleteRecruitment(ids);
     }
 
-
+    /**
+     * @description 根据招募id查询招募信息
+     * @author CyberCaelum
+     * @date 下午6:55 2026/1/26
+     * @param id 招募id
+     * @return org.cybercaelum.household_management.pojo.vo.RecruitmentVO
+     **/
+    @Override
+    public RecruitmentVO getRecruitment(Long id) {
+        return recruitmentMapper.selectRecruitmentUserInfoById(id);
+    }
 }

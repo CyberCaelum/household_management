@@ -36,6 +36,7 @@ public class RecruitmentVO implements Serializable {
     private String districtCode; //区县编号
     private String districtName; //区县名称
     private String detail; //详细地址信息
+    private Long userId;//用户id
     private String username;//用户名
     private String profileUrl;//头像地址
     private LocalDateTime createTime; //创建时间
