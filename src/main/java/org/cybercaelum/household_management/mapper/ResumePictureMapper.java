@@ -18,9 +18,13 @@ import java.util.List;
 @Mapper
 public interface ResumePictureMapper {
 
+    /**
+     * @description 插入图片
+     * @author CyberCaelum
+     * @date 下午8:23 2026/1/30
+     * @param resumePictureList 简历图片列表
+     **/
     @AutoFill(value = OperationType.INSERT)
     void addResumePicture(@Param("pictures") List<ResumePicture> resumePictureList);
 
-    @Select("select url from resume_picture,resume where resume.user_id = #{id} and resume_id = resume.id")
-    List<String> getPicturesByUserId(Long id);
 }

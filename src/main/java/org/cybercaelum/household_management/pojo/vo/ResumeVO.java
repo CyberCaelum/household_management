@@ -23,5 +23,4 @@ public class ResumeVO {
     private LocalDateTime createDate; //创建时间
     private LocalDateTime updateDate; //修改时间
     private Integer visibility; //是否可见，0为不可见，1为可见
-    private List<String> picture; //相关图片
 }

@@ -143,6 +143,18 @@ public class RecruitmentServiceImpl implements RecruitmentService {
      **/
     @Override
     public RecruitmentVO getRecruitment(Long id) {
-        return recruitmentMapper.selectRecruitmentUserInfoById(id);
+        RecruitmentVO recruitmentVO = recruitmentMapper.selectRecruitmentUserInfoById(id);
+        if (recruitmentVO == null) {
+            return null;
+        }
+        Long userId = BaseContext.getUserId();
+        //判断是不是用户自己的招募
+        if (userId == null || !userId.equals(recruitmentVO.getUserId())) {//不是自己的
+            //判断可见性
+            if (recruitmentVO.getStatus() != 1){
+                return null;
+            }
+        }
+        return recruitmentVO;
     }
 }

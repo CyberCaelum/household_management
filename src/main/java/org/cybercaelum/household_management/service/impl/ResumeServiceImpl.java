@@ -13,6 +13,7 @@ import org.cybercaelum.household_management.pojo.vo.ResumeVO;
 import org.cybercaelum.household_management.service.ResumeService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,13 @@ public class ResumeServiceImpl implements ResumeService {
     private final ResumeMapper resumeMapper;
     private final ResumePictureMapper resumePictureMapper;
 
+    /**
+     * @description 新增简介
+     * @author CyberCaelum
+     * @date 下午8:26 2026/1/30
+     * @param resumeDTO 简介信息
+     **/
+    @Transactional
     @Override
     public void addResume(ResumeDTO resumeDTO) {
 
@@ -62,12 +70,21 @@ public class ResumeServiceImpl implements ResumeService {
         resumePictureMapper.addResumePicture(resumePictureList);
     }
 
+    /**
+     * @description 通过用户id查看简历
+     * @author CyberCaelum
+     * @date 下午8:27 2026/1/30
+     * @param id 用户主键
+     * @return org.cybercaelum.household_management.pojo.vo.ResumeVO
+     **/
     @Override
     public ResumeVO getResume(Long id) {
         //判断是否是用户自己查看
         Long userId = BaseContext.getUserId();
         ResumeVO resumeVO = resumeMapper.getResumeByUserId(id);
-        resumeVO.setPicture(resumePictureMapper.getPicturesByUserId(id));
+        if (resumeVO == null) {
+            return null;
+        }
         //不是本人
         if (userId == null || !userId.equals(resumeVO.getUserId())){
             //判断可见性
