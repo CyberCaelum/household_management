@@ -37,4 +37,5 @@ public class MessageConstant {
     public static final String PHONE_STANDARD = "电话号码格式不正确";
     public static final String MIN_SALARY_IS_NULL = "最低薪资不能为空";
     public static final String MAX_SALARY_IS_NULL = "最高薪资不能为空";
+    public static final String DURATION_TYPE_ERROR = "天数范围错误";
 }

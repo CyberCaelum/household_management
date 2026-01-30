@@ -125,7 +125,7 @@ public class RecruitmentController {
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
     @Operation(summary = "根据id查询招募信息",description = "根据id查询招募信息")
-    @GetMapping("/{id}")
+    @GetMapping("/info/{id}")
     public Result getRecruitment(@PathVariable Long id){
         log.info("根据id查询招募详细信息：{}",id);
         RecruitmentVO recruitmentVO = recruitmentService.getRecruitment(id);

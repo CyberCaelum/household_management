@@ -25,6 +25,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
         registry.addInterceptor(jwtTokenInterceptor)
                 .addPathPatterns("/user/**")
                 .addPathPatterns("/recruitment/**")
+                .addPathPatterns("/resume/**")
                 .excludePathPatterns(
                         "/user/login",
                         "/user/register",
@@ -40,9 +41,8 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                         "/swagger-ui/index.html",
                         "/swagger-ui/index.html/**",
                         // 添加更多可能的路径
-                        "/favicon.ico",
-                        "/error",
-                        "/csrf"
+                        "/recruitment/page",
+                        "/recruitment/info/*"
                 );
     }
 }

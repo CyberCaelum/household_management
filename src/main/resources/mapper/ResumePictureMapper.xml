@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cybercaelum.household_management.mapper.ResumePictureMapper">
+    <insert id="addResumePicture">
+        insert into resume_picture (url, resume_id, create_time, user_id, status, update_time) VALUE
+        <foreach collection="pictures" item="pt" separator=",">
+            (#{pt.url},#{resumeId},#{createTime},#{userId},#{status},#{updateTime})
+        </foreach>
+    </insert>
+</mapper>

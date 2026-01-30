@@ -18,8 +18,6 @@ import java.util.List;
 @NoArgsConstructor
 public class ResumeDTO {
     private String resumeData; //简历信息，markdown
-    private LocalDateTime createDate; //创建时间
-    private LocalDateTime updateDate; //修改时间
     private Integer visibility; //是否可见，0为不可见，1为可见
-    private List<ResumeDTO> pictures; //简历附加的图片
+    private List<String> pictures; //简历附加的图片
 }

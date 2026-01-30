@@ -107,6 +107,7 @@ public class RecruitmentServiceImpl implements RecruitmentService {
     public PageResult pageRecruitment(RecruitmentPageDTO recruitmentPageDTO) {
         PageHelper.startPage(recruitmentPageDTO.getPage(),recruitmentPageDTO.getPageSize());
         Page<RecruitmentVO> page =recruitmentMapper.pageRecruitment(recruitmentPageDTO);
+        log.info("pageRecruitment:{}",page.getResult());
         return new PageResult(page.getTotal(),page.getResult());
     }
 
