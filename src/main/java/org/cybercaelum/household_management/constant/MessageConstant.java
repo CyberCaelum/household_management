@@ -38,4 +38,16 @@ public class MessageConstant {
     public static final String MIN_SALARY_IS_NULL = "最低薪资不能为空";
     public static final String MAX_SALARY_IS_NULL = "最高薪资不能为空";
     public static final String DURATION_TYPE_ERROR = "天数范围错误";
+
+    // 评论相关
+    public static final String COMMENT_CONTENT_EMPTY = "评论内容不能为空";
+    public static final String COMMENT_CONTENT_TOO_LONG = "评论内容不能超过500字";
+    public static final String COMMENT_LEVEL_EMPTY = "评分不能为空";
+    public static final String COMMENT_LEVEL_INVALID = "评分必须在1-5分之间";
+    public static final String COMMENTED_USER_ID_EMPTY = "被评论用户不能为空";
+    public static final String ORDER_ID_EMPTY = "订单不能为空";
+    public static final String COMMENT_NOT_FOUND = "评论不存在";
+    public static final String COMMENT_NOT_ALLOWED = "您无权操作此评论";
+    public static final String ORDER_NOT_COMPLETED = "订单未完成，无法评价";
+    public static final String COMMENT_ALREADY_EXISTS = "您已对该订单发表过评价";
 }

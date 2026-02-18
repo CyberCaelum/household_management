@@ -1,8 +1,6 @@
 package org.cybercaelum.household_management.mapper;
 
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 import org.cybercaelum.household_management.annotation.AutoFill;
 import org.cybercaelum.household_management.enumeration.OperationType;
 import org.cybercaelum.household_management.pojo.entity.Resume;
@@ -34,7 +32,36 @@ public interface ResumeMapper {
      * @param id 用户id
      * @return org.cybercaelum.household_management.pojo.vo.ResumeVO
      **/
-    @Select("select id,resume_data,create_time,update_time from resume where user_id = #{id}")
+    @Select("select id,resume_data,create_time,update_time,visibility from resume where user_id = #{id}")
     ResumeVO getResumeByUserId(Long id);
+
+    /**
+     * @description 根据用户id查询简历
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param userId 用户id
+     * @return org.cybercaelum.household_management.pojo.entity.Resume
+     **/
+    @Select("select * from resume where user_id = #{userId}")
+    Resume getByUserId(Long userId);
+
+    /**
+     * @description 更新简历信息
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param resume 简历信息
+     **/
+    @AutoFill(value = OperationType.UPDATE)
+    void updateResume(Resume resume);
+
+    /**
+     * @description 根据id查询简历
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param id 简历id
+     * @return org.cybercaelum.household_management.pojo.entity.Resume
+     **/
+    @Select("select * from resume where id = #{id}")
+    Resume getById(Long id);
 
 }

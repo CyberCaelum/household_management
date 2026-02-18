@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.IsResumeExistException;
+import org.cybercaelum.household_management.exception.ResumeNotFoundException;
 import org.cybercaelum.household_management.mapper.ResumeMapper;
 import org.cybercaelum.household_management.mapper.ResumePictureMapper;
 import org.cybercaelum.household_management.pojo.dto.ResumeDTO;
@@ -93,5 +94,62 @@ public class ResumeServiceImpl implements ResumeService {
             }
         }
         return resumeVO;
+    }
+
+    /**
+     * @description 修改简历信息
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param resumeDTO 简历信息
+     **/
+    @Transactional
+    @Override
+    public void updateResume(ResumeDTO resumeDTO) {
+        Long userId = BaseContext.getUserId();
+        //查询用户简历
+        Resume resume = resumeMapper.getByUserId(userId);
+        if (resume == null) {
+            throw new ResumeNotFoundException("简历不存在");
+        }
+        //更新简历信息
+        resume.setResumeData(resumeDTO.getResumeData());
+        resumeMapper.updateResume(resume);
+        
+        //处理图片更新：先删除旧图片，再添加新图片
+        if (resumeDTO.getPictures() != null) {
+            //删除旧图片
+            resumePictureMapper.deleteByResumeId(resume.getId());
+            //添加新图片
+            List<ResumePicture> resumePictureList = new ArrayList<>();
+            for (String picture : resumeDTO.getPictures()) {
+                ResumePicture resumePicture = ResumePicture.builder()
+                        .url(picture)
+                        .resumeId(resume.getId())
+                        .status(1)
+                        .build();
+                resumePictureList.add(resumePicture);
+            }
+            resumePictureMapper.addResumePicture(resumePictureList);
+        }
+    }
+
+    /**
+     * @description 修改简历可见性状态
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param visibility 可见性，0为不可见，1为可见
+     **/
+    @Transactional
+    @Override
+    public void updateVisibility(Integer visibility) {
+        Long userId = BaseContext.getUserId();
+        //查询用户简历
+        Resume resume = resumeMapper.getByUserId(userId);
+        if (resume == null) {
+            throw new ResumeNotFoundException("简历不存在");
+        }
+        //更新可见性状态
+        resume.setVisibility(visibility);
+        resumeMapper.updateResume(resume);
     }
 }

@@ -1,5 +1,6 @@
 package org.cybercaelum.household_management.mapper;
 
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -26,5 +27,14 @@ public interface ResumePictureMapper {
      **/
     @AutoFill(value = OperationType.INSERT)
     void addResumePicture(@Param("pictures") List<ResumePicture> resumePictureList);
+
+    /**
+     * @description 根据简历id删除图片
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param resumeId 简历id
+     **/
+    @Delete("delete from resume_picture where resume_id = #{resumeId}")
+    void deleteByResumeId(Long resumeId);
 
 }

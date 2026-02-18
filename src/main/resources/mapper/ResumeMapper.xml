@@ -7,4 +7,14 @@
         insert into resume (user_id, resume_data, create_time, update_time, visibility)
             VALUE (#{userId},#{resumeData},#{createTime},#{updateTime},#{visibility})
     </insert>
+
+    <update id="updateResume">
+        update resume
+        <set>
+            <if test="resumeData != null">resume_data = #{resumeData},</if>
+            <if test="visibility != null">visibility = #{visibility},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        where id = #{id}
+    </update>
 </mapper>

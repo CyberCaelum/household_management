@@ -62,4 +62,36 @@ public class ResumeController {
         return Result.success(resumeVO);
     }
 
+    /**
+     * @description 修改简历信息
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param resumeDTO 简历信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/update")
+    @Operation(summary = "修改简历",description = "修改简历信息")
+    public Result updateResume(@Valid @RequestBody ResumeDTO resumeDTO) {
+        log.info("修改简历：{}", resumeDTO);
+        resumeService.updateResume(resumeDTO);
+        return Result.success();
+    }
+
+    /**
+     * @description 修改简历可见性状态
+     * @author CyberCaelum
+     * @date 2026/2/18
+     * @param visibility 可见性，0为不可见，1为可见
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/visibility/{visibility}")
+    @Operation(summary = "修改简历可见性",description = "修改简历可见性状态，0为不可见，1为可见")
+    public Result updateVisibility(@PathVariable Integer visibility) {
+        log.info("修改简历可见性：{}", visibility);
+        resumeService.updateVisibility(visibility);
+        return Result.success();
+    }
+
 }
