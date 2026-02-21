@@ -1,9 +1,7 @@
 package org.cybercaelum.household_management.mapper;
 
-import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 import org.cybercaelum.household_management.annotation.AutoFill;
 import org.cybercaelum.household_management.enumeration.OperationType;
 import org.cybercaelum.household_management.pojo.entity.ResumePicture;
@@ -29,12 +27,11 @@ public interface ResumePictureMapper {
     void addResumePicture(@Param("pictures") List<ResumePicture> resumePictureList);
 
     /**
-     * @description 根据简历id删除图片
+     * @description 根据简历id逻辑删除图片（将status更新为0）
      * @author CyberCaelum
      * @date 2026/2/18
      * @param resumeId 简历id
      **/
-    @Delete("delete from resume_picture where resume_id = #{resumeId}")
     void deleteByResumeId(Long resumeId);
 
 }

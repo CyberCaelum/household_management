@@ -6,7 +6,14 @@
     <insert id="addResumePicture">
         insert into resume_picture (url, resume_id, create_time, user_id, status, update_time) VALUE
         <foreach collection="pictures" item="pt" separator=",">
-            (#{pt.url},#{resumeId},#{createTime},#{userId},#{status},#{updateTime})
+            (#{pt.url},#{pt.resumeId},#{pt.createTime},#{pt.userId},#{pt.status},#{pt.updateTime})
         </foreach>
     </insert>
+
+    <!-- 逻辑删除简历图片：将状态更新为0 -->
+    <update id="deleteByResumeId">
+        update resume_picture
+        set status = 0, update_time = now()
+        where resume_id = #{resumeId} and status = 1
+    </update>
 </mapper>

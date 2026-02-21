@@ -56,7 +56,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     /**
-     * @description 删除评论（逻辑删除）
+     * @description 删除评论
      * @author CyberCaelum
      * @date 2026/2/18
      * @param id 评论id
