@@ -53,3 +53,12 @@ household:
     access-key-id: ${household.alioss.access-key-id}
     access-key-secret: ${household.alioss.access-key-secret}
     bucket-name: ${household.alioss.bucket-name}
+  openim:
+    # OpenIM API 地址
+    api-address: ${household.openim.api-address}
+    # OpenIM 管理员密钥
+    secret: ${household.openim.secret}
+    # OpenIM 管理员账号
+    admin-user-id: ${household.openim.admin-user-id:imAdmin}
+    # 默认平台ID (1-9)
+    default-platform-id: ${household.openim.default-platform-id:1}

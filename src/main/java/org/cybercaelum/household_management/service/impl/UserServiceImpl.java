@@ -1,6 +1,7 @@
 package org.cybercaelum.household_management.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.JwtClaimsConstant;
 import org.cybercaelum.household_management.constant.MessageConstant;
 import org.cybercaelum.household_management.constant.RoleConstant;
@@ -14,18 +15,15 @@ import org.cybercaelum.household_management.mapper.UserMapper;
 import org.cybercaelum.household_management.pojo.dto.UserLoginDTO;
 import org.cybercaelum.household_management.pojo.dto.UserRegisterDTO;
 import org.cybercaelum.household_management.pojo.dto.UserUpdateDTO;
-import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.entity.User;
 import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.cybercaelum.household_management.properties.JwtProperties;
+import org.cybercaelum.household_management.service.OpenImService;
 import org.cybercaelum.household_management.service.UserService;
 import org.cybercaelum.household_management.utils.JwtUtil;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -39,13 +37,15 @@ import java.util.Map;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final JwtProperties jwtProperties;
+    private final OpenImService openImService;
 
     /**
-     * @description 创建token
+     * @description 创建token并获取 OpenIM token
      * @author CyberCaelum
      * @date 下午7:45 2025/10/23
      * @param user 用户类
@@ -60,11 +60,23 @@ public class UserServiceImpl implements UserService {
                 jwtProperties.getUserSecretKey(),
                 jwtProperties.getUserTtl(),
                 claims);
+        
+        // 获取 OpenIM token
+        String openImToken = null;
+        try {
+            String userIdStr = String.valueOf(user.getId());
+            openImToken = openImService.getUserToken(userIdStr);
+        } catch (Exception e) {
+            log.error("获取 OpenIM token 失败, userId={}", user.getId(), e);
+            // 不影响主流程，继续返回登录结果
+        }
+        
         return UserLoginVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .profileUrl(user.getProfileUrl())
                 .token(token)
+                .openImToken(openImToken)
                 .build();
     }
 
@@ -93,7 +105,7 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * @description 用户注册
+     * @description 用户注册（同时注册到 OpenIM）
      * @author CyberCaelum
      * @date 下午8:49 2025/10/20
      * @param userRegisterDTO 用户名，密码，电话号
@@ -128,13 +140,23 @@ public class UserServiceImpl implements UserService {
                 .createTime(LocalDateTime.now())
                 .phoneNumber(phoneNumber)
                 .build();
-        //新用户注
+        //新用户注册
         userMapper.insertNewUser(user1);
+        
+        // 注册到 OpenIM（使用生成的用户ID）
+        try {
+            String userIdStr = String.valueOf(user1.getId());
+            openImService.registerUser(userIdStr, username, user1.getProfileUrl());
+        } catch (Exception e) {
+            log.error("OpenIM 用户注册失败, userId={}", user1.getId(), e);
+            // 记录日志，但不影响主流程
+        }
+        
         return newLogin(user1);
     }
 
     /**
-     * @description 更新用户信息
+     * @description 更新用户信息（同时更新 OpenIM）
      * @author CyberCaelum
      * @date 下午8:06 2025/10/23
      * @param userUpdateDTO id,手机号，用户名，密码，头像
@@ -148,6 +170,16 @@ public class UserServiceImpl implements UserService {
         BeanUtils.copyProperties(userUpdateDTO, user);
         user.setPassword(password);
         userMapper.updateUser(user);
+        
+        // 同步更新 OpenIM 用户信息
+        try {
+            String userIdStr = String.valueOf(user.getId());
+            openImService.updateUserInfo(userIdStr, user.getUsername(), user.getProfileUrl());
+        } catch (Exception e) {
+            log.error("OpenIM 更新用户信息失败, userId={}", user.getId(), e);
+            // 记录日志，但不影响主流程
+        }
+        
         return newLogin(user);
     }
 
@@ -163,7 +195,4 @@ public class UserServiceImpl implements UserService {
         //设置用户发过的招聘为不可见
         //删除线程的信息
     }
-
-
-
 }

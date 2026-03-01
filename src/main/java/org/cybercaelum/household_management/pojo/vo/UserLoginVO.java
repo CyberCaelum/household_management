@@ -20,4 +20,5 @@ public class UserLoginVO {
     private String username; //用户名
     private String profileUrl; //头像地址
     private String token; //token
+    private String openImToken; //OpenIM token
 }
