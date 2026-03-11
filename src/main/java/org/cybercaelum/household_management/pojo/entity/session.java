@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class session implements Serializable {
+public class Session implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 

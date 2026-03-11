@@ -45,9 +45,9 @@ household:
     # 密钥
     user-secret-key: ${household.jwt.user-secret-key}
     # 过期时间
-    user-ttl: ${springdoc.household.jwt.user-ttl}
+    user-ttl: ${household.jwt.user-ttl}
     #令牌名字
-    user-token-name: ${springdoc.household.jwt.user-token-name}
+    user-token-name: ${household.jwt.user-token-name}
   alioss:
     endpoint: ${household.alioss.endpoint}
     access-key-id: ${household.alioss.access-key-id}

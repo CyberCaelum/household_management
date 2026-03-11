@@ -4,7 +4,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
-import org.cybercaelum.household_management.pojo.entity.session;
+import org.cybercaelum.household_management.pojo.entity.Session;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ public interface SessionMapper {
      **/
     @Select("select id, recruitment_id, employee_id, employer_id, openim_session_id, status, create_time, update_time " +
             "from session where recruitment_id = #{recruitmentId} and employee_id = #{employeeId} and employer_id = #{employerId} and status = 1")
-    session selectActiveSession(Long recruitmentId, Long employeeId, Long employerId);
+    Session selectActiveSession(Long recruitmentId, Long employeeId, Long employerId);
 
     /**
      * @description 根据id查询会话
@@ -39,7 +39,7 @@ public interface SessionMapper {
      **/
     @Select("select id, recruitment_id, employee_id, employer_id, openim_session_id, status, create_time, update_time " +
             "from session where id = #{id}")
-    session selectById(Long id);
+    Session selectById(Long id);
 
     /**
      * @description 插入新会话
@@ -49,7 +49,7 @@ public interface SessionMapper {
      **/
     @Insert("insert into session(recruitment_id, employee_id, employer_id, openim_session_id, status, create_time, update_time) " +
             "values(#{recruitmentId}, #{employeeId}, #{employerId}, #{openimSessionId}, #{status}, #{createTime}, #{updateTime})")
-    void insertSession(session session);
+    void insertSession(Session session);
 
     /**
      * @description 更新会话状态
@@ -71,5 +71,5 @@ public interface SessionMapper {
     @Select("select id, recruitment_id, employee_id, employer_id, openim_session_id, status, create_time, update_time " +
             "from session where (employee_id = #{userId} or employer_id = #{userId}) and status = 1 " +
             "order by update_time desc")
-    List<session> selectUserSessions(Long userId);
+    List<Session> selectUserSessions(Long userId);
 }

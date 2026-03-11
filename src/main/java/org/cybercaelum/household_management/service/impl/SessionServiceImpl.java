@@ -10,7 +10,7 @@ import org.cybercaelum.household_management.mapper.UserMapper;
 import org.cybercaelum.household_management.pojo.dto.SessionCreateDTO;
 import org.cybercaelum.household_management.pojo.entity.Recruitment;
 import org.cybercaelum.household_management.pojo.entity.User;
-import org.cybercaelum.household_management.pojo.entity.session;
+import org.cybercaelum.household_management.pojo.entity.Session;
 import org.cybercaelum.household_management.pojo.vo.RecruitmentVO;
 import org.cybercaelum.household_management.pojo.vo.SessionCreateVO;
 import org.cybercaelum.household_management.service.SessionService;
@@ -75,7 +75,7 @@ public class SessionServiceImpl implements SessionService {
         Long employeeId = currentUserId;
 
         // 4. 查询是否已存在活动会话
-        session existingSession = sessionMapper.selectActiveSession(recruitmentId, employeeId, employerId);
+        Session existingSession = sessionMapper.selectActiveSession(recruitmentId, employeeId, employerId);
         if (existingSession != null) {
             log.info("已存在活动会话，sessionId: {}", existingSession.getId());
             return buildSessionVO(existingSession);
@@ -86,7 +86,7 @@ public class SessionServiceImpl implements SessionService {
         String openimSessionId = buildOpenimSessionId(employerId, employeeId);
 
         // 5.2 创建会话实体
-        session newSession = session.builder()
+        Session newSession = Session.builder()
                 .recruitmentId(recruitmentId)
                 .employeeId(employeeId)
                 .employerId(employerId)
@@ -112,10 +112,10 @@ public class SessionServiceImpl implements SessionService {
     @Override
     public List<SessionCreateVO> getUserSessions() {
         Long currentUserId = BaseContext.getUserId();
-        List<session> sessions = sessionMapper.selectUserSessions(currentUserId);
+        List<Session> sessions = sessionMapper.selectUserSessions(currentUserId);
         
         List<SessionCreateVO> result = new ArrayList<>();
-        for (session s : sessions) {
+        for (Session s : sessions) {
             result.add(buildSessionVO(s));
         }
         return result;
@@ -132,7 +132,7 @@ public class SessionServiceImpl implements SessionService {
         Long currentUserId = BaseContext.getUserId();
         
         // 查询会话
-        session session = sessionMapper.selectById(sessionId);
+        Session session = sessionMapper.selectById(sessionId);
         if (session == null) {
             throw new BaseException("会话不存在");
         }
@@ -175,7 +175,7 @@ public class SessionServiceImpl implements SessionService {
      * @param session 会话实体
      * @return org.cybercaelum.household_management.pojo.vo.SessionCreateVO
      **/
-    private SessionCreateVO buildSessionVO(session session) {
+    private SessionCreateVO buildSessionVO(Session session) {
         // 查询雇主信息
         User employer = userMapper.getById(session.getEmployerId().intValue());
         // 查询雇员信息

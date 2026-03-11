@@ -29,14 +29,20 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class OrderController {
     private final OrderService orderService;
-    //下订单
+    /**
+     * @description 用户下订单
+     * @author CyberCaelum
+     * @date 下午2:07 2026/3/11
+     * @param ordersSubmitDTO 订单信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/submit")
     @Operation(summary = "用户下订单",description = "用户下订单")
     public Result submit(@RequestBody OrdersSubmitDTO ordersSubmitDTO){
         log.info("订单信息：{}",ordersSubmitDTO);
         OrderSubmitVO orderSubmitVO = orderService.submit(ordersSubmitDTO);
-        return Result.success();
+        return Result.success(orderSubmitVO);
     }
     //订单完成
     //订单结束
