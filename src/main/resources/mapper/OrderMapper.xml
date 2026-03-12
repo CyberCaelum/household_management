@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cybercaelum.household_management.mapper.OrderMapper">
+    <insert id="insertOrder" useGeneratedKeys="true" keyProperty="id">
+        insert into `order` (price,order_time,recruitment_id,status,start_time,end_time,employer_id,employee_id,province_code,province_name,city_code,city_name,district_code,district_name,detail,total,days,order_number)
+            values (#{price},#{orderTime},#{recruitmentId},#{status},#{startTime},#{endTime},#{employerId},#{employeeId},#{provinceCode},#{provinceName},#{cityCode},#{cityName},#{districtCode},#{districtName},#{detail},#{total},#{days},#{orderNumber})
+    </insert>
+
+    <select id="history" resultType="org.cybercaelum.household_management.pojo.entity.Order">
+        select * from `order`
+        <where>
+            (employer_id = #{userId} or employee_id = #{userId})
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by order_time desc
+    </select>
+</mapper>

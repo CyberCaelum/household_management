@@ -112,6 +112,12 @@
             <artifactId>pagehelper-spring-boot-starter</artifactId>
             <version>1.4.5</version>
         </dependency>
+        <!-- 微信支付SDK -->
+        <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>weixin-java-pay</artifactId>
+            <version>4.6.0</version>
+        </dependency>
     </dependencies>
 
     <build>

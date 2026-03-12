@@ -21,5 +21,4 @@ public class OrderSubmitVO {
     private String orderNumber;//订单号
     private BigDecimal orderAmount;//订单金额
     private LocalDateTime orderTime;//下单时间
-
 }

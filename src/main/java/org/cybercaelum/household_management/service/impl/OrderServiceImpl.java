@@ -1,8 +1,11 @@
 package org.cybercaelum.household_management.service.impl;
 
-import com.fasterxml.jackson.databind.util.BeanUtil;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.context.BaseContext;
+import org.cybercaelum.household_management.exception.OrderPriceException;
 import org.cybercaelum.household_management.exception.RecruitmentNotFoundException;
 import org.cybercaelum.household_management.mapper.OrderMapper;
 import org.cybercaelum.household_management.mapper.RecruitmentMapper;
@@ -17,7 +20,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author CyberCaelum
@@ -32,6 +36,14 @@ public class OrderServiceImpl implements OrderService {
 
     private final RecruitmentMapper recruitmentMapper;
     private final OrderMapper orderMapper;
+
+    /**
+     * @description 提交订单
+     * @author CyberCaelum
+     * @date 上午9:14 2026/3/12
+     * @param ordersSubmitDTO 订单信息
+     * @return org.cybercaelum.household_management.pojo.vo.OrderSubmitVO
+     **/
     @Override
     public OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO) {
         //获取招募id
@@ -41,6 +53,11 @@ public class OrderServiceImpl implements OrderService {
         //如果没有报错
         if (recruitment == null) {
             throw new RecruitmentNotFoundException("招募不存在");
+        }
+        //薪水在最大和最小之间
+        if (ordersSubmitDTO.getPrice().compareTo(recruitment.getMineSalary())<0
+                || ordersSubmitDTO.getPrice().compareTo(recruitment.getMaxSalary())>0){
+            throw new OrderPriceException("薪资错误");
         }
         Order order = Order.builder()
                 .price(ordersSubmitDTO.getPrice())//价格
@@ -59,8 +76,11 @@ public class OrderServiceImpl implements OrderService {
         //计算总价
         order.setTotal(ordersSubmitDTO.getPrice().multiply(new BigDecimal(ordersSubmitDTO.getDays())));
         //存入数据库
+        orderMapper.insertOrder(order);
+        OrderSubmitVO orderSubmitVO = new OrderSubmitVO();
+        BeanUtils.copyProperties(order,orderSubmitVO);
         //返回数据
-        return null;
+        return orderSubmitVO;
     }
 
     @Override
@@ -75,7 +95,19 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public PageResult history(Integer page, Integer pageSize, Integer status) {
-        return null;
+        PageHelper.startPage(page, pageSize);
+        Page<Order> orders = orderMapper.history(BaseContext.getUserId(), status);
+        List<OrderVO> list = new ArrayList<>();
+        if (orders != null && !orders.isEmpty()) {
+            // 遍历订单
+            for (Order order : orders) {
+                OrderVO orderVO = new OrderVO();
+                // 将订单数据复制到orderVO中
+                BeanUtils.copyProperties(order, orderVO);
+                list.add(orderVO);
+            }
+        }
+        return new PageResult(orders.getTotal(), list);
     }
 
     @Override

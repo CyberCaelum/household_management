@@ -5,15 +5,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.pojo.dto.OrdersPaymentDTO;
 import org.cybercaelum.household_management.pojo.dto.OrdersSubmitDTO;
+import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.pojo.vo.OrderPaymentVO;
 import org.cybercaelum.household_management.pojo.vo.OrderSubmitVO;
 import org.cybercaelum.household_management.service.OrderService;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @author CyberCaelum
@@ -44,8 +44,43 @@ public class OrderController {
         OrderSubmitVO orderSubmitVO = orderService.submit(ordersSubmitDTO);
         return Result.success(orderSubmitVO);
     }
+
+    /**
+     * @description 用户支付
+     * @author CyberCaelum
+     * @date 上午9:28 2026/3/12
+     * @param ordersPaymentDTO 支付信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @PutMapping("/payment")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "用户支付",description = "用户支付")
+    public Result payment(@RequestBody OrdersPaymentDTO ordersPaymentDTO){
+        log.info("订单支付信息：{}",ordersPaymentDTO);
+        OrderPaymentVO orderPaymentVO = orderService.payment(ordersPaymentDTO);
+        return Result.success(orderPaymentVO);
+    }
     //订单完成
+
     //订单结束
+    //查看历史订单
+    /**
+     * @description 查看历史订单
+     * @author CyberCaelum
+     * @date 上午10:25 2026/3/12
+     * @param page 页数
+     * @param pageSize 页面大小
+     * @param status 状态
+     * @return org.cybercaelum.household_management.pojo.entity.Result<org.cybercaelum.household_management.pojo.entity.PageResult>
+     **/
+    @Operation(summary = "历史订单",description = "历史订单")
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/history")
+    public Result<PageResult> historyOrders(Integer page, Integer pageSize, Integer status){
+        log.info("查看历史订单，page：{}，pageSize：{}，status：{}",page,pageSize,status);
+        PageResult pageResult = orderService.history(page,pageSize,status);
+        return Result.success(pageResult);
+    }
     //订单取消
     //订单支付
 }

@@ -50,4 +50,13 @@ public class MessageConstant {
     public static final String COMMENT_NOT_ALLOWED = "您无权操作此评论";
     public static final String ORDER_NOT_COMPLETED = "订单未完成，无法评价";
     public static final String COMMENT_ALREADY_EXISTS = "您已对该订单发表过评价";
+
+    // 订单相关
+    public static final String RECRUITMENT_ID_EMPTY = "招募信息不能为空";
+    public static final String PRICE_EMPTY = "价格不能为空";
+    public static final String PRICE_MIN = "价格不能低于0";
+    public static final String START_TIME_EMPTY = "开始时间不能为空";
+    public static final String END_TIME_EMPTY = "结束时间不能为空";
+    public static final String DAYS_RANGE_ERROR = "工作天数必须在1-100天之间";
+    public static final String ORDER_TIME_RANGE_ERROR = "时间范围不合理";
 }
