@@ -67,12 +67,12 @@ public class RecruitmentDTO implements Serializable {
     }
 
     @AssertTrue(message = MessageConstant.STATUS_ERROR)//状态错误
-    public boolean isStatusValid(){
+    private boolean isStatusValid(){
         return status != null && (status == 0 || status == 1 || status == 2 || status == 3);
     }
 
     @AssertTrue(message = MessageConstant.ADDRESS_ERROR) //地址错误
-    public boolean isAddressValid(){
+    private boolean isAddressValid(){
         return provinceCode != null && provinceName != null &&
                 cityCode != null && cityName != null && detail != null;
     }

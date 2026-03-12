@@ -3,9 +3,13 @@ package org.cybercaelum.household_management.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.MessageConstant;
+import org.cybercaelum.household_management.constant.OrderStatusConstant;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.BaseException;
+import org.cybercaelum.household_management.exception.CommentExistedException;
+import org.cybercaelum.household_management.exception.OrderStatusErrorException;
 import org.cybercaelum.household_management.mapper.CommentMapper;
+import org.cybercaelum.household_management.mapper.OrderMapper;
 import org.cybercaelum.household_management.pojo.dto.CommentDTO;
 import org.cybercaelum.household_management.pojo.entity.Comment;
 import org.cybercaelum.household_management.pojo.vo.CommentVO;
@@ -29,6 +33,8 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentMapper commentMapper;
 
+    private final OrderMapper orderMapper;
+
     /**
      * @description 新增评论
      * @author CyberCaelum
@@ -43,7 +49,15 @@ public class CommentServiceImpl implements CommentService {
         // 检查是否已对该订单发表过评论
         Comment existComment = commentMapper.getByUserIdAndOrderId(userId, commentDTO.getOrderId());
         if (existComment != null) {
-            throw new BaseException(MessageConstant.COMMENT_ALREADY_EXISTS);
+            throw new CommentExistedException(MessageConstant.COMMENT_ALREADY_EXISTS);
+        }
+        //TODO 需要在添加评价前验证订单状态，订单是否已经完成，不能一创建就进行评价
+        Integer orderStatus = orderMapper.getOrderStatusById(commentDTO.getOrderId());
+        if (orderStatus == OrderStatusConstant.PENDING_PAYMENT ||
+                orderStatus == OrderStatusConstant.TO_BE_CONFIRMED ||
+                orderStatus == OrderStatusConstant.CONFIRMED ||
+                orderStatus == OrderStatusConstant.IN_PROGRESS) {
+            throw new OrderStatusErrorException(MessageConstant.ORDER_STATUS_ERROR);
         }
         
         Comment comment = new Comment();

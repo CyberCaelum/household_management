@@ -37,7 +37,7 @@ public class CommentDTO implements Serializable {
     private Long orderId;//订单id
 
     @AssertTrue(message = MessageConstant.COMMENT_LEVEL_INVALID)
-    public boolean isCommentLevelValid() {
+    private boolean isCommentLevelValid() {
         return commentLevel == null || (commentLevel >= 1 && commentLevel <= 5);
     }
 }

@@ -25,7 +25,7 @@ public class Order {
     private BigDecimal price;//价格,单价
     private LocalDateTime orderTime;//下订单时间
     private Long recruitmentId;//订单对应的招募id
-    private int status;//订单状态，0为取消，1为进行中，2为完成,3为待被雇者确认，5退款，6待付款，7已接单
+    private int status;//订单状态，0待付款,1为取消，2为待被雇者确认,3已接单,4为进行中，5为完成,6退款，
     private LocalDate startTime;//订单开始时间
     private LocalDate endTime;//订单结束时间
     private Long employerId;//雇佣用户id
@@ -47,4 +47,5 @@ public class Order {
     private LocalDateTime cancelTime;//订单取消时间
     private LocalDateTime paymentTime;//支付时间
     private LocalDateTime rejectionTime;//订单拒绝时间
+    private LocalDateTime refundTime;//退款时间
 }

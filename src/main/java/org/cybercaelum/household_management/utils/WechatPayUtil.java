@@ -49,6 +49,12 @@ public class WechatPayUtil {
      */
     @PostConstruct
     public void init() {
+        // 检查配置是否完整
+        if (wechatPayProperties.getMchId() == null || wechatPayProperties.getMchId().isEmpty()) {
+            log.warn("微信支付未配置，跳过初始化。请在配置文件中设置 wechat.pay.mch-id");
+            return;
+        }
+        
         WxPayConfig payConfig = new WxPayConfig();
         payConfig.setAppId(wechatPayProperties.getAppId());
         payConfig.setMchId(wechatPayProperties.getMchId());
@@ -80,7 +86,17 @@ public class WechatPayUtil {
      * @return WxPayService
      */
     public WxPayService getWxPayService() {
+        checkInitialized();
         return wxPayService;
+    }
+    
+    /**
+     * 检查微信支付是否已初始化
+     */
+    private void checkInitialized() {
+        if (wxPayService == null) {
+            throw new RuntimeException("微信支付服务未初始化，请检查配置 wechat.pay");
+        }
     }
 
     /**
@@ -91,6 +107,7 @@ public class WechatPayUtil {
      * @return 支付二维码链接
      */
     public String createNativeOrder(String orderNo, int amount, String description) {
+        checkInitialized();
         try {
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
@@ -119,6 +136,7 @@ public class WechatPayUtil {
      * @return 调起支付的参数（前端需使用此参数调用wx.chooseWXPay）
      */
     public String createJsapiOrder(String orderNo, int amount, String description, String openId) {
+        checkInitialized();
         try {
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
@@ -147,6 +165,7 @@ public class WechatPayUtil {
      * @return 调起支付的参数
      */
     public String createAppOrder(String orderNo, int amount, String description) {
+        checkInitialized();
         try {
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
@@ -175,6 +194,7 @@ public class WechatPayUtil {
      * @return 支付跳转链接
      */
     public String createH5Order(String orderNo, int amount, String description, String sceneType) {
+        checkInitialized();
         try {
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
@@ -201,6 +221,7 @@ public class WechatPayUtil {
      * @return 订单查询结果
      */
     public WxPayOrderQueryResult queryOrder(String orderNo) {
+        checkInitialized();
         try {
             WxPayOrderQueryRequest request = WxPayOrderQueryRequest.newBuilder()
                     .outTradeNo(orderNo)
@@ -221,6 +242,7 @@ public class WechatPayUtil {
      * @return 关闭结果
      */
     public WxPayOrderCloseResult closeOrder(String orderNo) {
+        checkInitialized();
         try {
             WxPayOrderCloseRequest request = WxPayOrderCloseRequest.newBuilder()
                     .outTradeNo(orderNo)
@@ -245,6 +267,7 @@ public class WechatPayUtil {
      * @return 退款结果
      */
     public WxPayRefundResult refund(String orderNo, String refundNo, int totalAmount, int refundAmount, String reason) {
+        checkInitialized();
         try {
             WxPayRefundRequest request = WxPayRefundRequest.newBuilder()
                     .outTradeNo(orderNo)
@@ -272,6 +295,7 @@ public class WechatPayUtil {
      * @return 退款查询结果
      */
     public WxPayRefundQueryResult queryRefund(String refundNo) {
+        checkInitialized();
         try {
             WxPayRefundQueryRequest request = WxPayRefundQueryRequest.newBuilder()
                     .outRefundNo(refundNo)
@@ -292,6 +316,7 @@ public class WechatPayUtil {
      * @return 解析后的结果
      */
     public WxPayOrderNotifyResult parsePayNotify(String xmlData) {
+        checkInitialized();
         try {
             WxPayOrderNotifyResult result = wxPayService.parseOrderNotifyResult(xmlData);
             log.info("解析支付回调成功，订单号: {}, 微信订单号: {}", 
@@ -309,6 +334,7 @@ public class WechatPayUtil {
      * @return 解析后的结果
      */
     public WxPayRefundNotifyResult parseRefundNotify(String xmlData) {
+        checkInitialized();
         try {
             WxPayRefundNotifyResult result = wxPayService.parseRefundNotifyResult(xmlData);
             log.info("解析退款回调成功");

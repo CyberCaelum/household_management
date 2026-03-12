@@ -51,7 +51,7 @@ public class RecruitmentPageDTO implements Serializable {
     }
 
     @AssertTrue(message = MessageConstant.DURATION_TYPE_ERROR)//天数错误
-    public boolean isDurationTypeValid(){
+    private boolean isDurationTypeValid(){
         return durationType == 0 || durationType == 1 || durationType == 2 || durationType == 3
                 || durationType == 4 || durationType == 5;
     }

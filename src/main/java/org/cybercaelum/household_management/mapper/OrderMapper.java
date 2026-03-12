@@ -3,6 +3,7 @@ package org.cybercaelum.household_management.mapper;
 import com.github.pagehelper.Page;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.cybercaelum.household_management.pojo.entity.Order;
 
 @Mapper
@@ -25,4 +26,14 @@ public interface OrderMapper {
      * @return com.github.pagehelper.Page<org.cybercaelum.household_management.pojo.entity.Order>
      **/
     Page<Order> history(@Param("userId") Long userId, @Param("status") Integer status);
+
+    /**
+     * @description 通过订单id获取订单状态
+     * @author CyberCaelum
+     * @date 2026/3/12
+     * @param orderId 订单id
+     * @return java.lang.Integer
+     **/
+    @Select("select status from `order` where id = #{id}")
+    Integer getOrderStatusById(Long orderId);
 }

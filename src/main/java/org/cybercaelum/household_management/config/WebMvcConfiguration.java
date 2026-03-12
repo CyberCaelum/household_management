@@ -28,6 +28,10 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 .addPathPatterns("/resume/add")
                 .addPathPatterns("/resume/update")
                 .addPathPatterns("/resume/visibility/**")
+                .addPathPatterns("/comment/add")
+                .addPathPatterns("/comment/update")
+                .addPathPatterns("/comment/delete/**")
+                .addPathPatterns("/comment/my")
                 .excludePathPatterns(
                         "/user/login",
                         "/user/register",
