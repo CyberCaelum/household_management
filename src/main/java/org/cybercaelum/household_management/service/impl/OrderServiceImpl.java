@@ -4,6 +4,8 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.constant.OrderStatusConstant;
+import org.cybercaelum.household_management.constant.PayStatusConstant;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.OrderPriceException;
 import org.cybercaelum.household_management.exception.RecruitmentNotFoundException;
@@ -88,11 +90,35 @@ public class OrderServiceImpl implements OrderService {
         return null;
     }
 
+    /**
+     * @description 支付成功修改订单状态
+     * @author CyberCaelum
+     * @date 上午10:32 2026/3/13
+     * @param orderNumber 订单号
+     **/
     @Override
-    public void paySuccess(String outTradeNo) {
-
+    public void paySuccess(String orderNumber) {
+        //根据订单号查询订单
+        Order order = orderMapper.getOrderByNumber(orderNumber);
+        //修改订单状态和信息
+        Order payedOrder = Order.builder()
+                .id(order.getId())//主键
+                .payStatus(PayStatusConstant.PAID)//已支付
+                .paymentTime(LocalDateTime.now())//支付时间
+                .status(OrderStatusConstant.TO_BE_CONFIRMED)//从未支付变为待确认
+                .build();
+        orderMapper.updateOrder(payedOrder);
     }
 
+    /**
+     * @description 查看历史订单
+     * @author CyberCaelum
+     * @date 上午10:13 2026/3/13
+     * @param page 页数
+     * @param pageSize 页面大小
+     * @param status 订单状态
+     * @return org.cybercaelum.household_management.pojo.entity.PageResult
+     **/
     @Override
     public PageResult history(Integer page, Integer pageSize, Integer status) {
         PageHelper.startPage(page, pageSize);
@@ -115,9 +141,19 @@ public class OrderServiceImpl implements OrderService {
 
     }
 
+    /**
+     * @description 查看订单详细信息
+     * @author CyberCaelum
+     * @date 上午11:00 2026/3/13
+     * @param id 订单主键
+     * @return org.cybercaelum.household_management.pojo.vo.OrderVO
+     **/
     @Override
     public OrderVO details(Long id) {
-        return null;
+        Order order = orderMapper.getOrderById(id);
+        OrderVO orderVO = new OrderVO();
+        BeanUtils.copyProperties(order,orderVO);
+        return orderVO;
     }
 
     @Override
