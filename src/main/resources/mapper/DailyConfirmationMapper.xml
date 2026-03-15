@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cybercaelum.household_management.mapper.DailyConfirmationMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO daily_confirmation (order_id, service_date, status, worker_confirm_time, employer_confirm_time, 
+                                        auto_confirm_time, dispute_reason, create_time, update_time)
+        VALUES (#{orderId}, #{serviceDate}, #{status}, #{workerConfirmTime}, #{employerConfirmTime},
+                #{autoConfirmTime}, #{disputeReason}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update">
+        UPDATE daily_confirmation
+        <set>
+            <if test="status != 0">status = #{status},</if>
+            <if test="workerConfirmTime != null">worker_confirm_time = #{workerConfirmTime},</if>
+            <if test="employerConfirmTime != null">employer_confirm_time = #{employerConfirmTime},</if>
+            <if test="autoConfirmTime != null">auto_confirm_time = #{autoConfirmTime},</if>
+            <if test="disputeReason != null">dispute_reason = #{disputeReason},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectNeedAutoConfirm" resultType="org.cybercaelum.household_management.pojo.entity.DailyConfirmation">
+        SELECT * FROM daily_confirmation
+        WHERE status = 0
+          AND service_date &lt; CURDATE()
+          AND worker_confirm_time IS NOT NULL
+          AND worker_confirm_time &lt;= #{thresholdTime}
+    </select>
+
+    <insert id="batchInsert">
+        INSERT INTO daily_confirmation (order_id, service_date, status, create_time, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.orderId}, #{item.serviceDate}, #{item.status}, #{item.createTime}, #{item.updateTime})
+        </foreach>
+    </insert>
+
+</mapper>

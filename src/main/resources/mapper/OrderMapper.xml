@@ -51,4 +51,10 @@
         </set>
         where id = #{id}
     </update>
+
+    <select id="selectByStartTimeAndStatus" resultType="org.cybercaelum.household_management.pojo.entity.Order">
+        SELECT * FROM `order`
+        WHERE status = #{status}
+          AND start_time &lt;= #{startDate}
+    </select>
 </mapper>

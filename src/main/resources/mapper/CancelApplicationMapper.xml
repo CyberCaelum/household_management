@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cybercaelum.household_management.mapper.CancelApplicationMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO cancel_application (order_id, applicant_id, applicant_role, cancel_type, reason, status,
+                                        confirm_user_id, confirm_time, platform_decision, platform_operator, 
+                                        platform_note, expire_time, create_time, update_time)
+        VALUES (#{orderId}, #{applicantId}, #{applicantRole}, #{cancelType}, #{reason}, #{status},
+                #{confirmUserId}, #{confirmTime}, #{platformDecision}, #{platformOperator},
+                #{platformNote}, #{expireTime}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update">
+        UPDATE cancel_application
+        <set>
+            <if test="status != 0">status = #{status},</if>
+            <if test="confirmUserId != null">confirm_user_id = #{confirmUserId},</if>
+            <if test="confirmTime != null">confirm_time = #{confirmTime},</if>
+            <if test="platformDecision != 0">platform_decision = #{platformDecision},</if>
+            <if test="platformOperator != null">platform_operator = #{platformOperator},</if>
+            <if test="platformNote != null">platform_note = #{platformNote},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectTimeoutApplications" resultType="org.cybercaelum.household_management.pojo.entity.CancelApplication">
+        SELECT * FROM cancel_application
+        WHERE status = 1
+          AND expire_time &lt;= #{now}
+    </select>
+
+</mapper>

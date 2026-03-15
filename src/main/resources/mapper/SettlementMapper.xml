@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cybercaelum.household_management.mapper.SettlementMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO settlement (order_id, total_days, daily_rate, total_amount, penalty_deduction, final_amount,
+                                status, settlement_time, create_time)
+        VALUES (#{orderId}, #{totalDays}, #{dailyRate}, #{totalAmount}, #{penaltyDeduction}, #{finalAmount},
+                #{status}, #{settlementTime}, #{createTime})
+    </insert>
+
+    <update id="update">
+        UPDATE settlement
+        <set>
+            <if test="status != 0">status = #{status},</if>
+            <if test="settlementTime != null">settlement_time = #{settlementTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+</mapper>
