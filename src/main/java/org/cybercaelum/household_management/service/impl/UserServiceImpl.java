@@ -20,6 +20,7 @@ import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.cybercaelum.household_management.properties.JwtProperties;
 import org.cybercaelum.household_management.service.OpenImService;
 import org.cybercaelum.household_management.service.UserService;
+import org.cybercaelum.household_management.service.impl.OpenImUserTokenService;
 import org.cybercaelum.household_management.utils.JwtUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final JwtProperties jwtProperties;
     private final OpenImService openImService;
+    private final OpenImUserTokenService openImUserTokenService;
 
     /**
      * @description 创建token并获取 OpenIM token
@@ -61,11 +63,11 @@ public class UserServiceImpl implements UserService {
                 jwtProperties.getUserTtl(),
                 claims);
         
-        // 获取 OpenIM token
+        // 获取 OpenIM token（使用缓存服务）
         String openImToken = null;
         try {
             String userIdStr = String.valueOf(user.getId());
-            openImToken = openImService.getUserToken(userIdStr);
+            openImToken = openImUserTokenService.getUserToken(userIdStr);
         } catch (Exception e) {
             log.error("获取 OpenIM token 失败, userId={}", user.getId(), e);
             // 不影响主流程，继续返回登录结果

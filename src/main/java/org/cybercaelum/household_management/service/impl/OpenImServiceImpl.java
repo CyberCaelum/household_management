@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.exception.OpenImException;
 import org.cybercaelum.household_management.properties.OpenImProperties;
 import org.cybercaelum.household_management.service.OpenImService;
 import org.springframework.http.*;
@@ -33,9 +34,11 @@ public class OpenImServiceImpl implements OpenImService {
     private long adminTokenExpireTime;
 
     /**
-     * 获取管理员 token
-     * @return 管理员 token
-     */
+     * @description 获取管理员token
+     * @author CyberCaelum
+     * @date 2026/3/15
+     * @return java.lang.String 管理员token
+     **/
     public synchronized String getAdminToken() {
         // 如果 token 未过期，直接返回缓存的 token
         if (adminToken != null && System.currentTimeMillis() < adminTokenExpireTime) {
@@ -66,20 +69,22 @@ public class OpenImServiceImpl implements OpenImService {
                 return adminToken;
             } else {
                 log.error("获取 OpenIM 管理员 token 失败: {}", jsonNode.get("errMsg").asText());
-                throw new RuntimeException("获取 OpenIM 管理员 token 失败: " + jsonNode.get("errMsg").asText());
+                throw new OpenImException("获取 OpenIM 管理员 token 失败: " + jsonNode.get("errMsg").asText());
             }
         } catch (Exception e) {
             log.error("获取 OpenIM 管理员 token 异常", e);
-            throw new RuntimeException("获取 OpenIM 管理员 token 异常", e);
+            throw new OpenImException("获取 OpenIM 管理员 token 异常"+e.getMessage());
         }
     }
 
     /**
-     * 注册用户到 OpenIM
+     * @description 注册用户到OpenIm
+     * @author CyberCaelum
+     * @date 2026/3/15
      * @param userId 用户ID
      * @param nickname 用户昵称
      * @param faceUrl 用户头像URL
-     */
+     **/
     public void registerUser(String userId, String nickname, String faceUrl) {
         String url = openImProperties.getApiAddress() + "/user/user_register";
         
@@ -106,20 +111,22 @@ public class OpenImServiceImpl implements OpenImService {
             
             if (jsonNode.get("errCode").asInt() != 0) {
                 log.error("OpenIM 注册用户失败: {}", jsonNode.get("errMsg").asText());
-                throw new RuntimeException("OpenIM 注册用户失败: " + jsonNode.get("errMsg").asText());
+                throw new OpenImException("OpenIM 注册用户失败: " + jsonNode.get("errMsg").asText());
             }
             log.info("OpenIM 注册用户成功: userId={}", userId);
         } catch (Exception e) {
             log.error("OpenIM 注册用户异常", e);
-            throw new RuntimeException("OpenIM 注册用户异常", e);
+            throw new OpenImException("OpenIM 注册用户异常"+e.getMessage());
         }
     }
 
     /**
-     * 获取用户 token
+     * @description 获取用户token
+     * @author CyberCaelum
+     * @date 2026/3/15
      * @param userId 用户ID
-     * @return token 字符串
-     */
+     * @return java.lang.String 用户token
+     **/
     public String getUserToken(String userId) {
         String url = openImProperties.getApiAddress() + "/auth/get_user_token";
         
@@ -151,11 +158,13 @@ public class OpenImServiceImpl implements OpenImService {
     }
 
     /**
-     * 更新用户信息
+     * @description 更新用户信息
+     * @author CyberCaelum
+     * @date 2026/3/15
      * @param userId 用户ID
      * @param nickname 用户昵称（可选）
-     * @param faceUrl 用户头像URL（可选）
-     */
+     * @param faceUrl  用户头像URL（可选）
+     **/
     public void updateUserInfo(String userId, String nickname, String faceUrl) {
         String url = openImProperties.getApiAddress() + "/user/update_user_info_ex";
         

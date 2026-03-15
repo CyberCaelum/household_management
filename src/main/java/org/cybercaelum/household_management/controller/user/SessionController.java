@@ -33,7 +33,6 @@ public class SessionController {
 
     /**
      * @description 创建或获取会话
-     * 用户点击招募信息的"联系雇主"按钮时调用此接口
      * @author CyberCaelum
      * @date 2026/3/1
      * @param sessionCreateDTO 创建会话请求

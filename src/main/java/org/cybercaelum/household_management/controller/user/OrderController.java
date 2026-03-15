@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class OrderController {
     private final OrderService orderService;
+
     /**
      * @description 用户下订单
      * @author CyberCaelum
@@ -99,5 +100,17 @@ public class OrderController {
         return Result.success(orderVO);
     }
     //订单取消
+    /**
+     * @description 用户取消订单
+     * @author CyberCaelum
+     * @date 2026/3/15
+         * @param id 订单id
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    public Result cancel(@PathVariable Long id) {
+        log.info("用户取消订单orderId: {}",id);
+        orderService.cancel(id);
+        return Result.success();
+    }
     //订单支付
 }

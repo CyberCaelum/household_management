@@ -136,10 +136,18 @@ public class OrderServiceImpl implements OrderService {
         return new PageResult(orders.getTotal(), list);
     }
 
+    /**
+     * @description 用户取消订单
+     * @author CyberCaelum
+     * @date 2026/3/15
+     * @param id 订单id
+     **/
     @Override
     public void cancel(Long id) {
 
     }
+
+    //被雇佣者取消订单
 
     /**
      * @description 查看订单详细信息

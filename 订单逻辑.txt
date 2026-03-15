@@ -1,0 +1,38 @@
+关键业务逻辑与数据库交互
+1. 订单生成
+
+2. 服务开始
+订单到了开始时间，订单状态更新为“服务中”。
+
+3. 每日确认
+家政人员端：每日服务完成后点击“今日完成”，系统记录worker_confirm_time（可选）。
+
+雇主端：收到确认提醒，点击“确认”后，更新对应daily_confirmation记录的status为“雇主已确认”，记录employer_confirm_time。
+
+超时自动确认：定时任务扫描daily_confirmation，对于服务日期已过且雇主未确认的记录，若超过24小时（或设定的阈值），自动将status更新为“系统自动确认”。
+
+4. 取消申请流程
+用户发起取消：插入cancel_application记录，状态为“待对方确认”。
+
+对方确认：对方点击“同意”或“拒绝”，更新cancel_application的status和confirm_time。
+
+同意：调用结算逻辑（见第5点），然后将订单status置为“已取消”，并关联cancel_application.id。
+
+拒绝：订单继续，取消流程终止。
+
+超时未确认：定时任务将超时的申请状态更新为“平台介入处理中”，并通知平台客服。
+
+平台介入：客服根据证据更新申请状态为“平台已裁决”，并手动触发结算或恢复订单。
+
+5. 结算逻辑（订单结束时触发）
+统计daily_confirmation中status为“雇主已确认”或“系统自动确认”的记录数，得到total_days。
+
+计算总金额：total_days * daily_rate。
+
+若取消类型为强制取消且有违约金规则，计算penalty_deduction，得到final_amount。
+
+插入settlement记录，状态为“待结算”。
+
+调用支付系统完成转账，更新settlement.status为“已结算”。
+
+同时更新order表。
