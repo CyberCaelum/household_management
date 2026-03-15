@@ -11,6 +11,7 @@ import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.OrderPaymentVO;
 import org.cybercaelum.household_management.pojo.vo.OrderSubmitVO;
+import org.cybercaelum.household_management.pojo.vo.OrderVO;
 import org.cybercaelum.household_management.service.OrderService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -80,6 +81,22 @@ public class OrderController {
         log.info("查看历史订单，page：{}，pageSize：{}，status：{}",page,pageSize,status);
         PageResult pageResult = orderService.history(page,pageSize,status);
         return Result.success(pageResult);
+    }
+
+    /**
+     * @description 查看订单详情
+     * @author CyberCaelum
+     * @date 上午11:09 2026/3/13
+     * @param id 订单id
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "订单详情",description = "订单详情")
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/detail/{id}")
+    public Result orderDetail(@PathVariable Long id){
+        log.info("查看订单详情，orderId: {}",id);
+        OrderVO orderVO = orderService.details(id);
+        return Result.success(orderVO);
     }
     //订单取消
     //订单支付

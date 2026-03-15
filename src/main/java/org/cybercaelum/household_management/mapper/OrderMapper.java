@@ -10,6 +10,16 @@ import org.cybercaelum.household_management.pojo.entity.Order;
 public interface OrderMapper {
 
     /**
+     * @description 根据订单号查询订单
+     * @author CyberCaelum
+     * @date 上午10:35 2026/3/13
+     * @param orderNumber 订单号
+     * @return org.cybercaelum.household_management.pojo.entity.Order
+     **/
+    @Select("select * from order where order_number = #{orderNumber}")
+    Order getOrderByNumber(String orderNumber);
+
+    /**
      * @description 插入订单信息
      * @author CyberCaelum
      * @date 上午10:42 2026/3/12
@@ -36,4 +46,22 @@ public interface OrderMapper {
      **/
     @Select("select status from `order` where id = #{id}")
     Integer getOrderStatusById(Long orderId);
+
+    /**
+     * @description 修改订单
+     * @author CyberCaelum
+     * @date 上午10:49 2026/3/13
+     * @param order 订单信息
+     **/
+    void updateOrder(Order order);
+
+    /**
+     * @description 通过主键查找订单
+     * @author CyberCaelum
+     * @date 上午11:02 2026/3/13
+     * @param id 主键
+     * @return org.cybercaelum.household_management.pojo.entity.Order
+     **/
+    @Select("select * from order where id = #{id}")
+    Order getOrderById(Long id);
 }
