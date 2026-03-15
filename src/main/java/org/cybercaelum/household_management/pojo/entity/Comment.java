@@ -31,4 +31,5 @@ public class Comment implements Serializable {
     private Long commentedUserId;//被评论的用户Id
     private Integer commentLevel;//评论分数，1-5分
     private Long orderId;//订单id
+    private LocalDateTime updateTime;//修改时间
 }

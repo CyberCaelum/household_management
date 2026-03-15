@@ -5,9 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.MessageConstant;
 import org.cybercaelum.household_management.constant.OrderStatusConstant;
 import org.cybercaelum.household_management.context.BaseContext;
-import org.cybercaelum.household_management.exception.BaseException;
-import org.cybercaelum.household_management.exception.CommentExistedException;
-import org.cybercaelum.household_management.exception.OrderStatusErrorException;
+import org.cybercaelum.household_management.exception.*;
 import org.cybercaelum.household_management.mapper.CommentMapper;
 import org.cybercaelum.household_management.mapper.OrderMapper;
 import org.cybercaelum.household_management.pojo.dto.CommentDTO;
@@ -18,6 +16,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -64,7 +63,6 @@ public class CommentServiceImpl implements CommentService {
         BeanUtils.copyProperties(commentDTO, comment);
         comment.setUserId(userId);
         comment.setStatus(1); // 设置状态为可见
-        
         log.info("新增评论：{}", comment);
         commentMapper.addComment(comment);
     }
@@ -83,16 +81,16 @@ public class CommentServiceImpl implements CommentService {
         // 先查询评论是否存在
         Comment comment = commentMapper.getById(id);
         if (comment == null) {
-            throw new BaseException(MessageConstant.COMMENT_NOT_FOUND);
+            throw new CommentExistedException(MessageConstant.COMMENT_NOT_FOUND);
         }
         
         // 只能删除自己的评论
         if (!userId.equals(comment.getUserId())) {
-            throw new BaseException(MessageConstant.COMMENT_NOT_ALLOWED);
+            throw new RoleErrorException(MessageConstant.COMMENT_NOT_ALLOWED);
         }
         
         log.info("删除评论，id：{}，userId：{}", id, userId);
-        commentMapper.deleteComment(id, userId);
+        commentMapper.deleteComment(id, userId, LocalDateTime.now());
     }
 
     /**
@@ -109,12 +107,12 @@ public class CommentServiceImpl implements CommentService {
         // 查询评论是否存在
         Comment comment = commentMapper.getById(commentDTO.getId());
         if (comment == null) {
-            throw new BaseException(MessageConstant.COMMENT_NOT_FOUND);
+            throw new CommentExistedException(MessageConstant.COMMENT_NOT_FOUND);
         }
         
         // 只能修改自己的评论
         if (!userId.equals(comment.getUserId())) {
-            throw new BaseException(MessageConstant.COMMENT_NOT_ALLOWED);
+            throw new RoleErrorException(MessageConstant.COMMENT_NOT_ALLOWED);
         }
         
         // 复制新内容
@@ -136,7 +134,7 @@ public class CommentServiceImpl implements CommentService {
     public CommentVO getCommentById(Long id) {
         CommentVO commentVO = commentMapper.getCommentDetailById(id);
         if (commentVO == null || commentVO.getStatus() == 0) {
-            throw new BaseException(MessageConstant.COMMENT_NOT_FOUND);
+            throw new CommentIsNullException(MessageConstant.COMMENT_NOT_FOUND);
         }
         return commentVO;
     }

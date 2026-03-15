@@ -135,7 +135,7 @@ public class UserServiceImpl implements UserService {
                 .password(password)
                 .profileUrl("111")
                 .username(username)
-                .role(RoleConstant.ROLE_USER)
+                .role(RoleConstant.USER)
                 .status(StatusConstant.ENABLE)
                 .createTime(LocalDateTime.now())
                 .phoneNumber(phoneNumber)

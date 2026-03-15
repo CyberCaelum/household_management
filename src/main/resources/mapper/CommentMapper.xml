@@ -5,8 +5,8 @@
 <mapper namespace="org.cybercaelum.household_management.mapper.CommentMapper">
 
     <insert id="addComment" useGeneratedKeys="true" keyProperty="id">
-        insert into comment (content, create_time, status, user_id, commented_user_id, comment_level, order_id)
-        values (#{content}, #{createTime}, #{status}, #{userId}, #{commentedUserId}, #{commentLevel}, #{orderId})
+        insert into comment (content, create_time, status, user_id, commented_user_id, comment_level, order_id,update_time)
+        values (#{content}, #{createTime}, #{status}, #{userId}, #{commentedUserId}, #{commentLevel}, #{orderId},#{updateTime})
     </insert>
 
     <update id="updateComment">
@@ -14,7 +14,7 @@
         <set>
             <if test="content != null">content = #{content},</if>
             <if test="commentLevel != null">comment_level = #{commentLevel},</if>
-            <if test="updateTime != null">create_time = #{updateTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
         </set>
         where id = #{id}
     </update>

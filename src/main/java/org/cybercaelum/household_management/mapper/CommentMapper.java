@@ -9,6 +9,7 @@ import org.cybercaelum.household_management.enumeration.OperationType;
 import org.cybercaelum.household_management.pojo.entity.Comment;
 import org.cybercaelum.household_management.pojo.vo.CommentVO;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -35,9 +36,10 @@ public interface CommentMapper {
      * @date 2026/2/18
      * @param id 评论id
      * @param userId 当前用户id（用于校验权限）
+     * @param updateTime 修改时间
      **/
-    @Update("update comment set status = 0 where id = #{id} and user_id = #{userId}")
-    void deleteComment(@Param("id") Long id, @Param("userId") Long userId);
+    @Update("update comment set status = 0,update_time = #{updateTime} where id = #{id} and user_id = #{userId}")
+    void deleteComment(Long id, Long userId, LocalDateTime updateTime);
 
     /**
      * @description 更新评论
