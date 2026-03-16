@@ -9,8 +9,11 @@ package org.cybercaelum.household_management.constant;
 public class RoleConstant {
 
     /**
-     * 账号角色
+     * 管理员
      */
     public static final Integer ADMIN = 0;      // 管理员
+    /**
+     * 普通用户
+     */
     public static final Integer USER = 1;       // 普通用户
 }

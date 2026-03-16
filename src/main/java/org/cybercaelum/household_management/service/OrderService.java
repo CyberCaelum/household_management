@@ -19,18 +19,18 @@ public interface OrderService {
     PageResult history(Integer page, Integer pageSize, Integer status);
 
     //取消订单（用户发起取消申请）
-    void cancel(Long id);
+    void cancel(Long id,String reason);
 
     //查看订单详情
     OrderVO details(Long id);
 
-    //再来一单
-    void repetition(Long id);
+//    //再来一单
+//    void repetition(Long id);
 
     //查看订单详情和订单信息
     OrderDetailVO detail(Long id);
-    //订单搜索
-    PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO);
+//    //订单搜索
+//    PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO);
 
     //各个状态订单数量统计
     OrderStatisticsVO statistics();

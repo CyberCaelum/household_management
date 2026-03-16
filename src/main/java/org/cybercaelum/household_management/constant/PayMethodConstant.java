@@ -9,8 +9,11 @@ package org.cybercaelum.household_management.constant;
 public class PayMethodConstant {
 
     /**
-     * 支付方式
+     * 微信支付
      */
     public static final Integer WECHAT_PAY = 1;     // 微信支付
+    /**
+     * 支付宝
+     */
     public static final Integer ALIPAY = 2;         // 支付宝
 }

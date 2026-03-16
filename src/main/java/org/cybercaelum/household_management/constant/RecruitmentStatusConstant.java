@@ -9,10 +9,19 @@ package org.cybercaelum.household_management.constant;
 public class RecruitmentStatusConstant {
 
     /**
-     * 招募状态
+     * 已删除
      */
     public static final Integer DELETED = 0;        // 已删除
+    /**
+     * 已发布
+     */
     public static final Integer PUBLISHED = 1;      // 已发布
+    /**
+     * 已隐藏
+     */
     public static final Integer HIDDEN = 2;         // 已隐藏
+    /**
+     * 已结束
+     */
     public static final Integer ENDED = 3;          // 已结束
 }

@@ -9,8 +9,11 @@ package org.cybercaelum.household_management.constant;
 public class ResumeVisibilityConstant {
 
     /**
-     * 简历可见性
+     * 不可见
      */
     public static final Integer INVISIBLE = 0;      // 不可见
+    /**
+     * 可见
+     */
     public static final Integer VISIBLE = 1;        // 可见
 }

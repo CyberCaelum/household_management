@@ -9,9 +9,15 @@ package org.cybercaelum.household_management.constant;
 public class PayStatusConstant {
 
     /**
-     * 支付状态
+     * 未支付
      */
     public static final Integer UN_PAID = 0;    // 未支付
+    /**
+     * 已支付
+     */
     public static final Integer PAID = 1;       // 已支付
+    /**
+     * 已退款
+     */
     public static final Integer REFUNDED = 2;   // 已退款
 }

@@ -92,14 +92,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 生成订单的每日确认记录
-     */
+     * @description 生成并插入每日确认记录
+     * @author CyberCaelum
+     * @date 上午10:06 2026/3/16
+     * @param order 订单信息
+     **/
     private void generateDailyConfirmations(Order order) {
         List<DailyConfirmation> confirmations = new ArrayList<>();
         LocalDate startDate = order.getStartTime();
         LocalDate endDate = order.getEndTime();
         LocalDate currentDate = startDate;
-        
+        //循环生成每日记录
         while (!currentDate.isAfter(endDate)) {
             DailyConfirmation confirmation = DailyConfirmation.builder()
                     .orderId(order.getId())
@@ -176,7 +179,8 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     @Transactional
-    public void cancel(Long id) {
+    public void cancel(Long id,String reason) {
+        //获取订单信息
         Order order = orderMapper.getOrderById(id);
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
@@ -184,14 +188,14 @@ public class OrderServiceImpl implements OrderService {
         
         // 验证权限（只能是雇主或家政人员）
         Long userId = BaseContext.getUserId();
-        Integer role = BaseContext.getRole();
+//        Integer role = BaseContext.getRole();
         if (!userId.equals(order.getEmployerId()) && !userId.equals(order.getEmployeeId())) {
             throw new PermissionDeniedException("无权操作此订单");
         }
         
         // 发起协商取消申请
         Integer cancelType = CancelApplicationStatusConstant.TYPE_NEGOTIATED;
-        applyCancel(id, cancelType, "用户发起取消");
+        applyCancel(id, cancelType, reason);
     }
 
     /**
@@ -212,39 +216,39 @@ public class OrderServiceImpl implements OrderService {
         return orderVO;
     }
 
-    @Override
-    public void repetition(Long id) {
-        // 实现再来一单逻辑
-        Order order = orderMapper.getOrderById(id);
-        if (order == null) {
-            throw new OrderNotFoundException("订单不存在");
-        }
-        
-        // 创建新订单，复制原订单信息
-        Order newOrder = Order.builder()
-                .price(order.getPrice())
-                .orderTime(LocalDateTime.now())
-                .recruitmentId(order.getRecruitmentId())
-                .status(OrderStatusConstant.TO_BE_CONFIRMED)
-                .startTime(order.getStartTime())
-                .endTime(order.getEndTime())
-                .employerId(order.getEmployerId())
-                .employeeId(order.getEmployeeId())
-                .provinceCode(order.getProvinceCode())
-                .provinceName(order.getProvinceName())
-                .cityCode(order.getCityCode())
-                .cityName(order.getCityName())
-                .districtCode(order.getDistrictCode())
-                .districtName(order.getDistrictName())
-                .detail(order.getDetail())
-                .total(order.getTotal())
-                .days(order.getDays())
-                .orderNumber(String.valueOf(System.currentTimeMillis()))
-                .build();
-        
-        orderMapper.insertOrder(newOrder);
-        generateDailyConfirmations(newOrder);
-    }
+//    @Override
+//    public void repetition(Long id) {
+//        // 实现再来一单逻辑
+//        Order order = orderMapper.getOrderById(id);
+//        if (order == null) {
+//            throw new OrderNotFoundException("订单不存在");
+//        }
+//
+//        // 创建新订单，复制原订单信息
+//        Order newOrder = Order.builder()
+//                .price(order.getPrice())
+//                .orderTime(LocalDateTime.now())
+//                .recruitmentId(order.getRecruitmentId())
+//                .status(OrderStatusConstant.TO_BE_CONFIRMED)
+//                .startTime(order.getStartTime())
+//                .endTime(order.getEndTime())
+//                .employerId(order.getEmployerId())
+//                .employeeId(order.getEmployeeId())
+//                .provinceCode(order.getProvinceCode())
+//                .provinceName(order.getProvinceName())
+//                .cityCode(order.getCityCode())
+//                .cityName(order.getCityName())
+//                .districtCode(order.getDistrictCode())
+//                .districtName(order.getDistrictName())
+//                .detail(order.getDetail())
+//                .total(order.getTotal())
+//                .days(order.getDays())
+//                .orderNumber(String.valueOf(System.currentTimeMillis()))
+//                .build();
+//
+//        orderMapper.insertOrder(newOrder);
+//        generateDailyConfirmations(newOrder);
+//    }
 
     @Override
     public OrderDetailVO detail(Long id) {
@@ -258,21 +262,21 @@ public class OrderServiceImpl implements OrderService {
         return detailVO;
     }
 
-    @Override
-    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
-        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
-        // 这里需要根据实际条件查询
-        Page<Order> orders = orderMapper.history(null, ordersPageQueryDTO.getStatus());
-        List<OrderVO> list = new ArrayList<>();
-        if (orders != null && !orders.isEmpty()) {
-            for (Order order : orders) {
-                OrderVO orderVO = new OrderVO();
-                BeanUtils.copyProperties(order, orderVO);
-                list.add(orderVO);
-            }
-        }
-        return new PageResult(orders.getTotal(), list);
-    }
+//    @Override
+//    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+//        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+//        // 这里需要根据实际条件查询
+//        Page<Order> orders = orderMapper.history(null, ordersPageQueryDTO.getStatus());
+//        List<OrderVO> list = new ArrayList<>();
+//        if (orders != null && !orders.isEmpty()) {
+//            for (Order order : orders) {
+//                OrderVO orderVO = new OrderVO();
+//                BeanUtils.copyProperties(order, orderVO);
+//                list.add(orderVO);
+//            }
+//        }
+//        return new PageResult(orders.getTotal(), list);
+//    }
 
     @Override
     public OrderStatisticsVO statistics() {
@@ -297,6 +301,12 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 接单（被雇者确认接单）
      */
+    /**
+     * @description 接单（被雇者确认接单）
+     * @author CyberCaelum
+     * @date 上午10:34 2026/3/16
+     * @param ordersConfirmDTO 订单信息
+     **/
     @Override
     @Transactional
     public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
@@ -527,8 +537,13 @@ public class OrderServiceImpl implements OrderService {
     // ==================== 取消申请相关 ====================
 
     /**
-     * 发起取消申请
-     */
+     * @description 发起取消申请
+     * @author CyberCaelum
+     * @date 上午10:11 2026/3/16
+     * @param orderId 订单id
+     * @param cancelType 取消类型
+     * @param reason 原因
+     **/
     @Override
     @Transactional
     public void applyCancel(Long orderId, Integer cancelType, String reason) {
@@ -537,8 +552,11 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderNotFoundException("订单不存在");
         }
         
-        // 验证订单状态（只能取消进行中的订单）
-        if (!OrderStatusConstant.IN_PROGRESS.equals(order.getStatus())) {
+        // 验证订单状态（只能取消进行中,待被确定，待付款，已接单的订单）
+        if (!OrderStatusConstant.IN_PROGRESS.equals(order.getStatus()) || //进行中
+            !OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus()) || //待付款
+            !OrderStatusConstant.TO_BE_CONFIRMED.equals(order.getStatus()) || //待被确认
+            !OrderStatusConstant.CONFIRMED.equals(order.getStatus()) ) { //已接单
             throw new OrderStatusErrorException("当前订单状态无法取消");
         }
         
@@ -577,11 +595,16 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 响应取消申请（同意或拒绝）
-     */
+     * @description 响应取消申请（同意或拒绝）
+     * @author CyberCaelum
+     * @date 上午10:47 2026/3/16
+     * @param applicationId 申请id
+     * @param agree 是否同意
+     **/
     @Override
     @Transactional
     public void respondCancelApplication(Long applicationId, Boolean agree) {
+        //获取申请信息
         CancelApplication application = cancelApplicationMapper.selectById(applicationId);
         if (application == null) {
             throw new OrderNotFoundException("取消申请不存在");
@@ -591,7 +614,8 @@ public class OrderServiceImpl implements OrderService {
         if (!CancelApplicationStatusConstant.PENDING_CONFIRM.equals(application.getStatus())) {
             throw new OrderStatusErrorException("该申请已处理或已超时");
         }
-        
+
+        //验证订单
         Order order = orderMapper.getOrderById(application.getOrderId());
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
@@ -628,6 +652,7 @@ public class OrderServiceImpl implements OrderService {
             orderMapper.updateOrder(updateOrder);
         } else {
             // 拒绝取消
+            //TODO 平台介入
             application.setStatus(CancelApplicationStatusConstant.CONFIRMED_REJECT);
             application.setConfirmUserId(userId);
             application.setConfirmTime(LocalDateTime.now());
@@ -636,8 +661,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 转换取消类型
-     */
+     * @description 转换取消类型
+     * @author CyberCaelum
+     * @date 上午11:01 2026/3/16
+     * @param cancelType 类型
+     * @return int
+     **/
     private int getCancelTypeFromApplication(Integer cancelType) {
         return switch (cancelType) {
             case 1 -> 1; // 协商一致取消
@@ -648,11 +677,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 平台裁决取消申请
-     */
+     * @description 平台裁决取消申请
+     * @author CyberCaelum
+     * @date 上午11:01 2026/3/16
+     * @param applicationId 申请id
+     * @param decision 裁决结果：1同意取消，2拒绝取消，3部分结算
+     * @param note 平台备注
+     **/
     @Override
     @Transactional
     public void platformDecideCancelApplication(Long applicationId, Integer decision, String note) {
+        //获取申请信息
         CancelApplication application = cancelApplicationMapper.selectById(applicationId);
         if (application == null) {
             throw new OrderNotFoundException("取消申请不存在");
@@ -695,8 +730,12 @@ public class OrderServiceImpl implements OrderService {
     // ==================== 结算相关 ====================
 
     /**
-     * 执行订单结算
-     */
+     * @description 订单结算
+     * @author CyberCaelum
+     * @date 上午11:07 2026/3/16
+     * @param orderId 订单id
+     * @param cancelApplicationId 取消申请id
+     **/
     @Override
     @Transactional
     public void settleOrder(Long orderId, Long cancelApplicationId) {
@@ -719,6 +758,7 @@ public class OrderServiceImpl implements OrderService {
                 (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType()) ||
                  CancelApplicationStatusConstant.TYPE_WORKER_FORCE.equals(application.getCancelType()))) {
                 // 违约金为日薪的50%（示例规则）
+                //TODO 违约金为全部金额的10%
                 penaltyDeduction = order.getPrice().multiply(new BigDecimal("0.5"));
             }
         }

@@ -9,8 +9,11 @@ package org.cybercaelum.household_management.constant;
 public class SessionStatusConstant {
 
     /**
-     * 会话状态
+     * 已结束
      */
     public static final Integer ENDED = 0;          // 已结束
+    /**
+     * 活动中
+     */
     public static final Integer ACTIVE = 1;         // 活动中
 }

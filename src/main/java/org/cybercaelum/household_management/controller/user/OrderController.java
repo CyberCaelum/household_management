@@ -106,10 +106,10 @@ public class OrderController {
      **/
     @Operation(summary = "取消订单", description = "用户发起取消申请")
     @SecurityRequirement(name = "bearerAuth")
-    @PutMapping("/cancel/{id}")
-    public Result cancel(@PathVariable Long id) {
+    @PostMapping("/cancel/{id}")
+    public Result cancel(@PathVariable Long id,@RequestBody String reason) {
         log.info("用户取消订单orderId: {}",id);
-        orderService.cancel(id);
+        orderService.cancel(id,reason);
         return Result.success();
     }
 
@@ -177,21 +177,21 @@ public class OrderController {
         return Result.success();
     }
 
-    /**
-     * @description 再来一单
-     * @author CyberCaelum
-     * @date 2026/3/15
-     * @param id 订单id
-     * @return org.cybercaelum.household_management.pojo.entity.Result
-     **/
-    @Operation(summary = "再来一单", description = "根据历史订单创建新订单")
-    @SecurityRequirement(name = "bearerAuth")
-    @PostMapping("/repetition/{id}")
-    public Result repetition(@PathVariable Long id) {
-        log.info("再来一单，orderId: {}", id);
-        orderService.repetition(id);
-        return Result.success();
-    }
+//    /**
+//     * @description 再来一单
+//     * @author CyberCaelum
+//     * @date 2026/3/15
+//     * @param id 订单id
+//     * @return org.cybercaelum.household_management.pojo.entity.Result
+//     **/
+//    @Operation(summary = "再来一单", description = "根据历史订单创建新订单")
+//    @SecurityRequirement(name = "bearerAuth")
+//    @PostMapping("/repetition/{id}")
+//    public Result repetition(@PathVariable Long id) {
+//        log.info("再来一单，orderId: {}", id);
+//        orderService.repetition(id);
+//        return Result.success();
+//    }
 
     /**
      * @description 查看订单统计
@@ -208,21 +208,21 @@ public class OrderController {
         return Result.success(statistics);
     }
 
-    /**
-     * @description 订单搜索
-     * @author CyberCaelum
-     * @date 2026/3/15
-     * @param ordersPageQueryDTO 查询条件
-     * @return org.cybercaelum.household_management.pojo.entity.Result
-     **/
-    @Operation(summary = "订单搜索", description = "条件搜索订单")
-    @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/conditionSearch")
-    public Result<PageResult> conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
-        log.info("订单搜索，条件: {}", ordersPageQueryDTO);
-        PageResult pageResult = orderService.conditionSearch(ordersPageQueryDTO);
-        return Result.success(pageResult);
-    }
+//    /**
+//     * @description 订单搜索
+//     * @author CyberCaelum
+//     * @date 2026/3/15
+//     * @param ordersPageQueryDTO 查询条件
+//     * @return org.cybercaelum.household_management.pojo.entity.Result
+//     **/
+//    @Operation(summary = "订单搜索", description = "条件搜索订单")
+//    @SecurityRequirement(name = "bearerAuth")
+//    @GetMapping("/conditionSearch")
+//    public Result<PageResult> conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+//        log.info("订单搜索，条件: {}", ordersPageQueryDTO);
+//        PageResult pageResult = orderService.conditionSearch(ordersPageQueryDTO);
+//        return Result.success(pageResult);
+//    }
 
     // ==================== 每日确认相关 ====================
 

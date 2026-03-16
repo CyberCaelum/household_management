@@ -9,8 +9,11 @@ package org.cybercaelum.household_management.constant;
 public class CommentStatusConstant {
 
     /**
-     * 评论状态
+     * 已删除
      */
     public static final Integer DELETED = 0;        // 已删除
+    /**
+     * 可见
+     */
     public static final Integer VISIBLE = 1;        // 可见
 }

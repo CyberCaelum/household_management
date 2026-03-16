@@ -9,14 +9,20 @@ package org.cybercaelum.household_management.constant;
 public class StatusConstant {
 
     /**
-     * 通用状态 1启用，0禁用
+     * 启用
      */
     public static final Integer ENABLE = 1;     // 启用
+    /**
+     * 禁用
+     */
     public static final Integer DISABLE = 0;    // 禁用
 
     /**
-     * 账号状态
+     * 已注销
      */
     public static final Integer ACCOUNT_CANCELLED = 0;  // 已注销
+    /**
+     * 已启用
+     */
     public static final Integer ACCOUNT_ACTIVE = 1;     // 已启用
 }

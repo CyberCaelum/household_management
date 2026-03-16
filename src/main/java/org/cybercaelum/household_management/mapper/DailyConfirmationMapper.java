@@ -58,7 +58,10 @@ public interface DailyConfirmationMapper {
     int countConfirmedDays(Long orderId);
 
     /**
-     * 批量插入每日确认记录
-     */
+     * @description 批量插入每日确认记录
+     * @author CyberCaelum
+     * @date 上午10:05 2026/3/16
+     * @param list 确认记录列表
+     **/
     void batchInsert(List<DailyConfirmation> list);
 }
