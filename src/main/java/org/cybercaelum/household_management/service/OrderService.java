@@ -19,7 +19,7 @@ public interface OrderService {
     PageResult history(Integer page, Integer pageSize, Integer status);
 
     //取消订单（用户发起取消申请）
-    void cancel(Long id,String reason);
+//    void cancel(Long id,String reason);
 
     //查看订单详情
     OrderVO details(Long id);

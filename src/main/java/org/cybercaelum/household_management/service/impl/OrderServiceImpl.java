@@ -91,8 +91,7 @@ public class OrderServiceImpl implements OrderService {
         order.setTotal(total);
         //存入数据库
         orderMapper.insertOrder(order);
-        // 生成每日确认记录
-        generateDailyConfirmations(order);
+
         OrderSubmitVO orderSubmitVO = new OrderSubmitVO();
         BeanUtils.copyProperties(order,orderSubmitVO);
         //设置订单金额
@@ -132,10 +131,21 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+    //TODO 用户支付支付，然后生成每日服务表
     @Override
     public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) {
+
+        //获取order信息
+        Order order = orderMapper.getOrderById(ordersPaymentDTO.getOrderId());
+        //TODO 用户支付
+        // 生成每日确认记录
+        generateDailyConfirmations(order);
         return null;
     }
+
+    //TODO 退款
+
+    //TODO 给雇员打款
 
     /**
      * @description 支付成功修改订单状态
@@ -190,26 +200,26 @@ public class OrderServiceImpl implements OrderService {
      * @date 2026/3/15
      * @param id 订单id
      **/
-    @Override
-    @Transactional
-    public void cancel(Long id,String reason) {
-        //获取订单信息
-        Order order = orderMapper.getOrderById(id);
-        if (order == null) {
-            throw new OrderNotFoundException("订单不存在");
-        }
-        
-        // 验证权限（只能是雇主或家政人员）
-        Long userId = BaseContext.getUserId();
-//        Integer role = BaseContext.getRole();
-        if (!userId.equals(order.getEmployerId()) && !userId.equals(order.getEmployeeId())) {
-            throw new PermissionDeniedException("无权操作此订单");
-        }
-        
-        // 发起协商取消申请
-        Integer cancelType = CancelApplicationStatusConstant.TYPE_NEGOTIATED;
-        applyCancel(id, cancelType, reason);
-    }
+//    @Override
+//    @Transactional
+//    public void cancel(Long id,String reason) {
+//        //获取订单信息
+//        Order order = orderMapper.getOrderById(id);
+//        if (order == null) {
+//            throw new OrderNotFoundException("订单不存在");
+//        }
+//
+//        // 验证权限（只能是雇主或家政人员）
+//        Long userId = BaseContext.getUserId();
+////        Integer role = BaseContext.getRole();
+//        if (!userId.equals(order.getEmployerId()) && !userId.equals(order.getEmployeeId())) {
+//            throw new PermissionDeniedException("无权操作此订单");
+//        }
+//
+//        // 发起协商取消申请
+//        Integer cancelType = CancelApplicationStatusConstant.TYPE_NEGOTIATED;
+//        applyCancel(id, cancelType, reason);
+//    }
 
     /**
      * @description 查看订单详细信息
@@ -464,8 +474,6 @@ public class OrderServiceImpl implements OrderService {
 //        log.info("用户催单，订单ID: {}", id);
 //    }
 
-    // ==================== 每日确认相关 ====================
-
     /**
      * @description 家政人员每日服务完成确认
      * @author CyberCaelum
@@ -567,10 +575,10 @@ public class OrderServiceImpl implements OrderService {
                 .status(DailyConfirmationStatusConstant.EMPLOYER_REJECTED)
                 .disputeReason(reason)
                 .build();
+        //TODO 确认为争议后怎么处理？
+        //自动通知平台介入，
         dailyConfirmationMapper.update(updateConfirmation);
     }
-
-    // ==================== 取消申请相关 ====================
 
     /**
      * @description 发起取消申请
@@ -589,9 +597,9 @@ public class OrderServiceImpl implements OrderService {
         }
         
         // 验证订单状态（只能取消进行中,待被确定，待付款，已接单的订单）
-        if (!OrderStatusConstant.IN_PROGRESS.equals(order.getStatus()) || //进行中
-            !OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus()) || //待付款
-            !OrderStatusConstant.TO_BE_CONFIRMED.equals(order.getStatus()) || //待被确认
+        if (!OrderStatusConstant.IN_PROGRESS.equals(order.getStatus()) && //进行中
+            !OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus()) && //待付款
+            !OrderStatusConstant.TO_BE_CONFIRMED.equals(order.getStatus()) && //待被确认
             !OrderStatusConstant.CONFIRMED.equals(order.getStatus()) ) { //已接单
             throw new OrderStatusErrorException("当前订单状态无法取消");
         }
@@ -763,8 +771,6 @@ public class OrderServiceImpl implements OrderService {
         // 如果拒绝取消，订单继续
     }
 
-    // ==================== 结算相关 ====================
-
     /**
      * @description 订单结算
      * @author CyberCaelum
@@ -824,7 +830,7 @@ public class OrderServiceImpl implements OrderService {
         settlementMapper.insert(settlement);
         
         // 调用支付系统完成转账（简化处理）
-        // TODO: 调用支付系统
+        // TODO: 调用支付系统，将托管金额打给被雇人员
         
         // 更新结算状态为已结算
         settlement.setStatus(SettlementStatusConstant.SETTLED);
@@ -834,11 +840,11 @@ public class OrderServiceImpl implements OrderService {
         log.info("订单结算完成，订单ID: {}，结算金额: {}", orderId, finalAmount);
     }
 
-    // ==================== 定时任务相关 ====================
-
     /**
-     * 自动开始服务（检查到达开始时间的订单）
-     */
+     * @description 自动开始服务（检查到达开始时间的订单）
+     * @author CyberCaelum
+     * @date 2026/3/16
+     **/
     @Override
     @Transactional
     public void autoStartService() {
@@ -864,8 +870,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 自动确认每日服务（超时未确认的自动确认）
-     */
+     * @description 自动确认每日服务（超时未确认的自动确认）
+     * @author CyberCaelum
+     * @date 2026/3/16
+     **/
     @Override
     @Transactional
     public void autoConfirmDailyService() {
@@ -890,8 +898,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 处理超时取消申请（转平台介入）
-     */
+     * @description 处理超时取消申请（转平台介入）
+     * @author CyberCaelum
+     * @date 2026/3/16
+     **/
     @Override
     @Transactional
     public void processTimeoutCancelApplications() {
@@ -904,7 +914,7 @@ public class OrderServiceImpl implements OrderService {
             application.setStatus(CancelApplicationStatusConstant.PLATFORM_PROCESSING);
             cancelApplicationMapper.update(application);
             
-            // 通知平台客服（简化处理，实际应发送通知）
+            // TODO 通知平台客服（简化处理，实际应发送通知）
             log.info("取消申请超时转平台介入，申请ID: {}，订单ID: {}", 
                     application.getId(), application.getOrderId());
         }

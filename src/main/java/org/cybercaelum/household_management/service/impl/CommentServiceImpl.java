@@ -50,7 +50,7 @@ public class CommentServiceImpl implements CommentService {
         if (existComment != null) {
             throw new CommentExistedException(MessageConstant.COMMENT_ALREADY_EXISTS);
         }
-        //TODO 需要在添加评价前验证订单状态，订单是否已经完成，不能一创建就进行评价
+        //添加评价前验证订单状态，订单是否已经完成，不能一创建就进行评价
         Integer orderStatus = orderMapper.getOrderStatusById(commentDTO.getOrderId());
         if (orderStatus == OrderStatusConstant.PENDING_PAYMENT ||
                 orderStatus == OrderStatusConstant.TO_BE_CONFIRMED ||
