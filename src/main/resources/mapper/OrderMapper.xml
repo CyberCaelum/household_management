@@ -4,8 +4,19 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.cybercaelum.household_management.mapper.OrderMapper">
     <insert id="insertOrder" useGeneratedKeys="true" keyProperty="id">
-        insert into `order` (price,order_time,recruitment_id,status,start_time,end_time,employer_id,employee_id,province_code,province_name,city_code,city_name,district_code,district_name,detail,total,days,order_number)
-            values (#{price},#{orderTime},#{recruitmentId},#{status},#{startTime},#{endTime},#{employerId},#{employeeId},#{provinceCode},#{provinceName},#{cityCode},#{cityName},#{districtCode},#{districtName},#{detail},#{total},#{days},#{orderNumber})
+        insert into `order` (
+            price, order_time, recruitment_id, status, start_time, end_time,
+            employer_id, employee_id, province_code, province_name, city_code, city_name,
+            district_code, district_name, detail, total, days, order_number,
+            pay_method, pay_status, cancel_reason, rejection_reason, cancel_time,
+            payment_time, rejection_time, refund_time, cancel_type, held_amount
+        ) values (
+                     #{price}, #{orderTime}, #{recruitmentId}, #{status}, #{startTime}, #{endTime},
+                     #{employerId}, #{employeeId}, #{provinceCode}, #{provinceName}, #{cityCode}, #{cityName},
+                     #{districtCode}, #{districtName}, #{detail}, #{total}, #{days}, #{orderNumber},
+                     #{payMethod}, #{payStatus}, #{cancelReason}, #{rejectionReason}, #{cancelTime},
+                     #{paymentTime}, #{rejectionTime}, #{refundTime}, #{cancelType}, #{heldAmount}
+                 )
     </insert>
 
     <select id="history" resultType="org.cybercaelum.household_management.pojo.entity.Order">
@@ -25,7 +36,7 @@
             <if test="price != null">price = #{price},</if>
             <if test="orderTime != null">order_time = #{orderTime},</if>
             <if test="recruitmentId != null">recruitment_id = #{recruitmentId},</if>
-            <if test="status != 0">status = #{status},</if>
+            <if test="status != null">status = #{status},</if>
             <if test="startTime != null">start_time = #{startTime},</if>
             <if test="endTime != null">end_time = #{endTime},</if>
             <if test="employerId != null">employer_id = #{employerId},</if>
@@ -38,7 +49,7 @@
             <if test="districtName != null">district_name = #{districtName},</if>
             <if test="detail != null">detail = #{detail},</if>
             <if test="total != null">total = #{total},</if>
-            <if test="days != 0">days = #{days},</if>
+            <if test="days != null">days = #{days},</if>
             <if test="orderNumber != null">order_number = #{orderNumber},</if>
             <if test="payMethod != null">pay_method = #{payMethod},</if>
             <if test="payStatus != null">pay_status = #{payStatus},</if>
@@ -48,6 +59,8 @@
             <if test="paymentTime != null">payment_time = #{paymentTime},</if>
             <if test="rejectionTime != null">rejection_time = #{rejectionTime},</if>
             <if test="refundTime != null">refund_time = #{refundTime},</if>
+            <if test="cancelType != null">cancel_type = #{cancelType},</if>
+            <if test="heldAmount != null">held_amount = #{heldAmount},</if>
         </set>
         where id = #{id}
     </update>

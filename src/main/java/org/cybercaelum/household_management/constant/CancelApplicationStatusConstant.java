@@ -32,6 +32,10 @@ public class CancelApplicationStatusConstant {
 
     //取消类型
     /**
+     * 未取消
+     */
+    public static final Integer TYPE_NOT_CANCELLED = 0;
+    /**
      * 协商一致取消
      */
     public static final Integer TYPE_NEGOTIATED = 1;

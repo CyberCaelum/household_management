@@ -13,7 +13,7 @@ public interface OrderService {
     OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO);
 
     //支付成功，修改订单状态
-    void paySuccess(String outTradeNo);
+    void paySuccess(String outTradeNo,Integer payMethod);
 
     //查看历史订单
     PageResult history(Integer page, Integer pageSize, Integer status);
@@ -32,8 +32,8 @@ public interface OrderService {
 //    //订单搜索
 //    PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO);
 
-    //各个状态订单数量统计
-    OrderStatisticsVO statistics();
+//    //各个状态订单数量统计
+//    OrderStatisticsVO statistics();
 
     //接单（被雇者确认接单）
     void confirm(OrdersConfirmDTO ordersConfirmDTO);
@@ -50,8 +50,8 @@ public interface OrderService {
     //完成订单
     void complete(Long id);
 
-    //用户催单
-    void reminder(Long id);
+//    //用户催单
+//    void reminder(Long id);
 
     // ==================== 每日确认相关 ====================
 

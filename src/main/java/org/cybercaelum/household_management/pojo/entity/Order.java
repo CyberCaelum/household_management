@@ -49,4 +49,5 @@ public class Order {
     private LocalDateTime rejectionTime;//订单拒绝时间
     private LocalDateTime refundTime;//退款时间
     private int cancel_type;//取消类型，0未取消，1协商一致取消，2雇主强制取消，3家政人员强制取消，4平台取消
+    private BigDecimal heldAmount;//托管金额，雇员应得金额
 }

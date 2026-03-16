@@ -12,6 +12,7 @@ import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.*;
 import org.cybercaelum.household_management.service.OrderService;
+import org.cybercaelum.household_management.service.RecruitmentService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class OrderServiceImpl implements OrderService {
     private final DailyConfirmationMapper dailyConfirmationMapper;
     private final CancelApplicationMapper cancelApplicationMapper;
     private final SettlementMapper settlementMapper;
+    private final RecruitmentService recruitmentService;
 
     /**
      * @description 提交订单
@@ -72,21 +74,31 @@ public class OrderServiceImpl implements OrderService {
                 .employerId(recruitment.getUserId())//雇佣者id，即发帖人id
                 .days(ordersSubmitDTO.getDays())//工作天数
                 .orderNumber(String.valueOf(System.currentTimeMillis()))//订单号
+                .cancel_type(CancelApplicationStatusConstant.TYPE_NOT_CANCELLED)//设置状态为未取消
                 .build();
         //复制地址
         BeanUtils.copyProperties(recruitment,order);
-        //设置订单状态，待接单
-        order.setStatus(OrderStatusConstant.CONFIRMED);
-        //计算总价
-        order.setTotal(ordersSubmitDTO.getPrice().multiply(new BigDecimal(ordersSubmitDTO.getDays())));
+        //设置订单状态，待付款
+        order.setStatus(OrderStatusConstant.PENDING_PAYMENT);
+        //设置支付状态，未支付
+        order.setPayStatus(PayStatusConstant.UN_PAID);
+        //计算托管金额 = 天数*日薪
+        BigDecimal heldAmount = ordersSubmitDTO.getPrice().multiply(new BigDecimal(ordersSubmitDTO.getDays()));
+        //托管金额
+        order.setHeldAmount(heldAmount);
+        //应付总价 = 托管金额 + 平台佣金 = 托管金额 * (1 + 平台佣金比例)
+        BigDecimal total = heldAmount.add(heldAmount.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE));
+        order.setTotal(total);
         //存入数据库
         orderMapper.insertOrder(order);
-        
         // 生成每日确认记录
         generateDailyConfirmations(order);
-        
         OrderSubmitVO orderSubmitVO = new OrderSubmitVO();
         BeanUtils.copyProperties(order,orderSubmitVO);
+        //设置订单金额
+        orderSubmitVO.setOrderAmount(total);
+        // 设置招募信息为隐藏
+        recruitmentService.updateRecruitmentStatus(RecruitmentStatusConstant.HIDDEN,order.getId());
         //返回数据
         return orderSubmitVO;
     }
@@ -132,7 +144,7 @@ public class OrderServiceImpl implements OrderService {
      * @param orderNumber 订单号
      **/
     @Override
-    public void paySuccess(String orderNumber) {
+    public void paySuccess(String orderNumber,Integer payMethod) {
         //根据订单号查询订单
         Order order = orderMapper.getOrderByNumber(orderNumber);
         //修改订单状态和信息
@@ -141,6 +153,7 @@ public class OrderServiceImpl implements OrderService {
                 .payStatus(PayStatusConstant.PAID)//已支付
                 .paymentTime(LocalDateTime.now())//支付时间
                 .status(OrderStatusConstant.TO_BE_CONFIRMED)//从未支付变为待确认
+                .payMethod(payMethod)//支付方式
                 .build();
         orderMapper.updateOrder(payedOrder);
     }
@@ -278,29 +291,26 @@ public class OrderServiceImpl implements OrderService {
 //        return new PageResult(orders.getTotal(), list);
 //    }
 
-    @Override
-    public OrderStatisticsVO statistics() {
-        // 统计各状态订单数量
-        Long userId = BaseContext.getUserId();
-        
-        Integer toBeConfirmed = orderMapper.countByStatusAndUserId(OrderStatusConstant.TO_BE_CONFIRMED, userId);
-        Integer confirmed = orderMapper.countByStatusAndUserId(OrderStatusConstant.CONFIRMED, userId);
-        Integer inProgress = orderMapper.countByStatusAndUserId(OrderStatusConstant.IN_PROGRESS, userId);
-        Integer completed = orderMapper.countByStatusAndUserId(OrderStatusConstant.COMPLETED, userId);
-        Integer cancelled = orderMapper.countByStatusAndUserId(OrderStatusConstant.CANCELLED, userId);
-        
-        return OrderStatisticsVO.builder()
-                .toBeConfirmed(toBeConfirmed != null ? toBeConfirmed : 0)
-                .confirmed(confirmed != null ? confirmed : 0)
-                .inProgress(inProgress != null ? inProgress : 0)
-                .completed(completed != null ? completed : 0)
-                .cancelled(cancelled != null ? cancelled : 0)
-                .build();
-    }
+//    @Override
+//    public OrderStatisticsVO statistics() {
+//        // 统计各状态订单数量
+//        Long userId = BaseContext.getUserId();
+//
+//        Integer toBeConfirmed = orderMapper.countByStatusAndUserId(OrderStatusConstant.TO_BE_CONFIRMED, userId);
+//        Integer confirmed = orderMapper.countByStatusAndUserId(OrderStatusConstant.CONFIRMED, userId);
+//        Integer inProgress = orderMapper.countByStatusAndUserId(OrderStatusConstant.IN_PROGRESS, userId);
+//        Integer completed = orderMapper.countByStatusAndUserId(OrderStatusConstant.COMPLETED, userId);
+//        Integer cancelled = orderMapper.countByStatusAndUserId(OrderStatusConstant.CANCELLED, userId);
+//
+//        return OrderStatisticsVO.builder()
+//                .toBeConfirmed(toBeConfirmed != null ? toBeConfirmed : 0)
+//                .confirmed(confirmed != null ? confirmed : 0)
+//                .inProgress(inProgress != null ? inProgress : 0)
+//                .completed(completed != null ? completed : 0)
+//                .cancelled(cancelled != null ? cancelled : 0)
+//                .build();
+//    }
 
-    /**
-     * 接单（被雇者确认接单）
-     */
     /**
      * @description 接单（被雇者确认接单）
      * @author CyberCaelum
@@ -333,8 +343,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 拒单（被雇者拒绝接单）
-     */
+     * @description 拒单（被雇者拒绝接单）
+     * @author CyberCaelum
+     * @date 2026/3/16
+     * @param ordersRejectionDTO 拒单信息
+     **/
     @Override
     @Transactional
     public void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception {
@@ -355,13 +368,18 @@ public class OrderServiceImpl implements OrderService {
                 .status(OrderStatusConstant.CANCELLED)
                 .rejectionReason(ordersRejectionDTO.getRejectionReason())
                 .rejectionTime(LocalDateTime.now())
+                .refundTime(LocalDateTime.now())
                 .build();
+        //TODO 退单，退款
         orderMapper.updateOrder(updateOrder);
     }
 
     /**
-     * 商家/管理员取消订单
-     */
+     * @description 平台取消订单
+     * @author CyberCaelum
+     * @date 2026/3/16
+     * @param ordersCancelDTO 订单取消信息
+     **/
     @Override
     @Transactional
     public void adminCancel(OrdersCancelDTO ordersCancelDTO) {
@@ -380,11 +398,15 @@ public class OrderServiceImpl implements OrderService {
                 .cancel_type(4) // 平台取消
                 .build();
         orderMapper.updateOrder(updateOrder);
+        //TODO 更新结算表
     }
 
     /**
-     * 派送订单（标记订单为进行中/服务中）
-     */
+     * @description 标记订单为进行中
+     * @author CyberCaelum
+     * @date 2026/3/16
+     * @param id 主键
+     **/
     @Override
     @Transactional
     public void delivery(Long id) {
@@ -407,8 +429,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 完成订单
-     */
+     * @description 完成订单
+     * @author CyberCaelum
+     * @date 2026/3/16
+     * @param id 订单id
+     **/
     @Override
     @Transactional
     public void complete(Long id) {
@@ -433,17 +458,21 @@ public class OrderServiceImpl implements OrderService {
         settleOrder(id, null);
     }
 
-    @Override
-    public void reminder(Long id) {
-        // 催单逻辑，可发送通知
-        log.info("用户催单，订单ID: {}", id);
-    }
+//    @Override
+//    public void reminder(Long id) {
+//        // 催单逻辑，可发送通知
+//        log.info("用户催单，订单ID: {}", id);
+//    }
 
     // ==================== 每日确认相关 ====================
 
     /**
-     * 家政人员每日服务完成确认
-     */
+     * @description 家政人员每日服务完成确认
+     * @author CyberCaelum
+     * @date 2026/3/16
+     * @param orderId 订单id
+     * @param serviceDate 服务日期
+     **/
     @Override
     @Transactional
     public void workerDailyConfirm(Long orderId, LocalDate serviceDate) {
@@ -473,8 +502,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 雇主确认每日服务
-     */
+     * @description 雇主确认每日服务
+     * @author CyberCaelum
+     * @date 2026/3/16
+     * @param confirmationId 确认id
+     **/
     @Override
     @Transactional
     public void employerDailyConfirm(Long confirmationId) {
@@ -504,8 +536,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 雇主对每日服务提出争议
-     */
+     * @description 雇主对每日服务提出争议
+     * @author CyberCaelum
+     * @date 2026/3/16
+     * @param confirmationId 确认id
+     * @param reason 原因
+     **/
     @Override
     @Transactional
     public void employerDisputeDaily(Long confirmationId, String reason) {
@@ -747,27 +783,32 @@ public class OrderServiceImpl implements OrderService {
         // 统计已确认天数
         int totalDays = dailyConfirmationMapper.countConfirmedDays(orderId);
         
-        // 计算金额
+        // 计算金额，金额乘实际天数
         BigDecimal totalAmount = order.getPrice().multiply(new BigDecimal(totalDays));
         BigDecimal penaltyDeduction = BigDecimal.ZERO;
-        
+
+        BigDecimal finalAmount = totalAmount;
         // 如果有取消申请且为强制取消，计算违约金（简化处理，实际应按规则计算）
         if (cancelApplicationId != null) {
             CancelApplication application = cancelApplicationMapper.selectById(cancelApplicationId);
             if (application != null && 
                 (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType()) ||
                  CancelApplicationStatusConstant.TYPE_WORKER_FORCE.equals(application.getCancelType()))) {
-                // 违约金为日薪的50%（示例规则）
-                //TODO 违约金为全部金额的10%
-                penaltyDeduction = order.getPrice().multiply(new BigDecimal("0.5"));
+                //违约金为全部金额的10%
+                penaltyDeduction = totalAmount.multiply(new BigDecimal("0.1"));
+                //雇主强制取消，雇主多付钱
+                if (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType())){
+                    finalAmount = finalAmount.add(penaltyDeduction);
+                } else {//家政人员强制取消，家政人员多付钱
+                    finalAmount = finalAmount.subtract(penaltyDeduction);
+                }
             }
         }
-        
-        BigDecimal finalAmount = totalAmount.subtract(penaltyDeduction);
+
         if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
             finalAmount = BigDecimal.ZERO;
         }
-        
+
         // 创建结算记录
         Settlement settlement = Settlement.builder()
                 .orderId(orderId)
@@ -789,7 +830,7 @@ public class OrderServiceImpl implements OrderService {
         settlement.setStatus(SettlementStatusConstant.SETTLED);
         settlement.setSettlementTime(LocalDateTime.now());
         settlementMapper.update(settlement);
-        
+        //TODO 更新订单信息
         log.info("订单结算完成，订单ID: {}，结算金额: {}", orderId, finalAmount);
     }
 
