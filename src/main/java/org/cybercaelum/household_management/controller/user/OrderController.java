@@ -48,20 +48,24 @@ public class OrderController {
     }
 
     /**
-     * @description 用户支付
+     * @description 生成微信支付二维码
      * @author CyberCaelum
-     * @date 上午9:28 2026/3/12
-     * @param ordersPaymentDTO 支付信息
-     * @return org.cybercaelum.household_management.pojo.entity.Result
+     * @date 下午4:19 2026/3/17
+     * @param ordersPaymentDTO 订单信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result<java.lang.String>
      **/
-    @PutMapping("/payment")
+    @PutMapping("/pay-native")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "用户支付",description = "用户支付")
-    public Result<OrderPaymentVO> payment(@RequestBody OrdersPaymentDTO ordersPaymentDTO){
+    public Result<String> payNative(@RequestBody OrdersPaymentDTO ordersPaymentDTO){
         log.info("订单支付信息：{}",ordersPaymentDTO);
-        OrderPaymentVO orderPaymentVO = orderService.payment(ordersPaymentDTO);
-        return Result.success(orderPaymentVO);
+        String codeUrl = orderService.nativeOrder(ordersPaymentDTO);
+        return Result.success(codeUrl);
     }
+
+    //TODO 前端轮询查看订单状态的接口
+    //定时处理后台启动一个定时任务，定期扫描那些“已创建但长时间未支付”且“未收到回调”的订单（比如超过5分钟）
+    // 调用 queryOrder 方法向微信核实真实状态。如果微信返回 SUCCESS，则主动更新本地订单。
 
     /**
      * @description 查看历史订单

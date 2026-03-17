@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.File;
+import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -102,17 +103,19 @@ public class WechatPayUtil {
     /**
      * 创建Native支付（扫码支付）订单
      * @param orderNo 商户订单号
-     * @param amount 金额（单位：分）
+     * @param amount 金额（元）
      * @param description 商品描述
      * @return 支付二维码链接
      */
-    public String createNativeOrder(String orderNo, int amount, String description) {
+    public String createNativeOrder(String orderNo, BigDecimal amount, String description) {
         checkInitialized();
         try {
+            // 将元转换为分
+            int amountInFen = amount.multiply(new BigDecimal("100")).intValue();
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
                     .outTradeNo(orderNo)
-                    .totalFee(amount)
+                    .totalFee(amountInFen)
                     .spbillCreateIp(getLocalIp())
                     .tradeType(WxPayConstants.TradeType.NATIVE)
                     .notifyUrl(wechatPayProperties.getNotifyUrl())
@@ -130,18 +133,20 @@ public class WechatPayUtil {
     /**
      * 创建JSAPI支付订单（微信公众号/小程序支付）
      * @param orderNo 商户订单号
-     * @param amount 金额（单位：分）
+     * @param amount 金额（元）
      * @param description 商品描述
      * @param openId 用户OpenID
      * @return 调起支付的参数（前端需使用此参数调用wx.chooseWXPay）
      */
-    public String createJsapiOrder(String orderNo, int amount, String description, String openId) {
+    public String createJsapiOrder(String orderNo, BigDecimal amount, String description, String openId) {
         checkInitialized();
         try {
+            // 将元转换为分
+            int amountInFen = amount.multiply(new BigDecimal("100")).intValue();
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
                     .outTradeNo(orderNo)
-                    .totalFee(amount)
+                    .totalFee(amountInFen)
                     .spbillCreateIp(getLocalIp())
                     .tradeType(WxPayConstants.TradeType.JSAPI)
                     .openid(openId)
@@ -160,17 +165,19 @@ public class WechatPayUtil {
     /**
      * 创建APP支付订单
      * @param orderNo 商户订单号
-     * @param amount 金额（单位：分）
+     * @param amount 金额（元）
      * @param description 商品描述
      * @return 调起支付的参数
      */
-    public String createAppOrder(String orderNo, int amount, String description) {
+    public String createAppOrder(String orderNo, BigDecimal amount, String description) {
         checkInitialized();
         try {
+            // 将元转换为分
+            int amountInFen = amount.multiply(new BigDecimal("100")).intValue();
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
                     .outTradeNo(orderNo)
-                    .totalFee(amount)
+                    .totalFee(amountInFen)
                     .spbillCreateIp(getLocalIp())
                     .tradeType(WxPayConstants.TradeType.APP)
                     .notifyUrl(wechatPayProperties.getNotifyUrl())
@@ -188,18 +195,20 @@ public class WechatPayUtil {
     /**
      * 创建H5支付订单
      * @param orderNo 商户订单号
-     * @param amount 金额（单位：分）
+     * @param amount 金额（元）
      * @param description 商品描述
      * @param sceneType 场景类型（iOS/Android/WAP）
      * @return 支付跳转链接
      */
-    public String createH5Order(String orderNo, int amount, String description, String sceneType) {
+    public String createH5Order(String orderNo, BigDecimal amount, String description, String sceneType) {
         checkInitialized();
         try {
+            // 将元转换为分
+            int amountInFen = amount.multiply(new BigDecimal("100")).intValue();
             WxPayUnifiedOrderRequest request = WxPayUnifiedOrderRequest.newBuilder()
                     .body(description)
                     .outTradeNo(orderNo)
-                    .totalFee(amount)
+                    .totalFee(amountInFen)
                     .spbillCreateIp(getLocalIp())
                     .tradeType(WxPayConstants.TradeType.MWEB)
                     .notifyUrl(wechatPayProperties.getNotifyUrl())
@@ -261,19 +270,22 @@ public class WechatPayUtil {
      * 申请退款
      * @param orderNo 商户订单号
      * @param refundNo 商户退款单号
-     * @param totalAmount 订单总金额（单位：分）
-     * @param refundAmount 退款金额（单位：分）
+     * @param totalAmount 订单总金额（元）
+     * @param refundAmount 退款金额（元）
      * @param reason 退款原因
      * @return 退款结果
      */
-    public WxPayRefundResult refund(String orderNo, String refundNo, int totalAmount, int refundAmount, String reason) {
+    public WxPayRefundResult refund(String orderNo, String refundNo, BigDecimal totalAmount, BigDecimal refundAmount, String reason) {
         checkInitialized();
         try {
+            // 将元转换为分
+            int totalAmountInFen = totalAmount.multiply(new BigDecimal("100")).intValue();
+            int refundAmountInFen = refundAmount.multiply(new BigDecimal("100")).intValue();
             WxPayRefundRequest request = WxPayRefundRequest.newBuilder()
                     .outTradeNo(orderNo)
                     .outRefundNo(refundNo)
-                    .totalFee(totalAmount)
-                    .refundFee(refundAmount)
+                    .totalFee(totalAmountInFen)
+                    .refundFee(refundAmountInFen)
                     .refundDesc(reason)
                     .notifyUrl(wechatPayProperties.getRefundNotifyUrl())
                     .build();

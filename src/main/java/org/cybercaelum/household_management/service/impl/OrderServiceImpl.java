@@ -13,6 +13,7 @@ import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.*;
 import org.cybercaelum.household_management.service.OrderService;
 import org.cybercaelum.household_management.service.RecruitmentService;
+import org.cybercaelum.household_management.utils.WechatPayUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ public class OrderServiceImpl implements OrderService {
     private final CancelApplicationMapper cancelApplicationMapper;
     private final SettlementMapper settlementMapper;
     private final RecruitmentService recruitmentService;
+    private final WechatPayUtil wechatPayUtil;
 
     /**
      * @description 提交订单
@@ -131,16 +133,31 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    //TODO 用户支付支付，然后生成每日服务表
+    /**
+     * @description 生成订单相关的微信支付二维码
+     * @author CyberCaelum
+     * @date 下午4:05 2026/3/17
+     * @param ordersPaymentDTO 订单信息
+     * @return org.cybercaelum.household_management.pojo.vo.OrderPaymentVO
+     **/
     @Override
-    public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) {
-
+    public String nativeOrder(OrdersPaymentDTO ordersPaymentDTO) {
         //获取order信息
         Order order = orderMapper.getOrderById(ordersPaymentDTO.getOrderId());
-        //TODO 用户支付
-        // 生成每日确认记录
-        generateDailyConfirmations(order);
-        return null;
+        //判断订单是否存在
+        if (order == null) {
+            throw new OrderNotFoundException("订单不存在");
+        }
+        //订单和订单id是否匹配
+        if (!order.getOrderNumber().equals(ordersPaymentDTO.getOrderNumber())) {
+            throw new OrderNotFoundException("订单错误");
+        }
+        String codeUrl = wechatPayUtil.createNativeOrder(
+                ordersPaymentDTO.getOrderNumber(),
+                order.getTotal(),
+                "家政服务订单，扫码支付"
+        );
+        return codeUrl;
     }
 
     //TODO 退款
@@ -148,15 +165,36 @@ public class OrderServiceImpl implements OrderService {
     //TODO 给雇员打款
 
     /**
-     * @description 支付成功修改订单状态
+     * @description 支付成功修改订单状态，生成每日确定
      * @author CyberCaelum
      * @date 上午10:32 2026/3/13
      * @param orderNumber 订单号
+     * @param payMethod 支付方式
      **/
     @Override
-    public void paySuccess(String orderNumber,Integer payMethod) {
+    @Transactional
+    public void paySuccess(String orderNumber, Integer payMethod) {
         //根据订单号查询订单
         Order order = orderMapper.getOrderByNumber(orderNumber);
+        
+        //订单不存在
+        if (order == null) {
+            log.error("支付回调处理失败：订单不存在，订单号: {}", orderNumber);
+            throw new OrderNotFoundException("订单不存在");
+        }
+        
+        //幂等性检查：如果订单已经支付，直接返回（防止重复处理）
+        if (PayStatusConstant.PAID.equals(order.getPayStatus())) {
+            log.info("订单已支付，无需重复处理，订单号: {}", orderNumber);
+            return;
+        }
+        
+        //校验订单状态：只有待支付的订单才能处理支付成功
+        if (!OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus())) {
+            log.warn("订单状态异常，无法处理支付，订单号: {}，当前状态: {}", orderNumber, order.getStatus());
+            throw new OrderStatusErrorException("订单状态异常，无法处理支付");
+        }
+        
         //修改订单状态和信息
         Order payedOrder = Order.builder()
                 .id(order.getId())//主键
@@ -166,6 +204,11 @@ public class OrderServiceImpl implements OrderService {
                 .payMethod(payMethod)//支付方式
                 .build();
         orderMapper.updateOrder(payedOrder);
+        
+        //生成每日确认记录
+        generateDailyConfirmations(order);
+        
+        log.info("订单支付成功处理完成，订单号: {}，支付方式: {}", orderNumber, payMethod);
     }
 
     /**
@@ -194,12 +237,12 @@ public class OrderServiceImpl implements OrderService {
         return new PageResult(orders.getTotal(), list);
     }
 
-    /**
-     * @description 用户取消订单（发起取消申请）
-     * @author CyberCaelum
-     * @date 2026/3/15
-     * @param id 订单id
-     **/
+//    /**
+//     * @description 用户取消订单（发起取消申请）
+//     * @author CyberCaelum
+//     * @date 2026/3/15
+//     * @param id 订单id
+//     **/
 //    @Override
 //    @Transactional
 //    public void cancel(Long id,String reason) {

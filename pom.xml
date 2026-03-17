@@ -118,6 +118,12 @@
             <artifactId>weixin-java-pay</artifactId>
             <version>4.6.0</version>
         </dependency>
+        <!-- 支付宝支付SDK -->
+        <dependency>
+            <groupId>com.alipay.sdk</groupId>
+            <artifactId>alipay-sdk-java</artifactId>
+            <version>4.38.10.ALL</version>
+        </dependency>
         <!-- Caffeine 缓存 -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>

@@ -10,7 +10,7 @@ public interface OrderService {
     OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO);
 
     //订单支付
-    OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO);
+    String nativeOrder(OrdersPaymentDTO ordersPaymentDTO);
 
     //支付成功，修改订单状态
     void paySuccess(String outTradeNo,Integer payMethod);

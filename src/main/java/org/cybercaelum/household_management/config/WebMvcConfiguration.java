@@ -35,6 +35,9 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/user/login",
                         "/user/register",
+                        // 支付回调接口（微信调用，不需要JWT）
+                        "/notify/pay",
+                        "/notify/**",
                         // Swagger UI 相关路径
                         "/swagger-ui.html",
                         "/swagger-ui/**",
