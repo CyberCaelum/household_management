@@ -20,6 +20,17 @@ mybatis:
     #开启驼峰命名
     map-underscore-to-camel-case: true
 
+wechat:
+  pay:
+    app-id: ${wechat.pay.app-id}          # 微信小程序/公众号APPID
+    mch-id: ${wechat.pay.mch-id}                  # 微信支付商户号
+    api-v3-key: ${wechat.pay.api-v3-key}    # 商户API V3密钥
+    mch-serial-no: ${wechat.pay.mch-serial-no}  # 商户证书序列号
+    private-key-path: ${wechat.pay.private-key-path} # 商户私钥文件路径
+    notify-url: ${wechat.pay.notify-url}  # 支付回调地址
+    refund-notify-url: ${wechat.pay.refund-notify-url}  # 退款回调地址
+    sandbox: ${wechat.pay.sandbox}  # 是否使用沙箱环境
+
 springdoc:
   api-docs:
     enabled: true
@@ -62,3 +73,8 @@ household:
     admin-user-id: ${household.openim.admin-user-id:imAdmin}
     # 默认平台ID (1-9)
     default-platform-id: ${household.openim.default-platform-id:1}
+  rocketmq:
+    endpoint: ${household.rocketmq.endpoint}
+    producer:
+      group: ${household.rocketmq.producer.group}
+

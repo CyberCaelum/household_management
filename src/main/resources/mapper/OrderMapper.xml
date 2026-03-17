@@ -9,13 +9,13 @@
             employer_id, employee_id, province_code, province_name, city_code, city_name,
             district_code, district_name, detail, total, days, order_number,
             pay_method, pay_status, cancel_reason, rejection_reason, cancel_time,
-            payment_time, rejection_time, refund_time, cancel_type, held_amount
+            payment_time, rejection_time, refund_time, cancel_type, held_amount,refund_number
         ) values (
                      #{price}, #{orderTime}, #{recruitmentId}, #{status}, #{startTime}, #{endTime},
                      #{employerId}, #{employeeId}, #{provinceCode}, #{provinceName}, #{cityCode}, #{cityName},
                      #{districtCode}, #{districtName}, #{detail}, #{total}, #{days}, #{orderNumber},
                      #{payMethod}, #{payStatus}, #{cancelReason}, #{rejectionReason}, #{cancelTime},
-                     #{paymentTime}, #{rejectionTime}, #{refundTime}, #{cancelType}, #{heldAmount}
+                     #{paymentTime}, #{rejectionTime}, #{refundTime}, #{cancelType}, #{heldAmount},#{refundNumber}
                  )
     </insert>
 
@@ -61,6 +61,7 @@
             <if test="refundTime != null">refund_time = #{refundTime},</if>
             <if test="cancelType != null">cancel_type = #{cancelType},</if>
             <if test="heldAmount != null">held_amount = #{heldAmount},</if>
+            <if test="refundNumber != null">refund_number = #{refundNumber}</if>
         </set>
         where id = #{id}
     </update>

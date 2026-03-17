@@ -130,6 +130,12 @@
             <artifactId>caffeine</artifactId>
             <version>3.1.8</version>
         </dependency>
+        <!-- rocketmq -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-v5-client-spring-boot-starter</artifactId>
+            <version>2.3.1</version>
+        </dependency>
     </dependencies>
 
     <build>

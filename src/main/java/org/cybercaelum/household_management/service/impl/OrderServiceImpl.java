@@ -4,6 +4,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.core.RocketMQClientTemplate;
 import org.cybercaelum.household_management.constant.*;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.*;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +43,7 @@ public class OrderServiceImpl implements OrderService {
     private final SettlementMapper settlementMapper;
     private final RecruitmentService recruitmentService;
     private final WechatPayUtil wechatPayUtil;
+    private final RocketMQClientTemplate rocketMQClientTemplate;
 
     /**
      * @description 提交订单
@@ -103,6 +104,36 @@ public class OrderServiceImpl implements OrderService {
         //返回数据
         return orderSubmitVO;
     }
+    //TODO 发送延迟消息，控制订单过期
+//    public void sendOrderTimeoutMessage(OrderTimeoutMessage message, long delaySeconds) {
+//
+//        String topic = "ORDER_TIMEOUT_TOPIC";
+//        String tag = "ORDER_CANCEL";
+//
+//        // 计算延迟投递时间戳（毫秒）
+//        long deliveryTimestamp = System.currentTimeMillis() + delaySeconds * 1000;
+//
+//        try {
+//            // ✅ 5.x 发送消息
+//            org.springframework.messaging.Message<?> msg =
+//                    MessageBuilder.withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
+//                            .setHeader(org.apache.rocketmq.client.java.message.MessageHeaders.TOPIC, topic)
+//                            .setHeader(org.apache.rocketmq.client.java.message.MessageHeaders.TAG, tag)
+//                            .setHeader(org.apache.rocketmq.client.java.message.MessageHeaders.DELIVERY_TIMESTAMP,
+//                                    String.valueOf(deliveryTimestamp))
+//                            .build();
+//
+//            // 同步发送
+//            org.springframework.messaging.support.SendResult result =
+//                    rocketMQClientTemplate.syncSend(topic, msg, 3000);
+//
+//            System.out.println("消息发送成功，msgId: " + result.getMessageId());
+//
+//        } catch (Exception e) {
+//            System.err.println("消息发送失败: " + e.getMessage());
+//            throw new RuntimeException("发送延迟消息失败", e);
+//        }
+//    }
 
     /**
      * @description 生成并插入每日确认记录
