@@ -14,7 +14,7 @@ public class RocketMQConstant {
     /**
      * 消息标签
      */
-    public static final String ORDER_CANCEL = "ORDER_CANCEL";
+    public static final String ORDER_CANCEL_TAG = "ORDER_CANCEL";
     /**
      * 超时时间30分钟
      */

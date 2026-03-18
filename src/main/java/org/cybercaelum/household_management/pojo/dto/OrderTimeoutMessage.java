@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderTimeoutMessage {
-    private String Id;//订单id
+    private Long Id;//订单id
     private Long userId;//用户id
     private BigDecimal amount;//订单金额
     private LocalDateTime createTime;//创建时间

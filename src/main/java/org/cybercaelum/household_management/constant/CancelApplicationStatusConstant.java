@@ -47,6 +47,10 @@ public class CancelApplicationStatusConstant {
      * 家政人员强制取消
      */
     public static final Integer TYPE_WORKER_FORCE = 3;
+    /**
+     * 平台取消
+     */
+    public static final Integer TYPE_PLATFORM_FORCE = 4;
 
     //申请人角色
     /**

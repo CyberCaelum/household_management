@@ -1,9 +1,12 @@
 package org.cybercaelum.household_management.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryResult;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.apis.message.Message;
 import org.apache.rocketmq.client.core.RocketMQClientTemplate;
 import org.cybercaelum.household_management.constant.*;
 import org.cybercaelum.household_management.context.BaseContext;
@@ -16,10 +19,12 @@ import org.cybercaelum.household_management.service.OrderService;
 import org.cybercaelum.household_management.service.RecruitmentService;
 import org.cybercaelum.household_management.utils.WechatPayUtil;
 import org.springframework.beans.BeanUtils;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -99,41 +104,36 @@ public class OrderServiceImpl implements OrderService {
         BeanUtils.copyProperties(order,orderSubmitVO);
         //设置订单金额
         orderSubmitVO.setOrderAmount(total);
-        // 设置招募信息为隐藏
-        recruitmentService.updateRecruitmentStatus(RecruitmentStatusConstant.HIDDEN,order.getId());
+        //发送延迟消息，控制订单过期
+        OrderTimeoutMessage orderTimeoutMessage = new OrderTimeoutMessage();
+        orderTimeoutMessage.setId(order.getId());
+        orderTimeoutMessage.setUserId(BaseContext.getUserId());
+        orderTimeoutMessage.setCreateTime(order.getOrderTime());
+        orderTimeoutMessage.setAmount(total);
+        sendOrderTimeoutMessage(orderTimeoutMessage);
         //返回数据
         return orderSubmitVO;
     }
-    //TODO 发送延迟消息，控制订单过期
-//    public void sendOrderTimeoutMessage(OrderTimeoutMessage message, long delaySeconds) {
-//
-//        String topic = "ORDER_TIMEOUT_TOPIC";
-//        String tag = "ORDER_CANCEL";
-//
-//        // 计算延迟投递时间戳（毫秒）
-//        long deliveryTimestamp = System.currentTimeMillis() + delaySeconds * 1000;
-//
-//        try {
-//            // ✅ 5.x 发送消息
-//            org.springframework.messaging.Message<?> msg =
-//                    MessageBuilder.withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
-//                            .setHeader(org.apache.rocketmq.client.java.message.MessageHeaders.TOPIC, topic)
-//                            .setHeader(org.apache.rocketmq.client.java.message.MessageHeaders.TAG, tag)
-//                            .setHeader(org.apache.rocketmq.client.java.message.MessageHeaders.DELIVERY_TIMESTAMP,
-//                                    String.valueOf(deliveryTimestamp))
-//                            .build();
-//
-//            // 同步发送
-//            org.springframework.messaging.support.SendResult result =
-//                    rocketMQClientTemplate.syncSend(topic, msg, 3000);
-//
-//            System.out.println("消息发送成功，msgId: " + result.getMessageId());
-//
-//        } catch (Exception e) {
-//            System.err.println("消息发送失败: " + e.getMessage());
-//            throw new RuntimeException("发送延迟消息失败", e);
-//        }
-//    }
+
+    /**
+     * @description 订单超时消息
+     * @author CyberCaelum
+     * @date 上午9:22 2026/3/18
+     * @param message 订单消息
+     **/
+    public void sendOrderTimeoutMessage(OrderTimeoutMessage message){
+        //计算延迟投递时间
+        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.ORDER_TIMEOUT_DEFAULT;
+        try {
+            org.springframework.messaging.Message<?> msg = MessageBuilder
+                    .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
+                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
+                    .build();
+            rocketMQClientTemplate.send(RocketMQConstant.ORDER_TIMEOUT_TOPIC+":"+RocketMQConstant.ORDER_CANCEL_TAG,msg);
+        } catch (Exception e) {
+            throw new RuntimeException("消息发送错误", e);
+        }
+    }
 
     /**
      * @description 生成并插入每日确认记录
@@ -192,6 +192,43 @@ public class OrderServiceImpl implements OrderService {
     }
 
     //TODO 退款
+    /**
+     * @description 退款
+     * @author CyberCaelum
+     * @date 上午10:28 2026/3/18
+     * @param orderId 订单id
+     **/
+    public void refund(Long orderId){
+        //查找订单是否存在
+        Order order = orderMapper.getOrderById(orderId);
+        if (order == null || order.getOrderNumber() == null){
+            throw new OrderNotFoundException("订单不存在");
+        }
+        //检查订单状态,待付款订单不能退款
+        if (order.getPayStatus()==PayStatusConstant.UN_PAID ||
+            order.getStatus() == OrderStatusConstant.PENDING_PAYMENT){
+            throw new OrderStatusErrorException("订单未支付");
+        }
+        //通过微信获得订单支付状态，
+        WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
+        if (!wxPayOrderQueryResult.getTradeState().equals("SUCCESS")){
+            throw new OrderStatusErrorException("订单未支付");
+        }
+        //查看订单取消的状态，确定退款金额
+        //协商一致取消，退未打卡天数的钱，但是不退平台抽成
+        //TODO 不能看取消类型，要看平台裁决结果，需要添加裁决结果参数
+        if (order.getCancel_type() == 0){
+
+        }
+        //雇主强制退款，抽取违约金给雇员，未打卡的钱-违约金
+        if (order.getCancel_type() == 0){
+
+        }
+        //雇员强制退款，未打卡的钱+违约金
+        //订单退款
+
+        //修改订单状态
+    }
 
     //TODO 给雇员打款
 
@@ -235,7 +272,8 @@ public class OrderServiceImpl implements OrderService {
                 .payMethod(payMethod)//支付方式
                 .build();
         orderMapper.updateOrder(payedOrder);
-        
+        // 设置招募信息为隐藏
+        recruitmentService.updateRecruitmentStatus(RecruitmentStatusConstant.HIDDEN,order.getId());
         //生成每日确认记录
         generateDailyConfirmations(order);
         
@@ -268,33 +306,6 @@ public class OrderServiceImpl implements OrderService {
         return new PageResult(orders.getTotal(), list);
     }
 
-//    /**
-//     * @description 用户取消订单（发起取消申请）
-//     * @author CyberCaelum
-//     * @date 2026/3/15
-//     * @param id 订单id
-//     **/
-//    @Override
-//    @Transactional
-//    public void cancel(Long id,String reason) {
-//        //获取订单信息
-//        Order order = orderMapper.getOrderById(id);
-//        if (order == null) {
-//            throw new OrderNotFoundException("订单不存在");
-//        }
-//
-//        // 验证权限（只能是雇主或家政人员）
-//        Long userId = BaseContext.getUserId();
-////        Integer role = BaseContext.getRole();
-//        if (!userId.equals(order.getEmployerId()) && !userId.equals(order.getEmployeeId())) {
-//            throw new PermissionDeniedException("无权操作此订单");
-//        }
-//
-//        // 发起协商取消申请
-//        Integer cancelType = CancelApplicationStatusConstant.TYPE_NEGOTIATED;
-//        applyCancel(id, cancelType, reason);
-//    }
-
     /**
      * @description 查看订单详细信息
      * @author CyberCaelum
@@ -313,40 +324,6 @@ public class OrderServiceImpl implements OrderService {
         return orderVO;
     }
 
-//    @Override
-//    public void repetition(Long id) {
-//        // 实现再来一单逻辑
-//        Order order = orderMapper.getOrderById(id);
-//        if (order == null) {
-//            throw new OrderNotFoundException("订单不存在");
-//        }
-//
-//        // 创建新订单，复制原订单信息
-//        Order newOrder = Order.builder()
-//                .price(order.getPrice())
-//                .orderTime(LocalDateTime.now())
-//                .recruitmentId(order.getRecruitmentId())
-//                .status(OrderStatusConstant.TO_BE_CONFIRMED)
-//                .startTime(order.getStartTime())
-//                .endTime(order.getEndTime())
-//                .employerId(order.getEmployerId())
-//                .employeeId(order.getEmployeeId())
-//                .provinceCode(order.getProvinceCode())
-//                .provinceName(order.getProvinceName())
-//                .cityCode(order.getCityCode())
-//                .cityName(order.getCityName())
-//                .districtCode(order.getDistrictCode())
-//                .districtName(order.getDistrictName())
-//                .detail(order.getDetail())
-//                .total(order.getTotal())
-//                .days(order.getDays())
-//                .orderNumber(String.valueOf(System.currentTimeMillis()))
-//                .build();
-//
-//        orderMapper.insertOrder(newOrder);
-//        generateDailyConfirmations(newOrder);
-//    }
-
     @Override
     public OrderDetailVO detail(Long id) {
         Order order = orderMapper.getOrderById(id);
@@ -358,42 +335,6 @@ public class OrderServiceImpl implements OrderService {
         BeanUtils.copyProperties(order, detailVO);
         return detailVO;
     }
-
-//    @Override
-//    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
-//        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
-//        // 这里需要根据实际条件查询
-//        Page<Order> orders = orderMapper.history(null, ordersPageQueryDTO.getStatus());
-//        List<OrderVO> list = new ArrayList<>();
-//        if (orders != null && !orders.isEmpty()) {
-//            for (Order order : orders) {
-//                OrderVO orderVO = new OrderVO();
-//                BeanUtils.copyProperties(order, orderVO);
-//                list.add(orderVO);
-//            }
-//        }
-//        return new PageResult(orders.getTotal(), list);
-//    }
-
-//    @Override
-//    public OrderStatisticsVO statistics() {
-//        // 统计各状态订单数量
-//        Long userId = BaseContext.getUserId();
-//
-//        Integer toBeConfirmed = orderMapper.countByStatusAndUserId(OrderStatusConstant.TO_BE_CONFIRMED, userId);
-//        Integer confirmed = orderMapper.countByStatusAndUserId(OrderStatusConstant.CONFIRMED, userId);
-//        Integer inProgress = orderMapper.countByStatusAndUserId(OrderStatusConstant.IN_PROGRESS, userId);
-//        Integer completed = orderMapper.countByStatusAndUserId(OrderStatusConstant.COMPLETED, userId);
-//        Integer cancelled = orderMapper.countByStatusAndUserId(OrderStatusConstant.CANCELLED, userId);
-//
-//        return OrderStatisticsVO.builder()
-//                .toBeConfirmed(toBeConfirmed != null ? toBeConfirmed : 0)
-//                .confirmed(confirmed != null ? confirmed : 0)
-//                .inProgress(inProgress != null ? inProgress : 0)
-//                .completed(completed != null ? completed : 0)
-//                .cancelled(cancelled != null ? cancelled : 0)
-//                .build();
-//    }
 
     /**
      * @description 接单（被雇者确认接单）
@@ -541,12 +482,6 @@ public class OrderServiceImpl implements OrderService {
         // 执行结算
         settleOrder(id, null);
     }
-
-//    @Override
-//    public void reminder(Long id) {
-//        // 催单逻辑，可发送通知
-//        log.info("用户催单，订单ID: {}", id);
-//    }
 
     /**
      * @description 家政人员每日服务完成确认
@@ -994,5 +929,37 @@ public class OrderServiceImpl implements OrderService {
         }
         
         log.info("处理超时取消申请完成，共处理 {} 条记录", timeoutApps.size());
+    }
+
+    /**
+     * @description 订单超时处理
+     * @author CyberCaelum
+     * @date 上午10:03 2026/3/18
+     * @param orderId 订单号
+     **/
+    @Override
+    @Transactional
+    public void orderTimeOut(Long orderId) {
+        //查看订单状态为待支付
+        Order order = orderMapper.getOrderById(orderId);
+        // 订单不存在或已支付，直接返回
+        if (order == null || !PayStatusConstant.UN_PAID.equals(order.getPayStatus())) {
+            log.info("订单不存在或已支付，无需取消，订单ID: {}", orderId);
+            return;
+        }
+        // 只有待付款状态的订单才允许超时取消
+        if (!OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus())) {
+            log.info("订单状态不是待付款，无需取消，订单ID: {}，当前状态: {}", orderId, order.getStatus());
+            return;
+        }
+        //设置订单状态为取消
+        order.setStatus(OrderStatusConstant.CANCELLED);
+        //设置订单取消类型为平台取消
+        order.setCancel_type(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE);
+        order.setCancelTime(LocalDateTime.now());
+        order.setCancelReason("超时未支付自动取消");
+        //更新订单数据库
+        orderMapper.updateOrder(order);
+        log.info("订单超时未支付已自动取消，订单ID: {}", orderId);
     }
 }

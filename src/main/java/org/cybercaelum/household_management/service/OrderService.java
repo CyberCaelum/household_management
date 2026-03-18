@@ -125,4 +125,6 @@ public interface OrderService {
      * 处理超时取消申请（转平台介入）
      */
     void processTimeoutCancelApplications();
+
+    void orderTimeOut(Long orderId);
 }
