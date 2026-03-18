@@ -22,18 +22,7 @@ public interface OrderService {
 //    void cancel(Long id,String reason);
 
     //查看订单详情
-    OrderVO details(Long id);
-
-//    //再来一单
-//    void repetition(Long id);
-
-    //查看订单详情和订单信息
-    OrderDetailVO detail(Long id);
-//    //订单搜索
-//    PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO);
-
-//    //各个状态订单数量统计
-//    OrderStatisticsVO statistics();
+    OrderVO detail(Long id);
 
     //接单（被雇者确认接单）
     void confirm(OrdersConfirmDTO ordersConfirmDTO);
@@ -50,8 +39,6 @@ public interface OrderService {
     //完成订单
     void complete(Long id);
 
-//    //用户催单
-//    void reminder(Long id);
 
     // ==================== 每日确认相关 ====================
 
@@ -74,8 +61,6 @@ public interface OrderService {
      * @param reason 争议原因
      */
     void employerDisputeDaily(Long confirmationId, String reason);
-
-    // ==================== 取消申请相关 ====================
 
     /**
      * 发起取消申请

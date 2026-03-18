@@ -6,9 +6,9 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO settlement (order_id, total_days, daily_rate, total_amount, penalty_deduction, final_amount,
-                                status, settlement_time, create_time)
+                                status, settlement_time, create_time,defaulting_party)
         VALUES (#{orderId}, #{totalDays}, #{dailyRate}, #{totalAmount}, #{penaltyDeduction}, #{finalAmount},
-                #{status}, #{settlementTime}, #{createTime})
+                #{status}, #{settlementTime}, #{createTime},#{defaultingParty})
     </insert>
 
     <update id="update">

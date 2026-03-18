@@ -84,4 +84,14 @@ public interface OrderMapper {
      */
     @Select("SELECT COUNT(*) FROM `order` WHERE status = #{status} AND (employer_id = #{userId} OR employee_id = #{userId})")
     Integer countByStatusAndUserId(@Param("status") Integer status, @Param("userId") Long userId);
+
+    /**
+     * @description 通过招募id查找订单在待付款，待确认，已接单，进行中的订单
+     * @author CyberCaelum
+     * @date 2026/3/18
+     * @param recruitmentId 招募id
+     * @return java.util.List<org.cybercaelum.household_management.pojo.entity.Order>
+     **/
+    @Select("select * from `order` where recruitment_id = #{recruitmentId} and status in (0,2,3,4)")
+    List<Order> getOrderByRecruitmentId(Long recruitmentId);
 }

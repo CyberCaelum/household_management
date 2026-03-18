@@ -68,6 +68,11 @@ public class OrderServiceImpl implements OrderService {
         if (recruitment == null) {
             throw new RecruitmentNotFoundException("招募不存在");
         }
+        //控制同一招募不能同时有多个进行中的订单
+        List<Order> orders = orderMapper.getOrderByRecruitmentId(recruitmentId);
+        if (orders == null || orders.isEmpty()) {
+            throw new OrderStatusErrorException("订单已存在，请结束上一个订单");
+        }
         //薪水在最大和最小之间
         if (ordersSubmitDTO.getPrice().compareTo(recruitment.getMineSalary())<0
                 || ordersSubmitDTO.getPrice().compareTo(recruitment.getMaxSalary())>0){
@@ -81,7 +86,7 @@ public class OrderServiceImpl implements OrderService {
                 .endTime(ordersSubmitDTO.getEndTime())//结束时间
                 .employerId(recruitment.getUserId())//雇佣者id，即发帖人id
                 .days(ordersSubmitDTO.getDays())//工作天数
-                .orderNumber(String.valueOf(System.currentTimeMillis()))//订单号
+                .orderNumber(String.valueOf(System.currentTimeMillis()) + recruitmentId)//订单号
                 .cancel_type(CancelApplicationStatusConstant.TYPE_NOT_CANCELLED)//设置状态为未取消
                 .build();
         //复制地址
@@ -276,7 +281,6 @@ public class OrderServiceImpl implements OrderService {
         recruitmentService.updateRecruitmentStatus(RecruitmentStatusConstant.HIDDEN,order.getId());
         //生成每日确认记录
         generateDailyConfirmations(order);
-        
         log.info("订单支付成功处理完成，订单号: {}，支付方式: {}", orderNumber, payMethod);
     }
 
@@ -314,7 +318,7 @@ public class OrderServiceImpl implements OrderService {
      * @return org.cybercaelum.household_management.pojo.vo.OrderVO
      **/
     @Override
-    public OrderVO details(Long id) {
+    public OrderVO detail(Long id) {
         Order order = orderMapper.getOrderById(id);
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
@@ -322,18 +326,6 @@ public class OrderServiceImpl implements OrderService {
         OrderVO orderVO = new OrderVO();
         BeanUtils.copyProperties(order,orderVO);
         return orderVO;
-    }
-
-    @Override
-    public OrderDetailVO detail(Long id) {
-        Order order = orderMapper.getOrderById(id);
-        if (order == null) {
-            throw new OrderNotFoundException("订单不存在");
-        }
-        
-        OrderDetailVO detailVO = new OrderDetailVO();
-        BeanUtils.copyProperties(order, detailVO);
-        return detailVO;
     }
 
     /**
@@ -355,9 +347,7 @@ public class OrderServiceImpl implements OrderService {
         if (!OrderStatusConstant.TO_BE_CONFIRMED.equals(order.getStatus())) {
             throw new OrderStatusErrorException("订单状态错误，无法接单");
         }
-        
         Long userId = BaseContext.getUserId();
-        
         // 更新订单状态为已接单，设置被雇者ID
         Order updateOrder = Order.builder()
                 .id(orderId)
@@ -395,7 +385,16 @@ public class OrderServiceImpl implements OrderService {
                 .rejectionTime(LocalDateTime.now())
                 .refundTime(LocalDateTime.now())
                 .build();
-        //TODO 退单，退款
+        //通过微信获得订单支付状态，
+        WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
+        if (!wxPayOrderQueryResult.getTradeState().equals("SUCCESS")){
+            throw new OrderStatusErrorException("订单未支付");
+        }
+        //创建退款单号
+        //TODO 需要回调
+        String refundNo = String.valueOf(System.currentTimeMillis()) + order.getRecruitmentId();
+        wechatPayUtil.refund(order.getOrderNumber(),refundNo,order.getTotal(),order.getTotal(),"家政人员拒绝订单");
+        //TODO 取消订单，退款
         orderMapper.updateOrder(updateOrder);
     }
 
@@ -812,12 +811,7 @@ public class OrderServiceImpl implements OrderService {
                 (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType()) || CancelApplicationStatusConstant.TYPE_WORKER_FORCE.equals(application.getCancelType()))) {
                 //违约金为全部金额的10%
                 penaltyDeduction = totalAmount.multiply(new BigDecimal("0.1"));
-                //雇主强制取消，雇主多付钱
-                if (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType())){
-                    finalAmount = finalAmount.add(penaltyDeduction);
-                } else {//家政人员强制取消，家政人员多付钱
-                    finalAmount = finalAmount.subtract(penaltyDeduction);
-                }
+                //从
             }
         }
 
