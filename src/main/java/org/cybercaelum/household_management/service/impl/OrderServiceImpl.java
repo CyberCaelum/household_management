@@ -729,6 +729,7 @@ public class OrderServiceImpl implements OrderService {
         };
     }
 
+    //TODO 平台取消需要判断是哪一方违约
     /**
      * @description 平台裁决取消申请
      * @author CyberCaelum
@@ -780,6 +781,7 @@ public class OrderServiceImpl implements OrderService {
         // 如果拒绝取消，订单继续
     }
 
+    //TODO 订单结算应该看哪一方违约
     /**
      * @description 订单结算
      * @author CyberCaelum
@@ -807,8 +809,7 @@ public class OrderServiceImpl implements OrderService {
         if (cancelApplicationId != null) {
             CancelApplication application = cancelApplicationMapper.selectById(cancelApplicationId);
             if (application != null && 
-                (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType()) ||
-                 CancelApplicationStatusConstant.TYPE_WORKER_FORCE.equals(application.getCancelType()))) {
+                (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType()) || CancelApplicationStatusConstant.TYPE_WORKER_FORCE.equals(application.getCancelType()))) {
                 //违约金为全部金额的10%
                 penaltyDeduction = totalAmount.multiply(new BigDecimal("0.1"));
                 //雇主强制取消，雇主多付钱
