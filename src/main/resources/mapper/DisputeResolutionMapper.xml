@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cybercaelum.household_management.mapper.DisputeResolutionMapper">
+    <insert id="insertDisputeResolution" useGeneratedKeys="true" keyProperty="id">
+        insert into dispute_resolution (order_id,source_type,source_id,defaulting_party,decision,operator_id,note,created_time)
+        values (#{orderId},#{sourceType},#{sourceId},#{defaultingParty},#{decision},#{operatorId},#{note},#{createdTime})
+    </insert>
+
+    <update id="updateDisputeResolution">
+        update dispute_resolution
+        <set>
+            <if test="orderId != null">
+                order_id = #{orderId},
+            </if>
+            <if test="sourceType != null">
+                source_type = #{sourceType},
+            </if>
+            <if test="sourceId != null">
+                source_id = #{sourceId},
+            </if>
+            <if test="defaultingParty != null">
+                defaulting_party = #{defaultingParty},
+            </if>
+            <if test="decision != null">
+                decision = #{decision},
+            </if>
+            <if test="operatorId != null">
+                operator_id = #{operatorId},
+            </if>
+            <if test="note != null">
+                note = #{note},
+            </if>
+        </set>
+    </update>
+</mapper>

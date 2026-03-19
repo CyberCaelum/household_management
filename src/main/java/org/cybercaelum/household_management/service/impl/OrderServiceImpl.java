@@ -1,6 +1,7 @@
 package org.cybercaelum.household_management.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alipay.api.domain.DisposalResult;
 import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryResult;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -49,6 +50,7 @@ public class OrderServiceImpl implements OrderService {
     private final RecruitmentService recruitmentService;
     private final WechatPayUtil wechatPayUtil;
     private final RocketMQClientTemplate rocketMQClientTemplate;
+    private final DisputeResolutionMapper disputeResolutionMapper;
 
     /**
      * @description 提交订单
@@ -222,7 +224,9 @@ public class OrderServiceImpl implements OrderService {
         //查看订单取消的状态，确定退款金额
         //协商一致取消，退未打卡天数的钱，但是不退平台抽成
         //TODO 不能看取消类型，要看平台裁决结果，需要添加裁决结果参数
-        if (order.getCancel_type() == 0){
+        //查询争议处理结果
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(orderId,DisputeResolutionConstant.CANCEL_APPLY);
+        if (true){
 
         }
         //雇主强制退款，抽取违约金给雇员，未打卡的钱-违约金
