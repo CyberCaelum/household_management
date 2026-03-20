@@ -3,6 +3,7 @@ package org.cybercaelum.household_management.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alipay.api.domain.DisposalResult;
 import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryResult;
+import com.github.binarywang.wxpay.bean.result.WxPayRefundQueryResult;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author CyberCaelum
@@ -89,7 +91,7 @@ public class OrderServiceImpl implements OrderService {
                 .employerId(recruitment.getUserId())//雇佣者id，即发帖人id
                 .days(ordersSubmitDTO.getDays())//工作天数
                 .orderNumber(String.valueOf(System.currentTimeMillis()) + recruitmentId)//订单号
-                .cancel_type(CancelApplicationStatusConstant.TYPE_NOT_CANCELLED)//设置状态为未取消
+                .cancelType(CancelApplicationStatusConstant.TYPE_NOT_CANCELLED)//设置状态为未取消
                 .build();
         //复制地址
         BeanUtils.copyProperties(recruitment,order);
@@ -195,48 +197,229 @@ public class OrderServiceImpl implements OrderService {
                 order.getTotal(),
                 "家政服务订单，扫码支付"
         );
+        
+        // 发送支付超时消息（用于回调保底）
+        sendPayTimeoutMessage(order.getId(), order.getOrderNumber());
+        
         return codeUrl;
+    }
+    
+    /**
+     * @description 发送支付超时消息（用于回调保底）
+     * @author CyberCaelum
+     * @date 2026/3/20
+     * @param orderId 订单id
+     * @param orderNumber 订单号
+     **/
+    private void sendPayTimeoutMessage(Long orderId, String orderNumber){
+        //计算延迟投递时间（5分钟后）
+        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.PAY_TIMEOUT_DEFAULT;
+        try {
+            PayTimeoutMessage message = new PayTimeoutMessage();
+            message.setOrderId(orderId);
+            message.setOrderNumber(orderNumber);
+            message.setCreateTime(LocalDateTime.now());
+            
+            org.springframework.messaging.Message<?> msg = MessageBuilder
+                    .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
+                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
+                    .build();
+            rocketMQClientTemplate.send(RocketMQConstant.PAY_TIMEOUT_TOPIC + ":" + RocketMQConstant.PAY_TIMEOUT_TAG, msg);
+            log.info("支付超时消息已发送，订单ID: {}，订单号: {}", orderId, orderNumber);
+        } catch (Exception e) {
+            log.error("支付超时消息发送失败，订单ID: {}", orderId, e);
+        }
     }
 
     //TODO 退款
     /**
-     * @description 退款
+     * @description 退款（根据平台裁决结果执行退款，实际状态更新在退款回调中处理）
      * @author CyberCaelum
      * @date 上午10:28 2026/3/18
      * @param orderId 订单id
      **/
+    @Override
+    @Transactional
     public void refund(Long orderId){
         //查找订单是否存在
         Order order = orderMapper.getOrderById(orderId);
         if (order == null || order.getOrderNumber() == null){
             throw new OrderNotFoundException("订单不存在");
         }
+        
+        //幂等性检查：已退款订单不再处理
+        if (PayStatusConstant.REFUNDED.equals(order.getPayStatus())) {
+            log.info("订单已退款，无需重复处理，订单ID: {}", orderId);
+            return;
+        }
+        
         //检查订单状态,待付款订单不能退款
-        if (order.getPayStatus()==PayStatusConstant.UN_PAID ||
-            order.getStatus() == OrderStatusConstant.PENDING_PAYMENT){
+        if (PayStatusConstant.UN_PAID.equals(order.getPayStatus()) ||
+            OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus())){
             throw new OrderStatusErrorException("订单未支付");
         }
-        //通过微信获得订单支付状态，
+        
+        //通过微信获得订单支付状态
         WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
-        if (!wxPayOrderQueryResult.getTradeState().equals("SUCCESS")){
+        if (!"SUCCESS".equals(wxPayOrderQueryResult.getTradeState())){
             throw new OrderStatusErrorException("订单未支付");
         }
-        //查看订单取消的状态，确定退款金额
-        //协商一致取消，退未打卡天数的钱，但是不退平台抽成
-        //TODO 不能看取消类型，要看平台裁决结果，需要添加裁决结果参数
+        
         //查询争议处理结果
-        DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(orderId,DisputeResolutionConstant.CANCEL_APPLY);
-        if (true){
-
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(orderId, DisputeResolutionConstant.CANCEL_APPLY);
+        //判断裁决结果是否存在
+        if (disputeResolution == null){
+            throw new DisputeResolutionIsNullException("没有裁决结果");
         }
-        //雇主强制退款，抽取违约金给雇员，未打卡的钱-违约金
-        if (order.getCancel_type() == 0){
-
+        
+        //判断平台决定如何退款
+        Integer decision = disputeResolution.getDecision();
+        
+        //拒绝取消，不退款
+        if (DisputeResolutionConstant.REJECT.equals(decision)){
+            log.info("平台裁决拒绝取消，不予退款，订单ID: {}", orderId);
+            return;
         }
-        //雇员强制退款，未打卡的钱+违约金
-        //订单退款
-
-        //修改订单状态
+        
+        //生成退款订单号
+        String refundNumber = String.valueOf(System.currentTimeMillis()) + order.getRecruitmentId();
+        
+        //统计已确认工作天数（共用）
+        Integer days = dailyConfirmationMapper.countConfirmedDays(orderId);
+        
+        //同意取消，全额退款（托管金额+平台佣金全部退给雇主）
+        if (DisputeResolutionConstant.AGREE.equals(decision)){
+            //调用微信退款接口，实际状态更新在回调中处理
+            wechatPayUtil.refund(order.getOrderNumber(), refundNumber, order.getTotal(),
+                    order.getTotal(), "平台同意全额退款");
+            
+            //发送延迟消息，用于处理退款超时
+            sendRefundTimeoutMessage(orderId, refundNumber);
+            
+            log.info("全额退款申请已提交，订单ID: {}，退款单号: {}", orderId, refundNumber);
+        }
+        
+        //部分结算
+        if (DisputeResolutionConstant.PARTIAL_SETTLEMENT.equals(decision)){
+            //获取违约方
+            Integer defaultingParty = disputeResolution.getDefaultingParty();
+            
+            //雇员应得金额（工作天数 * 日薪）
+            BigDecimal employeeEarned = order.getPrice().multiply(new BigDecimal(days));
+            //平台佣金（雇员应得金额 * 佣金比例）
+            BigDecimal commission = employeeEarned.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+            //雇主应支付金额（雇员应得 + 平台佣金）
+            BigDecimal employerPayable = employeeEarned.add(commission);
+            
+            if (defaultingParty == null){
+                //没有违约人，平台裁决部分退款
+                //退款金额 = 订单总金额 - 雇主应支付金额
+                BigDecimal refundAmount = order.getTotal().subtract(employerPayable);
+                
+                wechatPayUtil.refund(order.getOrderNumber(), refundNumber, refundAmount,
+                        order.getTotal(), "平台同意部分退款");
+                
+                //发送延迟消息，用于处理退款超时
+                sendRefundTimeoutMessage(orderId, refundNumber);
+                
+                log.info("部分退款申请已提交（无违约方），订单ID: {}，退款单号: {}，退款金额: {}", 
+                        orderId, refundNumber, refundAmount);
+            } else if (DisputeResolutionConstant.EMPLOYER_DEFAULTING.equals(defaultingParty)){
+                //雇主违约：雇主需要支付违约金，违约金给雇员作为补偿
+                //计算未工作天数
+                Integer totalDays = order.getDays();
+                Integer unworkedDays = totalDays - days;
+                
+                //违约金（未工作天数 * 日薪 * 违约金比例），由雇主支付给雇员
+                BigDecimal penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                
+                //雇员应得 = 实际工作所得 + 违约金（雇主违约补偿）
+                BigDecimal employeeFinal = employeeEarned.add(penalty);
+                
+                //平台佣金 = 雇员应得 * 佣金比例
+                BigDecimal finalCommission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                
+                //雇主应支付 = 雇员应得 + 平台佣金
+                BigDecimal employerFinalPayable = employeeFinal.add(finalCommission);
+                
+                //退款金额 = 订单总金额 - 雇主应支付（雇主支付更多，退款更少）
+                BigDecimal refundAmount = order.getTotal().subtract(employerFinalPayable);
+                
+                //如果退款金额小于0，说明违约金超过原订单金额，不退款
+                if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    refundAmount = BigDecimal.ZERO;
+                }
+                
+                wechatPayUtil.refund(order.getOrderNumber(), refundNumber, refundAmount,
+                        order.getTotal(), "雇主违约，扣除违约金后部分退款");
+                
+                //发送延迟消息，用于处理退款超时
+                sendRefundTimeoutMessage(orderId, refundNumber);
+                
+                log.info("部分退款申请已提交（雇主违约），订单ID: {}，退款单号: {}，退款金额: {}，违约金: {}", 
+                        orderId, refundNumber, refundAmount, penalty);
+                
+            } else if (DisputeResolutionConstant.EMPLOYEE_DEFAULTING.equals(defaultingParty)){
+                //雇员违约：克扣雇员获得金额（违约金 = 未工作天数 * 日薪 * 违约金比例）
+                Integer totalDays = order.getDays();
+                Integer unworkedDays = totalDays - days;
+                
+                //违约金（未工作天数 * 日薪 * 违约金比例）
+                BigDecimal penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                
+                //雇员实际应得 = 实际工作所得 - 违约金（最低为0）
+                BigDecimal employeeFinal = employeeEarned.subtract(penalty);
+                if (employeeFinal.compareTo(BigDecimal.ZERO) < 0) {
+                    employeeFinal = BigDecimal.ZERO;
+                }
+                
+                //雇主应支付 = 雇员实际应得 + 平台佣金
+                BigDecimal employerFinalPayable = employeeFinal.add(commission);
+                
+                //退款金额 = 订单总金额 - 雇主应支付
+                BigDecimal refundAmount = order.getTotal().subtract(employerFinalPayable);
+                if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    refundAmount = BigDecimal.ZERO;
+                }
+                
+                wechatPayUtil.refund(order.getOrderNumber(), refundNumber, refundAmount,
+                        order.getTotal(), "雇员违约，扣除违约金后部分退款");
+                
+                //发送延迟消息，用于处理退款超时
+                sendRefundTimeoutMessage(orderId, refundNumber);
+                
+                log.info("部分退款申请已提交（雇员违约），订单ID: {}，退款单号: {}，退款金额: {}，违约金: {}", 
+                        orderId, refundNumber, refundAmount, penalty);
+            }
+        }
+    }
+    
+    /**
+     * @description 发送退款超时消息
+     * @author CyberCaelum
+     * @date 2026/3/20
+     * @param orderId 订单id
+     * @param refundNumber 退款单号
+     **/
+    private void sendRefundTimeoutMessage(Long orderId, String refundNumber){
+        //计算延迟投递时间（5分钟后）
+        long deliveryTimestamp = System.currentTimeMillis() + 5 * 60 * 1000;
+        try {
+            RefundTimeoutMessage message = new RefundTimeoutMessage();
+            message.setOrderId(orderId);
+            message.setRefundNumber(refundNumber);
+            message.setCreateTime(LocalDateTime.now());
+            
+            org.springframework.messaging.Message<?> msg = MessageBuilder
+                    .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
+                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
+                    .build();
+            rocketMQClientTemplate.send(RocketMQConstant.REFUND_TIMEOUT_TOPIC + ":" + RocketMQConstant.REFUND_TIMEOUT_TAG, msg);
+        } catch (Exception e) {
+            log.error("退款超时消息发送失败，订单ID: {}", orderId, e);
+        }
     }
 
     //TODO 给雇员打款
@@ -423,7 +606,7 @@ public class OrderServiceImpl implements OrderService {
                 .status(OrderStatusConstant.CANCELLED)
                 .cancelReason(ordersCancelDTO.getCancelReason())
                 .cancelTime(LocalDateTime.now())
-                .cancel_type(4) // 平台取消
+                .cancelType(4) // 平台取消
                 .build();
         orderMapper.updateOrder(updateOrder);
         //TODO 更新结算表
@@ -702,7 +885,7 @@ public class OrderServiceImpl implements OrderService {
             Order updateOrder = Order.builder()
                     .id(order.getId())
                     .status(OrderStatusConstant.CANCELLED)
-                    .cancel_type(getCancelTypeFromApplication(application.getCancelType()))
+                    .cancelType(getCancelTypeFromApplication(application.getCancelType()))
                     .cancelTime(LocalDateTime.now())
                     .build();
             orderMapper.updateOrder(updateOrder);
@@ -776,7 +959,7 @@ public class OrderServiceImpl implements OrderService {
             Order updateOrder = Order.builder()
                     .id(order.getId())
                     .status(OrderStatusConstant.CANCELLED)
-                    .cancel_type(getCancelTypeFromApplication(application.getCancelType()))
+                    .cancelType(getCancelTypeFromApplication(application.getCancelType()))
                     .cancelTime(LocalDateTime.now())
                     .build();
             orderMapper.updateOrder(updateOrder);
@@ -784,7 +967,7 @@ public class OrderServiceImpl implements OrderService {
         // 如果拒绝取消，订单继续
     }
 
-    //TODO 订单结算应该看哪一方违约
+//    //TODO 订单结算应该看哪一方违约
     /**
      * @description 订单结算
      * @author CyberCaelum
@@ -799,10 +982,10 @@ public class OrderServiceImpl implements OrderService {
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
         }
-        
+
         // 统计已确认天数
         int totalDays = dailyConfirmationMapper.countConfirmedDays(orderId);
-        
+
         // 计算金额，金额乘实际天数
         BigDecimal totalAmount = order.getPrice().multiply(new BigDecimal(totalDays));
         BigDecimal penaltyDeduction = BigDecimal.ZERO;
@@ -811,7 +994,7 @@ public class OrderServiceImpl implements OrderService {
         // 如果有取消申请且为强制取消，计算违约金（简化处理，实际应按规则计算）
         if (cancelApplicationId != null) {
             CancelApplication application = cancelApplicationMapper.selectById(cancelApplicationId);
-            if (application != null && 
+            if (application != null &&
                 (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType()) || CancelApplicationStatusConstant.TYPE_WORKER_FORCE.equals(application.getCancelType()))) {
                 //违约金为全部金额的10%
                 penaltyDeduction = totalAmount.multiply(new BigDecimal("0.1"));
@@ -834,12 +1017,12 @@ public class OrderServiceImpl implements OrderService {
                 .status(SettlementStatusConstant.PENDING)
                 .createTime(LocalDateTime.now())
                 .build();
-        
+
         settlementMapper.insert(settlement);
-        
+
         // 调用支付系统完成转账（简化处理）
         // TODO: 调用支付系统，将托管金额打给被雇人员
-        
+
         // 更新结算状态为已结算
         settlement.setStatus(SettlementStatusConstant.SETTLED);
         settlement.setSettlementTime(LocalDateTime.now());
@@ -954,11 +1137,310 @@ public class OrderServiceImpl implements OrderService {
         //设置订单状态为取消
         order.setStatus(OrderStatusConstant.CANCELLED);
         //设置订单取消类型为平台取消
-        order.setCancel_type(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE);
+        order.setCancelType(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE);
         order.setCancelTime(LocalDateTime.now());
         order.setCancelReason("超时未支付自动取消");
         //更新订单数据库
         orderMapper.updateOrder(order);
         log.info("订单超时未支付已自动取消，订单ID: {}", orderId);
+    }
+
+    /**
+     * @description 退款成功回调处理
+     * 更新订单状态和结算信息
+     * @author CyberCaelum
+     * @date 2026/3/20
+     * @param orderNo 订单号
+     * @param refundNo 退款单号
+     * @param refundFee 退款金额（分）
+     **/
+    @Override
+    @Transactional
+    public void refundSuccess(String orderNo, String refundNo, Integer refundFee) {
+        // 1. 根据订单号查询订单
+        Order order = orderMapper.getOrderByNumber(orderNo);
+        if (order == null) {
+            log.error("退款回调处理失败：订单不存在，订单号: {}", orderNo);
+            throw new OrderNotFoundException("订单不存在");
+        }
+        
+        // 2. 幂等性检查：如果订单已经退款，直接返回
+        if (PayStatusConstant.REFUNDED.equals(order.getPayStatus())) {
+            log.info("订单已退款，无需重复处理，订单号: {}", orderNo);
+            return;
+        }
+        
+        Long orderId = order.getId();
+        
+        // 3. 查询争议处理结果
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(
+                orderId, DisputeResolutionConstant.CANCEL_APPLY);
+        if (disputeResolution == null) {
+            log.error("退款回调处理失败：没有裁决结果，订单号: {}", orderNo);
+            throw new DisputeResolutionIsNullException("没有裁决结果");
+        }
+        
+        // 4. 统计已确认工作天数
+        Integer days = dailyConfirmationMapper.countConfirmedDays(orderId);
+        
+        // 5. 根据裁决结果计算结算金额
+        Integer decision = disputeResolution.getDecision();
+        Integer defaultingParty = disputeResolution.getDefaultingParty();
+        
+        // 基础金额计算
+        BigDecimal employeeEarned = order.getPrice().multiply(new BigDecimal(days)); // 雇员工作所得
+        BigDecimal penalty = BigDecimal.ZERO; // 违约金
+        BigDecimal employeeFinal = employeeEarned; // 雇员最终所得
+        BigDecimal finalCommission; // 平台佣金
+        BigDecimal employerPayable; // 雇主应支付
+        
+        if (DisputeResolutionConstant.AGREE.equals(decision)) {
+            // 全额退款：雇员没有所得，雇主全额退款
+            employeeFinal = BigDecimal.ZERO;
+            finalCommission = BigDecimal.ZERO;
+            employerPayable = BigDecimal.ZERO;
+            log.info("全额退款处理，订单号: {}", orderNo);
+            
+        } else if (DisputeResolutionConstant.PARTIAL_SETTLEMENT.equals(decision)) {
+            Integer totalDays = order.getDays();
+            Integer unworkedDays = totalDays - days;
+            
+            if (defaultingParty == null) {
+                // 无违约方：正常部分结算
+                finalCommission = employeeEarned.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeEarned.add(finalCommission);
+                log.info("部分退款处理（无违约方），订单号: {}", orderNo);
+                
+            } else if (DisputeResolutionConstant.EMPLOYER_DEFAULTING.equals(defaultingParty)) {
+                // 雇主违约：雇员获得违约金补偿
+                penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                employeeFinal = employeeEarned.add(penalty);
+                finalCommission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeFinal.add(finalCommission);
+                log.info("部分退款处理（雇主违约），订单号: {}，违约金: {}", orderNo, penalty);
+                
+            } else if (DisputeResolutionConstant.EMPLOYEE_DEFAULTING.equals(defaultingParty)) {
+                // 雇员违约：扣除违约金
+                penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                employeeFinal = employeeEarned.subtract(penalty);
+                if (employeeFinal.compareTo(BigDecimal.ZERO) < 0) {
+                    employeeFinal = BigDecimal.ZERO;
+                }
+                finalCommission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeFinal.add(finalCommission);
+                log.info("部分退款处理（雇员违约），订单号: {}，违约金: {}", orderNo, penalty);
+                
+            } else {
+                // 未知违约方，按无违约方处理
+                finalCommission = employeeEarned.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeEarned.add(finalCommission);
+                log.warn("未知违约方: {}，按无违约方处理，订单号: {}", defaultingParty, orderNo);
+            }
+        } else {
+            log.error("未知的裁决结果: {}，订单号: {}", decision, orderNo);
+            throw new OrderStatusErrorException("未知的裁决结果");
+        }
+        
+        // 6. 更新订单信息
+        Order updateOrder = Order.builder()
+                .id(orderId)
+                .status(OrderStatusConstant.CANCELLED)  // 订单状态改为已取消
+                .payStatus(PayStatusConstant.REFUNDED)  // 支付状态改为已退款
+                .refundTime(LocalDateTime.now())        // 退款时间
+                .cancelType(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE)  // 平台强制取消
+                .refundNumber(refundNo)                 // 退款单号
+                .heldAmount(employeeFinal)              // 托管金额 = 雇员最终所得
+                .build();
+        orderMapper.updateOrder(updateOrder);
+        
+        // 7. 插入或更新结算记录
+        // 先查询是否已有结算记录
+        Settlement existingSettlement = settlementMapper.selectByOrderId(orderId);
+        if (existingSettlement != null) {
+            // 更新现有结算记录
+            existingSettlement.setTotalDays(days);
+            existingSettlement.setTotalAmount(employeeEarned);
+            existingSettlement.setFinalAmount(employerPayable);
+            existingSettlement.setPenaltyDeduction(penalty);
+            existingSettlement.setDefaultingParty(defaultingParty);
+            existingSettlement.setStatus(SettlementStatusConstant.SETTLED);
+            existingSettlement.setSettlementTime(LocalDateTime.now());
+            existingSettlement.setRefundNumber(refundNo);
+            settlementMapper.update(existingSettlement);
+            log.info("更新结算记录完成，订单号: {}", orderNo);
+        } else {
+            // 创建新的结算记录
+            Settlement settlement = Settlement.builder()
+                    .orderId(orderId)
+                    .totalDays(days)
+                    .dailyRate(order.getPrice())
+                    .totalAmount(employeeEarned)
+                    .finalAmount(employerPayable)
+                    .penaltyDeduction(penalty)
+                    .defaultingParty(defaultingParty)
+                    .status(SettlementStatusConstant.SETTLED)
+                    .settlementTime(LocalDateTime.now())
+                    .orderNumber(orderNo)
+                    .refundNumber(refundNo)
+                    .createTime(LocalDateTime.now())
+                    .build();
+            settlementMapper.insert(settlement);
+            log.info("创建结算记录完成，订单号: {}", orderNo);
+        }
+        
+        // 8. TODO: 给雇员打款（将employeeFinal转账给雇员）
+        // transferToEmployee(order.getEmployeeId(), employeeFinal);
+        
+        log.info("退款成功处理完成，订单号: {}，退款金额: {}分，雇员所得: {}，雇主支付: {}", 
+                orderNo, refundFee, employeeFinal, employerPayable);
+    }
+
+    /**
+     * @description 处理退款超时，主动查询退款状态
+     * @author CyberCaelum
+     * @date 2026/3/20
+     * @param orderId 订单ID
+     * @param refundNo 退款单号
+     **/
+    @Override
+    @Transactional
+    public void handleRefundTimeout(Long orderId, String refundNo) {
+        log.info("处理退款超时，订单ID: {}，退款单号: {}", orderId, refundNo);
+        
+        try {
+            // 1. 先查数据库，判断订单是否已退款
+            Order order = orderMapper.getOrderById(orderId);
+            if (order == null) {
+                log.warn("订单不存在，订单ID: {}", orderId);
+                return;
+            }
+            
+            // 2. 如果订单已退款，说明回调已处理，直接返回
+            if (PayStatusConstant.REFUNDED.equals(order.getPayStatus())) {
+                log.info("订单已退款，回调已处理，无需查询微信，订单ID: {}", orderId);
+                return;
+            }
+            
+            // 3. 数据库未更新，再去微信查询退款状态（兜底补偿）
+            WxPayRefundQueryResult refundResult = wechatPayUtil.queryRefund(refundNo);
+            
+            // 4. 获取退款记录列表
+            List<WxPayRefundQueryResult.RefundRecord> refundRecords = refundResult.getRefundRecords();
+            if (refundRecords == null || refundRecords.isEmpty()) {
+                log.warn("未找到退款记录，订单ID: {}，退款单号: {}", orderId, refundNo);
+                return;
+            }
+            
+            // 5. 查找对应的退款记录
+            WxPayRefundQueryResult.RefundRecord targetRecord = null;
+            for (WxPayRefundQueryResult.RefundRecord record : refundRecords) {
+                if (refundNo.equals(record.getOutRefundNo())) {
+                    targetRecord = record;
+                    break;
+                }
+            }
+            
+            if (targetRecord == null) {
+                log.warn("未找到指定退款单号的记录，订单ID: {}，退款单号: {}", orderId, refundNo);
+                return;
+            }
+            
+            // 6. 获取退款状态
+            String refundStatus = targetRecord.getRefundStatus();  // SUCCESS-退款成功，PROCESSING-退款处理中，CHANGE-退款异常，FAIL-退款失败
+            
+            if ("SUCCESS".equals(refundStatus)) {
+                // 退款成功，调用退款成功处理
+                String orderNo = refundResult.getOutTradeNo();
+                Integer refundFee = targetRecord.getSettlementRefundFee();
+                
+                log.info("查询到退款成功，订单号: {}，退款单号: {}，金额: {}分", orderNo, refundNo, refundFee);
+                refundSuccess(orderNo, refundNo, refundFee);
+                
+            } else if ("PROCESSING".equals(refundStatus)) {
+                // 退款处理中，继续等待，可以再次发送延迟消息
+                log.info("退款处理中，继续等待，订单ID: {}，退款单号: {}", orderId, refundNo);
+                // 可以再次发送延迟消息，或者依赖微信的回调
+                
+            } else if ("CHANGE".equals(refundStatus) || "FAIL".equals(refundStatus)) {
+                // 退款异常或失败，记录异常，人工介入
+                log.error("退款异常或失败，订单ID: {}，退款单号: {}，状态: {}", orderId, refundNo, refundStatus);
+                // TODO: 发送通知给管理员，人工处理
+                
+            } else {
+                log.warn("未知的退款状态，订单ID: {}，退款单号: {}，状态: {}", orderId, refundNo, refundStatus);
+            }
+            
+        } catch (Exception e) {
+            log.error("查询退款状态失败，订单ID: {}，退款单号: {}", orderId, refundNo, e);
+            // 不抛出异常，让消息消费成功，避免无限重试
+        }
+    }
+
+    /**
+     * @description 处理支付超时（回调保底），主动查询支付状态
+     * @author CyberCaelum
+     * @date 2026/3/20
+     * @param orderId 订单ID
+     * @param orderNumber 订单号
+     **/
+    @Override
+    @Transactional
+    public void handlePayTimeout(Long orderId, String orderNumber) {
+        log.info("处理支付超时（回调保底），订单ID: {}，订单号: {}", orderId, orderNumber);
+        
+        try {
+            // 1. 先查数据库，判断订单是否已支付
+            Order order = orderMapper.getOrderById(orderId);
+            if (order == null) {
+                log.warn("订单不存在，订单ID: {}", orderId);
+                return;
+            }
+            
+            // 2. 如果订单已支付，说明回调已处理，直接返回
+            if (PayStatusConstant.PAID.equals(order.getPayStatus())) {
+                log.info("订单已支付，回调已处理，无需查询微信，订单ID: {}", orderId);
+                return;
+            }
+            
+            // 3. 如果订单已取消，直接返回
+            if (OrderStatusConstant.CANCELLED.equals(order.getStatus())) {
+                log.info("订单已取消，无需查询微信，订单ID: {}", orderId);
+                return;
+            }
+            
+            // 4. 数据库未更新，再去微信查询支付状态（兜底补偿）
+            WxPayOrderQueryResult queryResult = wechatPayUtil.queryOrder(orderNumber);
+            String tradeState = queryResult.getTradeState();
+            
+            if ("SUCCESS".equals(tradeState)) {
+                // 支付成功，调用支付成功处理
+                log.info("查询到支付成功，订单号: {}，微信订单号: {}", 
+                        orderNumber, queryResult.getTransactionId());
+                
+                // 调用支付成功处理（幂等性检查在 paySuccess 方法中）
+                paySuccess(orderNumber, PayMethodConstant.WECHAT_PAY);
+                
+            } else if ("NOTPAY".equals(tradeState)) {
+                // 未支付，继续等待
+                log.info("订单未支付，继续等待，订单ID: {}，订单号: {}", orderId, orderNumber);
+                
+            } else if ("CLOSED".equals(tradeState)) {
+                // 订单已关闭
+                log.info("订单已关闭，订单ID: {}，订单号: {}", orderId, orderNumber);
+                
+            } else if ("REVOKED".equals(tradeState)) {
+                // 订单已撤销
+                log.info("订单已撤销，订单ID: {}，订单号: {}", orderId, orderNumber);
+                
+            } else {
+                log.warn("未知的支付状态，订单ID: {}，订单号: {}，状态: {}", orderId, orderNumber, tradeState);
+            }
+            
+        } catch (Exception e) {
+            log.error("查询支付状态失败，订单ID: {}，订单号: {}", orderId, orderNumber, e);
+            // 不抛出异常，让消息消费成功，避免无限重试
+        }
     }
 }

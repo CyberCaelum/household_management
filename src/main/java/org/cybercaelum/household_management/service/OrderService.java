@@ -112,4 +112,34 @@ public interface OrderService {
     void processTimeoutCancelApplications();
 
     void orderTimeOut(Long orderId);
+
+    // ==================== 退款相关 ====================
+
+    /**
+     * 执行订单退款（根据平台裁决结果）
+     * @param orderId 订单ID
+     */
+    void refund(Long orderId);
+
+    /**
+     * 退款成功回调处理
+     * @param orderNo 订单号
+     * @param refundNo 退款单号
+     * @param refundFee 退款金额（分）
+     */
+    void refundSuccess(String orderNo, String refundNo, Integer refundFee);
+
+    /**
+     * 处理退款超时，主动查询退款状态
+     * @param orderId 订单ID
+     * @param refundNo 退款单号
+     */
+    void handleRefundTimeout(Long orderId, String refundNo);
+
+    /**
+     * 处理支付超时（回调保底），主动查询支付状态
+     * @param orderId 订单ID
+     * @param orderNumber 订单号
+     */
+    void handlePayTimeout(Long orderId, String orderNumber);
 }

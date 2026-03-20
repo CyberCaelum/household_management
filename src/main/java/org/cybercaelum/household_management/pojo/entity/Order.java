@@ -25,7 +25,7 @@ public class Order {
     private BigDecimal price;//价格,单价
     private LocalDateTime orderTime;//下订单时间
     private Long recruitmentId;//订单对应的招募id
-    private int status;//订单状态，0待付款，1为取消，2为待被雇者确认,3已接单,4为进行中，5为完成,
+    private Integer status;//订单状态，0待付款，1为取消，2为待被雇者确认,3已接单,4为进行中，5为完成,
     private LocalDate startTime;//订单开始时间
     private LocalDate endTime;//订单结束时间
     private Long employerId;//雇佣用户id
@@ -38,17 +38,17 @@ public class Order {
     private String districtName; //区县名称
     private String detail; //详细地址信息
     private BigDecimal total;//总价
-    private int days;//工作总天数
+    private Integer days;//工作总天数
     private String orderNumber;//订单号
     private Integer payMethod;//支付方式，1微信，2支付宝
-    private Integer payStatus;//支付状态，0未支付，1已支付，2支付宝
+    private Integer payStatus;//支付状态，0未支付，1已支付，2已退款
     private String cancelReason;//订单取消原因
     private String rejectionReason;//订单拒绝原因
     private LocalDateTime cancelTime;//订单取消时间
     private LocalDateTime paymentTime;//支付时间
     private LocalDateTime rejectionTime;//订单拒绝时间
     private LocalDateTime refundTime;//退款时间
-    private int cancel_type;//取消类型，0未取消，1协商一致取消，2雇主强制取消，3家政人员强制取消，4平台取消
+    private Integer cancelType;//取消类型，0未取消，1协商一致取消，2雇主强制取消，3家政人员强制取消，4平台取消
     private BigDecimal heldAmount;//托管金额，雇员应得金额
     private String refundNumber;//退款单号
 }

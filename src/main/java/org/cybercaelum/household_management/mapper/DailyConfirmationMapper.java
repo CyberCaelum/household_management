@@ -55,7 +55,7 @@ public interface DailyConfirmationMapper {
      * 统计订单已确认的天数
      */
     @Select("SELECT COUNT(*) FROM daily_confirmation WHERE order_id = #{orderId} AND status IN (1, 3)")
-    int countConfirmedDays(Long orderId);
+    Integer countConfirmedDays(Long orderId);
 
     /**
      * @description 批量插入每日确认记录

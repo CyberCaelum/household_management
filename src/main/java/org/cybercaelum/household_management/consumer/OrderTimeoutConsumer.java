@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * @author CyberCaelum
  * @version 1.0
- * @description: 消费者
+ * @description: 订单超时消费者
  * @date 2026/3/17
  */
 @Component
@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets;
         topic = RocketMQConstant.ORDER_TIMEOUT_TOPIC,
         tag = RocketMQConstant.ORDER_CANCEL_TAG
 )
-public class OrderConsumer implements RocketMQListener {
+public class OrderTimeoutConsumer implements RocketMQListener {
 
     private final OrderService orderService;
 
