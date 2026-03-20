@@ -20,4 +20,8 @@ public class PayStatusConstant {
      * 已退款
      */
     public static final Integer REFUNDED = 2;   // 已退款
+    /**
+     * 退款中
+     */
+    public static final Integer REFUNDING = 3;  // 退款中
 }

@@ -231,7 +231,6 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    //TODO 退款
     /**
      * @description 退款（根据平台裁决结果执行退款，实际状态更新在退款回调中处理）
      * @author CyberCaelum
@@ -564,6 +563,21 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderStatusErrorException("订单状态错误，无法拒单");
         }
         
+        // 通过微信获得订单支付状态
+        WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
+        if (!"SUCCESS".equals(wxPayOrderQueryResult.getTradeState())){
+            throw new OrderStatusErrorException("订单未支付");
+        }
+        
+        // 创建退款单号
+        String refundNo = String.valueOf(System.currentTimeMillis()) + order.getRecruitmentId();
+        
+        // 调用微信退款接口，全额退款
+        wechatPayUtil.refund(order.getOrderNumber(), refundNo, order.getTotal(), order.getTotal(), "家政人员拒绝订单");
+        
+        // 发送退款超时消息，用于回调保底
+        sendRefundTimeoutMessage(orderId, refundNo);
+        
         // 更新订单状态为已取消，记录拒单原因
         Order updateOrder = Order.builder()
                 .id(orderId)
@@ -571,18 +585,13 @@ public class OrderServiceImpl implements OrderService {
                 .rejectionReason(ordersRejectionDTO.getRejectionReason())
                 .rejectionTime(LocalDateTime.now())
                 .refundTime(LocalDateTime.now())
+                .refundNumber(refundNo)
+                .payStatus(PayStatusConstant.REFUNDING) // 设置退款中状态
+                .cancelType(CancelApplicationStatusConstant.TYPE_WORKER_FORCE) // 家政人员强制取消
                 .build();
-        //通过微信获得订单支付状态，
-        WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
-        if (!wxPayOrderQueryResult.getTradeState().equals("SUCCESS")){
-            throw new OrderStatusErrorException("订单未支付");
-        }
-        //创建退款单号
-        //TODO 需要回调
-        String refundNo = String.valueOf(System.currentTimeMillis()) + order.getRecruitmentId();
-        wechatPayUtil.refund(order.getOrderNumber(),refundNo,order.getTotal(),order.getTotal(),"家政人员拒绝订单");
-        //TODO 取消订单，退款
         orderMapper.updateOrder(updateOrder);
+        
+        log.info("拒单退款申请已提交，订单ID: {}，退款单号: {}，退款金额: {}", orderId, refundNo, order.getTotal());
     }
 
     /**
@@ -606,10 +615,10 @@ public class OrderServiceImpl implements OrderService {
                 .status(OrderStatusConstant.CANCELLED)
                 .cancelReason(ordersCancelDTO.getCancelReason())
                 .cancelTime(LocalDateTime.now())
-                .cancelType(4) // 平台取消
+                .cancelType(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE) // 平台取消
                 .build();
         orderMapper.updateOrder(updateOrder);
-        //TODO 更新结算表
+        //TODO 判断是否付款然后进行退款处理
     }
 
     /**
@@ -967,7 +976,6 @@ public class OrderServiceImpl implements OrderService {
         // 如果拒绝取消，订单继续
     }
 
-//    //TODO 订单结算应该看哪一方违约
     /**
      * @description 订单结算
      * @author CyberCaelum
@@ -991,16 +999,6 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal penaltyDeduction = BigDecimal.ZERO;
 
         BigDecimal finalAmount = totalAmount;
-        // 如果有取消申请且为强制取消，计算违约金（简化处理，实际应按规则计算）
-        if (cancelApplicationId != null) {
-            CancelApplication application = cancelApplicationMapper.selectById(cancelApplicationId);
-            if (application != null &&
-                (CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE.equals(application.getCancelType()) || CancelApplicationStatusConstant.TYPE_WORKER_FORCE.equals(application.getCancelType()))) {
-                //违约金为全部金额的10%
-                penaltyDeduction = totalAmount.multiply(new BigDecimal("0.1"));
-                //从
-            }
-        }
 
         if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
             finalAmount = BigDecimal.ZERO;
@@ -1020,7 +1018,6 @@ public class OrderServiceImpl implements OrderService {
 
         settlementMapper.insert(settlement);
 
-        // 调用支付系统完成转账（简化处理）
         // TODO: 调用支付系统，将托管金额打给被雇人员
 
         // 更新结算状态为已结算
@@ -1146,6 +1143,82 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
+     * @description 拒单退款成功回调处理（全额退款给雇主，家政人员无收入）
+     * @author CyberCaelum
+     * @date 2026/3/20
+     * @param orderNo 订单号
+     * @param refundNo 退款单号
+     * @param refundFee 退款金额（分）
+     **/
+    @Override
+    @Transactional
+    public void rejectionRefundSuccess(String orderNo, String refundNo, Integer refundFee) {
+        // 根据订单号查询订单
+        Order order = orderMapper.getOrderByNumber(orderNo);
+        if (order == null) {
+            log.error("拒单退款回调处理失败：订单不存在，订单号: {}", orderNo);
+            throw new OrderNotFoundException("订单不存在");
+        }
+        
+        // 幂等性检查：如果订单已经退款，直接返回
+        if (PayStatusConstant.REFUNDED.equals(order.getPayStatus())) {
+            log.info("订单已退款，无需重复处理，订单号: {}", orderNo);
+            return;
+        }
+        
+        Long orderId = order.getId();
+        
+        // 拒单退款：全额退给雇主，家政人员无收入
+        // 创建结算记录（家政人员收入为0）
+        Settlement existingSettlement = settlementMapper.selectByOrderId(orderId);
+        if (existingSettlement != null) {
+            // 更新现有结算记录
+            existingSettlement.setTotalDays(0);
+            existingSettlement.setTotalAmount(BigDecimal.ZERO);
+            existingSettlement.setFinalAmount(BigDecimal.ZERO);
+            existingSettlement.setPenaltyDeduction(BigDecimal.ZERO);
+            existingSettlement.setDefaultingParty(DisputeResolutionConstant.EMPLOYEE_DEFAULTING); // 家政人员拒单视为违约
+            existingSettlement.setStatus(SettlementStatusConstant.SETTLED);
+            existingSettlement.setSettlementTime(LocalDateTime.now());
+            existingSettlement.setRefundNumber(refundNo);
+            settlementMapper.update(existingSettlement);
+            log.info("更新拒单结算记录完成，订单号: {}", orderNo);
+        } else {
+            // 创建新的结算记录
+            Settlement settlement = Settlement.builder()
+                    .orderId(orderId)
+                    .totalDays(0)
+                    .dailyRate(order.getPrice())
+                    .totalAmount(BigDecimal.ZERO)
+                    .finalAmount(BigDecimal.ZERO)
+                    .penaltyDeduction(BigDecimal.ZERO)
+                    .defaultingParty(DisputeResolutionConstant.EMPLOYEE_DEFAULTING) // 家政人员拒单视为违约
+                    .status(SettlementStatusConstant.SETTLED)
+                    .settlementTime(LocalDateTime.now())
+                    .orderNumber(orderNo)
+                    .refundNumber(refundNo)
+                    .createTime(LocalDateTime.now())
+                    .build();
+            settlementMapper.insert(settlement);
+            log.info("创建拒单结算记录完成，订单号: {}", orderNo);
+        }
+        
+        // 更新订单信息
+        Order updateOrder = Order.builder()
+                .id(orderId)
+                .status(OrderStatusConstant.CANCELLED)
+                .payStatus(PayStatusConstant.REFUNDED)
+                .refundTime(LocalDateTime.now())
+                .refundNumber(refundNo)
+                .heldAmount(BigDecimal.ZERO) // 托管金额清0
+                .build();
+        orderMapper.updateOrder(updateOrder);
+        
+        log.info("拒单退款成功处理完成，订单号: {}，退款金额: {}分，雇主全额退款，家政人员无收入", 
+                orderNo, refundFee);
+    }
+
+    /**
      * @description 退款成功回调处理
      * 更新订单状态和结算信息
      * @author CyberCaelum
@@ -1157,14 +1230,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void refundSuccess(String orderNo, String refundNo, Integer refundFee) {
-        // 1. 根据订单号查询订单
+        // 根据订单号查询订单
         Order order = orderMapper.getOrderByNumber(orderNo);
         if (order == null) {
             log.error("退款回调处理失败：订单不存在，订单号: {}", orderNo);
             throw new OrderNotFoundException("订单不存在");
         }
         
-        // 2. 幂等性检查：如果订单已经退款，直接返回
+        // 幂等性检查：如果订单已经退款，直接返回
         if (PayStatusConstant.REFUNDED.equals(order.getPayStatus())) {
             log.info("订单已退款，无需重复处理，订单号: {}", orderNo);
             return;
@@ -1172,7 +1245,7 @@ public class OrderServiceImpl implements OrderService {
         
         Long orderId = order.getId();
         
-        // 3. 查询争议处理结果
+        // 查询争议处理结果
         DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(
                 orderId, DisputeResolutionConstant.CANCEL_APPLY);
         if (disputeResolution == null) {
@@ -1180,10 +1253,10 @@ public class OrderServiceImpl implements OrderService {
             throw new DisputeResolutionIsNullException("没有裁决结果");
         }
         
-        // 4. 统计已确认工作天数
+        // 统计已确认工作天数
         Integer days = dailyConfirmationMapper.countConfirmedDays(orderId);
         
-        // 5. 根据裁决结果计算结算金额
+        // 根据裁决结果计算结算金额
         Integer decision = disputeResolution.getDecision();
         Integer defaultingParty = disputeResolution.getDefaultingParty();
         
@@ -1243,7 +1316,7 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderStatusErrorException("未知的裁决结果");
         }
         
-        // 6. 更新订单信息
+        // 更新订单信息
         Order updateOrder = Order.builder()
                 .id(orderId)
                 .status(OrderStatusConstant.CANCELLED)  // 订单状态改为已取消
@@ -1255,7 +1328,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         orderMapper.updateOrder(updateOrder);
         
-        // 7. 插入或更新结算记录
+        // 插入或更新结算记录
         // 先查询是否已有结算记录
         Settlement existingSettlement = settlementMapper.selectByOrderId(orderId);
         if (existingSettlement != null) {
@@ -1308,32 +1381,31 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void handleRefundTimeout(Long orderId, String refundNo) {
         log.info("处理退款超时，订单ID: {}，退款单号: {}", orderId, refundNo);
-        
         try {
-            // 1. 先查数据库，判断订单是否已退款
+            // 先查数据库，判断订单是否已退款
             Order order = orderMapper.getOrderById(orderId);
             if (order == null) {
                 log.warn("订单不存在，订单ID: {}", orderId);
                 return;
             }
             
-            // 2. 如果订单已退款，说明回调已处理，直接返回
+            // 如果订单已退款，说明回调已处理，直接返回
             if (PayStatusConstant.REFUNDED.equals(order.getPayStatus())) {
                 log.info("订单已退款，回调已处理，无需查询微信，订单ID: {}", orderId);
                 return;
             }
             
-            // 3. 数据库未更新，再去微信查询退款状态（兜底补偿）
+            // 数据库未更新，再去微信查询退款状态（兜底补偿）
             WxPayRefundQueryResult refundResult = wechatPayUtil.queryRefund(refundNo);
             
-            // 4. 获取退款记录列表
+            // 获取退款记录列表
             List<WxPayRefundQueryResult.RefundRecord> refundRecords = refundResult.getRefundRecords();
             if (refundRecords == null || refundRecords.isEmpty()) {
                 log.warn("未找到退款记录，订单ID: {}，退款单号: {}", orderId, refundNo);
                 return;
             }
             
-            // 5. 查找对应的退款记录
+            // 查找对应的退款记录
             WxPayRefundQueryResult.RefundRecord targetRecord = null;
             for (WxPayRefundQueryResult.RefundRecord record : refundRecords) {
                 if (refundNo.equals(record.getOutRefundNo())) {
@@ -1347,7 +1419,7 @@ public class OrderServiceImpl implements OrderService {
                 return;
             }
             
-            // 6. 获取退款状态
+            // 获取退款状态
             String refundStatus = targetRecord.getRefundStatus();  // SUCCESS-退款成功，PROCESSING-退款处理中，CHANGE-退款异常，FAIL-退款失败
             
             if ("SUCCESS".equals(refundStatus)) {
@@ -1356,7 +1428,18 @@ public class OrderServiceImpl implements OrderService {
                 Integer refundFee = targetRecord.getSettlementRefundFee();
                 
                 log.info("查询到退款成功，订单号: {}，退款单号: {}，金额: {}分", orderNo, refundNo, refundFee);
-                refundSuccess(orderNo, refundNo, refundFee);
+
+                // 判断是否是拒单退款：检查是否有争议裁决记录
+                DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(
+                        orderId, DisputeResolutionConstant.CANCEL_APPLY);
+
+                if (disputeResolution == null) {
+                    // 没有争议裁决记录，说明是拒单退款
+                    rejectionRefundSuccess(orderNo, refundNo, refundFee);
+                } else {
+                    // 有争议裁决记录，按裁决结果处理
+                    refundSuccess(orderNo, refundNo, refundFee);
+                }
                 
             } else if ("PROCESSING".equals(refundStatus)) {
                 // 退款处理中，继续等待，可以再次发送延迟消息
@@ -1391,26 +1474,26 @@ public class OrderServiceImpl implements OrderService {
         log.info("处理支付超时（回调保底），订单ID: {}，订单号: {}", orderId, orderNumber);
         
         try {
-            // 1. 先查数据库，判断订单是否已支付
+            // 先查数据库，判断订单是否已支付
             Order order = orderMapper.getOrderById(orderId);
             if (order == null) {
                 log.warn("订单不存在，订单ID: {}", orderId);
                 return;
             }
             
-            // 2. 如果订单已支付，说明回调已处理，直接返回
+            //  如果订单已支付，说明回调已处理，直接返回
             if (PayStatusConstant.PAID.equals(order.getPayStatus())) {
                 log.info("订单已支付，回调已处理，无需查询微信，订单ID: {}", orderId);
                 return;
             }
             
-            // 3. 如果订单已取消，直接返回
+            // 如果订单已取消，直接返回
             if (OrderStatusConstant.CANCELLED.equals(order.getStatus())) {
                 log.info("订单已取消，无需查询微信，订单ID: {}", orderId);
                 return;
             }
             
-            // 4. 数据库未更新，再去微信查询支付状态（兜底补偿）
+            // 数据库未更新，再去微信查询支付状态（兜底补偿）
             WxPayOrderQueryResult queryResult = wechatPayUtil.queryOrder(orderNumber);
             String tradeState = queryResult.getTradeState();
             

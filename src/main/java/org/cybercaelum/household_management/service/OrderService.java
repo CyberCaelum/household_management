@@ -130,6 +130,14 @@ public interface OrderService {
     void refundSuccess(String orderNo, String refundNo, Integer refundFee);
 
     /**
+     * 拒单退款成功回调处理（全额退款给雇主，家政人员无收入）
+     * @param orderNo 订单号
+     * @param refundNo 退款单号
+     * @param refundFee 退款金额（分）
+     */
+    void rejectionRefundSuccess(String orderNo, String refundNo, Integer refundFee);
+
+    /**
      * 处理退款超时，主动查询退款状态
      * @param orderId 订单ID
      * @param refundNo 退款单号
