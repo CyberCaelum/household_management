@@ -71,4 +71,41 @@
         WHERE status = #{status}
           AND start_time &lt;= #{startDate}
     </select>
+
+    <!-- 使用乐观锁更新订单支付状态（用于防止并发支付回调） -->
+    <update id="updateOrderWithOptimisticLock">
+        update `order`
+        <set>
+            <if test="price != null">price = #{price},</if>
+            <if test="orderTime != null">order_time = #{orderTime},</if>
+            <if test="recruitmentId != null">recruitment_id = #{recruitmentId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="employerId != null">employer_id = #{employerId},</if>
+            <if test="employeeId != null">employee_id = #{employeeId},</if>
+            <if test="provinceCode != null">province_code = #{provinceCode},</if>
+            <if test="provinceName != null">province_name = #{provinceName},</if>
+            <if test="cityCode != null">city_code = #{cityCode},</if>
+            <if test="cityName != null">city_name = #{cityName},</if>
+            <if test="districtCode != null">district_code = #{districtCode},</if>
+            <if test="districtName != null">district_name = #{districtName},</if>
+            <if test="detail != null">detail = #{detail},</if>
+            <if test="total != null">total = #{total},</if>
+            <if test="days != null">days = #{days},</if>
+            <if test="orderNumber != null">order_number = #{orderNumber},</if>
+            <if test="payMethod != null">pay_method = #{payMethod},</if>
+            <if test="payStatus != null">pay_status = #{payStatus},</if>
+            <if test="cancelReason != null">cancel_reason = #{cancelReason},</if>
+            <if test="rejectionReason != null">rejection_reason = #{rejectionReason},</if>
+            <if test="cancelTime != null">cancel_time = #{cancelTime},</if>
+            <if test="paymentTime != null">payment_time = #{paymentTime},</if>
+            <if test="rejectionTime != null">rejection_time = #{rejectionTime},</if>
+            <if test="refundTime != null">refund_time = #{refundTime},</if>
+            <if test="cancelType != null">cancel_type = #{cancelType},</if>
+            <if test="heldAmount != null">held_amount = #{heldAmount},</if>
+            <if test="refundNumber != null">refund_number = #{refundNumber}</if>
+        </set>
+        where id = #{id} and pay_status = #{payStatusCondition}
+    </update>
 </mapper>

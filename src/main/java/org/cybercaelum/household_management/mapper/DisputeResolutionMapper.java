@@ -33,4 +33,15 @@ public interface DisputeResolutionMapper {
      **/
     @Select("select * from dispute_resolution where order_id = #{id} and source_type = #{sourceType}")
     DisputeResolution selectDisputeResolutionByOrderId(Long id,Integer sourceType);
+
+    /**
+     * @description 通过sourceId和sourceType精确查询争议处理结果
+     * @author CyberCaelum
+     * @date 2026/3/21
+     * @param sourceId 来源ID（如cancelApplicationId）
+     * @param sourceType 争议来源类型
+     * @return org.cybercaelum.household_management.pojo.entity.DisputeResolution
+     **/
+    @Select("select * from dispute_resolution where source_id = #{sourceId} and source_type = #{sourceType}")
+    DisputeResolution selectBySourceIdAndType(Long sourceId, Integer sourceType);
 }

@@ -39,4 +39,8 @@ public class RocketMQConstant {
      * 支付回调超时时间5分钟
      */
     public static final Long PAY_TIMEOUT_DEFAULT = 300000L;
+    /**
+     * 退款回调超时时间5分钟
+     */
+    public static final Long REFUND_TIMEOUT_DEFAULT = 300000L;
 }
