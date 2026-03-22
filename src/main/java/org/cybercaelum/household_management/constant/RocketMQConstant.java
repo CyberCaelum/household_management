@@ -43,4 +43,16 @@ public class RocketMQConstant {
      * 退款回调超时时间5分钟
      */
     public static final Long REFUND_TIMEOUT_DEFAULT = 300000L;
+    /**
+     * 消息主题-每日服务自动确认
+     */
+    public static final String DAILY_AUTO_CONFIRM_TOPIC = "DAILY_AUTO_CONFIRM_TOPIC";
+    /**
+     * 消息标签-每日服务自动确认
+     */
+    public static final String DAILY_AUTO_CONFIRM_TAG = "DAILY_AUTO_CONFIRM";
+    /**
+     * 每日服务自动确认延迟时间24小时
+     */
+    public static final Long DAILY_AUTO_CONFIRM_DELAY = 86400000L;
 }

@@ -175,12 +175,6 @@
                     <includedScopes>compile,runtime</includedScopes>
                     <failOnMissing>true</failOnMissing>
 
-                    <!-- 允许的许可证 -->
-                    <acceptedLicenses>
-                        <acceptedLicense>MIT</acceptedLicense>
-                        <acceptedLicense>Apache License, Version 2.0</acceptedLicense>
-                        <acceptedLicense>The BSD License</acceptedLicense>
-                    </acceptedLicenses>
                 </configuration>
             </plugin>
         </plugins>

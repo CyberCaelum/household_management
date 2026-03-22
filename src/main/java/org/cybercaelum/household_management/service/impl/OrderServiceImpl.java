@@ -54,6 +54,8 @@ public class OrderServiceImpl implements OrderService {
     private final WechatPayUtil wechatPayUtil;
     private final RocketMQClientTemplate rocketMQClientTemplate;
     private final DisputeResolutionMapper disputeResolutionMapper;
+    private final CustomerServiceNotificationService csNotificationService;
+    private final OrderGroupService orderGroupService;
 
     /**
      * @description 结算计算结果内部类
@@ -618,6 +620,15 @@ public class OrderServiceImpl implements OrderService {
         recruitmentService.updateRecruitmentStatus(RecruitmentStatusConstant.HIDDEN,order.getId());
         //生成每日确认记录
         generateDailyConfirmations(order);
+        
+        // 创建订单群组（只包含雇主和客服，雇员接单后再加入）
+        try {
+            orderGroupService.createOrderGroup(order.getId(), order.getEmployerId(), null);
+            csNotificationService.notifyOrderPaid(order.getId(), order.getTotal().toString());
+        } catch (Exception e) {
+            log.error("创建订单群组或发送通知失败，订单ID: {}", order.getId(), e);
+        }
+        
         log.info("订单支付成功处理完成，订单号: {}，支付方式: {}", orderNumber, payMethod);
     }
 
@@ -692,6 +703,13 @@ public class OrderServiceImpl implements OrderService {
                 .employeeId(userId)
                 .build();
         orderMapper.updateOrder(updateOrder);
+        
+        // 雇员加入订单群组
+        try {
+            orderGroupService.addEmployeeToGroup(orderId, userId);
+        } catch (Exception e) {
+            log.error("雇员加入订单群组失败，订单ID: {}，雇员ID: {}", orderId, userId, e);
+        }
     }
 
     /**
@@ -955,11 +973,96 @@ public class OrderServiceImpl implements OrderService {
         }
         
         // 更新家政人员确认时间
+        LocalDateTime now = LocalDateTime.now();
         DailyConfirmation updateConfirmation = DailyConfirmation.builder()
                 .id(confirmation.getId())
-                .workerConfirmTime(LocalDateTime.now())
+                .workerConfirmTime(now)
                 .build();
         dailyConfirmationMapper.update(updateConfirmation);
+        
+        // 发送延迟消息，24小时后自动确认
+        sendDailyAutoConfirmMessage(confirmation.getId(), orderId, serviceDate, userId, now);
+        
+        log.info("家政人员确认服务完成，已发送自动确认延迟消息，confirmationId: {}，orderId: {}，serviceDate: {}",
+                confirmation.getId(), orderId, serviceDate);
+    }
+    
+    /**
+     * @description 发送每日服务自动确认延迟消息
+     * @author CyberCaelum
+     * @date 2026/3/22
+     * @param confirmationId 确认记录id
+     * @param orderId 订单id
+     * @param serviceDate 服务日期
+     * @param employeeId 家政人员id
+     * @param workerConfirmTime 家政人员确认时间
+     **/
+    private void sendDailyAutoConfirmMessage(Long confirmationId, Long orderId, LocalDate serviceDate, 
+                                             Long employeeId, LocalDateTime workerConfirmTime) {
+        // 计算延迟投递时间（24小时后）
+        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.DAILY_AUTO_CONFIRM_DELAY;
+        try {
+            DailyAutoConfirmMessage message = new DailyAutoConfirmMessage();
+            message.setConfirmationId(confirmationId);
+            message.setOrderId(orderId);
+            message.setServiceDate(serviceDate);
+            message.setEmployeeId(employeeId);
+            message.setWorkerConfirmTime(workerConfirmTime);
+            message.setCreateTime(LocalDateTime.now());
+            
+            org.springframework.messaging.Message<?> msg = MessageBuilder
+                    .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
+                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
+                    .build();
+            rocketMQClientTemplate.send(RocketMQConstant.DAILY_AUTO_CONFIRM_TOPIC + ":" + RocketMQConstant.DAILY_AUTO_CONFIRM_TAG, msg);
+            
+            log.info("每日服务自动确认延迟消息已发送，confirmationId: {}，将在24小时后执行", confirmationId);
+        } catch (Exception e) {
+            log.error("发送每日服务自动确认延迟消息失败，confirmationId: {}", confirmationId, e);
+        }
+    }
+    
+    /**
+     * @description 处理每日服务自动确认（延迟消息）
+     * @author CyberCaelum
+     * @date 2026/3/22
+     * @param confirmationId 确认记录id
+     **/
+    @Override
+    @Transactional
+    public void handleDailyAutoConfirm(Long confirmationId) {
+        // 查询确认记录
+        DailyConfirmation confirmation = dailyConfirmationMapper.selectById(confirmationId);
+        if (confirmation == null) {
+            log.warn("自动确认失败，确认记录不存在，confirmationId: {}", confirmationId);
+            return;
+        }
+        
+        // 幂等性检查：如果已经确认或争议，不再处理
+        if (DailyConfirmationStatusConstant.EMPLOYER_CONFIRMED.equals(confirmation.getStatus()) ||
+            DailyConfirmationStatusConstant.EMPLOYER_REJECTED.equals(confirmation.getStatus()) ||
+            DailyConfirmationStatusConstant.AUTO_CONFIRMED.equals(confirmation.getStatus())) {
+            log.info("该记录已处理，无需自动确认，confirmationId: {}，status: {}", 
+                    confirmationId, confirmation.getStatus());
+            return;
+        }
+        
+        // 校验家政人员已确认
+        if (confirmation.getWorkerConfirmTime() == null) {
+            log.warn("自动确认失败，家政人员尚未确认，confirmationId: {}", confirmationId);
+            return;
+        }
+        
+        // 更新为系统自动确认
+        DailyConfirmation updateConfirmation = DailyConfirmation.builder()
+                .id(confirmationId)
+                .status(DailyConfirmationStatusConstant.AUTO_CONFIRMED)
+                .autoConfirmTime(LocalDateTime.now())
+                .build();
+        dailyConfirmationMapper.update(updateConfirmation);
+        
+        log.info("每日服务自动确认完成，confirmationId: {}，orderId: {}，serviceDate: {}",
+                confirmationId, confirmation.getOrderId(), confirmation.getServiceDate());
     }
 
     /**
@@ -1033,9 +1136,15 @@ public class OrderServiceImpl implements OrderService {
                 .status(DailyConfirmationStatusConstant.EMPLOYER_REJECTED)
                 .disputeReason(reason)
                 .build();
-        //TODO 确认为争议后怎么处理？
-        //自动通知平台介入，
         dailyConfirmationMapper.update(updateConfirmation);
+        
+        // 通知客服介入
+        csNotificationService.notifyDailyServiceDispute(
+                order.getId(), 
+                confirmationId, 
+                confirmation.getServiceDate().toString(), 
+                reason
+        );
     }
 
     /**
@@ -1356,34 +1465,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * @description 自动确认每日服务（超时未确认的自动确认）
-     * @author CyberCaelum
-     * @date 2026/3/16
-     **/
-    @Override
-    @Transactional
-    public void autoConfirmDailyService() {
-        // 查询需要自动确认的记录（家政人员已确认超过24小时，雇主未确认）
-        LocalDateTime thresholdTime = LocalDateTime.now().minusHours(24);
-        List<DailyConfirmation> needConfirmList = dailyConfirmationMapper.selectNeedAutoConfirm(thresholdTime);
-        
-        for (DailyConfirmation confirmation : needConfirmList) {
-            // 更新为系统自动确认
-            DailyConfirmation updateConfirmation = DailyConfirmation.builder()
-                    .id(confirmation.getId())
-                    .status(DailyConfirmationStatusConstant.AUTO_CONFIRMED)
-                    .autoConfirmTime(LocalDateTime.now())
-                    .build();
-            dailyConfirmationMapper.update(updateConfirmation);
-            
-            log.info("每日服务自动确认，确认记录ID: {}，订单ID: {}，日期: {}", 
-                    confirmation.getId(), confirmation.getOrderId(), confirmation.getServiceDate());
-        }
-        
-        log.info("自动确认每日服务完成，共处理 {} 条记录", needConfirmList.size());
-    }
-
-    /**
      * @description 处理超时取消申请（转平台介入）
      * @author CyberCaelum
      * @date 2026/3/16
@@ -1400,14 +1481,20 @@ public class OrderServiceImpl implements OrderService {
             application.setStatus(CancelApplicationStatusConstant.PLATFORM_PROCESSING);
             cancelApplicationMapper.update(application);
             
-            // TODO 通知平台客服（简化处理，实际应发送通知）
+            // 通知客服介入
+            csNotificationService.notifyCancelApplicationTimeout(
+                    application.getOrderId(), 
+                    application.getId(), 
+                    application.getCancelType()
+            );
+            
             log.info("取消申请超时转平台介入，申请ID: {}，订单ID: {}", 
                     application.getId(), application.getOrderId());
         }
         
         log.info("处理超时取消申请完成，共处理 {} 条记录", timeoutApps.size());
     }
-////////////////////////////////////////////////////////////////////
+
     /**
      * @description 订单超时处理
      * @author CyberCaelum
@@ -1612,7 +1699,10 @@ public class OrderServiceImpl implements OrderService {
             } else if ("CHANGE".equals(refundStatus) || "FAIL".equals(refundStatus)) {
                 // 退款异常或失败，记录异常，人工介入
                 log.error("退款异常或失败，订单ID: {}，退款单号: {}，状态: {}", orderId, refundNo, refundStatus);
-                // TODO: 发送通知给管理员，人工处理
+                
+                // 通知客服退款异常
+                csNotificationService.notifyRefundException(orderId, refundNo, 
+                        "退款状态: " + refundStatus + "，需要人工处理");
                 
             } else {
                 log.warn("未知的退款状态，订单ID: {}，退款单号: {}，状态: {}", orderId, refundNo, refundStatus);

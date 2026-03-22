@@ -35,21 +35,6 @@ public class OrderTask {
     }
 
     /**
-     * @description 自动确认每日服务（每小时执行一次）,检查超时未确认的每日服务记录，自动确认
-     * @author CyberCaelum
-     * @date 2026/3/17
-     **/
-    @Scheduled(cron = "0 0 * * * ?")
-    public void autoConfirmDailyService() {
-        log.info("定时任务：自动确认每日服务");
-        try {
-            orderService.autoConfirmDailyService();
-        } catch (Exception e) {
-            log.error("自动确认每日服务定时任务执行失败", e);
-        }
-    }
-
-    /**
      * @description 处理超时取消申请（每30分钟执行一次）,将超时未响应的取消申请转交平台介入
      * @author CyberCaelum
      * @date 2026/3/17

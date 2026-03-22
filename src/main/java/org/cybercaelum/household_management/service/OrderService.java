@@ -103,11 +103,6 @@ public interface OrderService {
     void autoStartService();
 
     /**
-     * 自动确认每日服务（超时未确认的自动确认）
-     */
-    void autoConfirmDailyService();
-
-    /**
      * 处理超时取消申请（转平台介入）
      */
     void processTimeoutCancelApplications();
@@ -151,4 +146,10 @@ public interface OrderService {
      * @param orderNumber 订单号
      */
     void handlePayTimeout(Long orderId, String orderNumber);
+
+    /**
+     * 处理每日服务自动确认（延迟消息）
+     * @param confirmationId 确认记录ID
+     */
+    void handleDailyAutoConfirm(Long confirmationId);
 }

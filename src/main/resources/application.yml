@@ -73,8 +73,11 @@ household:
     admin-user-id: ${household.openim.admin-user-id:imAdmin}
     # 默认平台ID (1-9)
     default-platform-id: ${household.openim.default-platform-id:1}
-  rocketmq:
-    endpoint: ${household.rocketmq.endpoint}
-    producer:
-      group: ${household.rocketmq.producer.group}
+
+rocketmq:
+  producer:
+    endpoints: ${rocketmq.producer.endpoints}
+  push-consumer:
+    endpoints: ${rocketmq.push-consumer.endpoints}
+
 
