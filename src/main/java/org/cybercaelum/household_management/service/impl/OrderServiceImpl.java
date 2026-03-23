@@ -705,12 +705,53 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderStatusErrorException("该日期的服务记录不存在");
         }
         
+        LocalDateTime now = LocalDateTime.now();
+        
         // 更新家政人员确认时间
         DailyConfirmation updateConfirmation = DailyConfirmation.builder()
                 .id(confirmation.getId())
-                .workerConfirmTime(LocalDateTime.now())
+                .workerConfirmTime(now)
+                .updateTime(now)
                 .build();
         dailyConfirmationMapper.update(updateConfirmation);
+        
+        // 发送延迟消息，24小时后自动确认
+        sendDailyConfirmTimeoutMessage(confirmation.getId(), orderId, serviceDate, now);
+        
+        log.info("家政人员确认每日服务成功，确认记录ID: {}，订单ID: {}，服务日期: {}，已发送24小时延迟消息",
+                confirmation.getId(), orderId, serviceDate);
+    }
+    
+    /**
+     * @description 发送每日服务自动确认超时消息
+     * @author CyberCaelum
+     * @date 2026/3/23
+     * @param confirmationId 确认记录id
+     * @param orderId 订单id
+     * @param serviceDate 服务日期
+     * @param workerConfirmTime 家政人员确认时间
+     **/
+    private void sendDailyConfirmTimeoutMessage(Long confirmationId, Long orderId, LocalDate serviceDate, LocalDateTime workerConfirmTime) {
+        // 计算延迟投递时间（24小时后）
+        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.DAILY_CONFIRM_TIMEOUT_DEFAULT;
+        try {
+            DailyConfirmTimeoutMessage message = new DailyConfirmTimeoutMessage();
+            message.setConfirmationId(confirmationId);
+            message.setOrderId(orderId);
+            message.setServiceDate(serviceDate);
+            message.setWorkerConfirmTime(workerConfirmTime);
+            message.setCreateTime(LocalDateTime.now());
+            
+            org.springframework.messaging.Message<?> msg = MessageBuilder
+                    .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
+                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
+                    .build();
+            rocketMQClientTemplate.send(RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TOPIC + ":" + RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TAG, msg);
+            log.info("每日服务自动确认延迟消息已发送，确认记录ID: {}，订单ID: {}，服务日期: {}", 
+                    confirmationId, orderId, serviceDate);
+        } catch (Exception e) {
+            log.error("每日服务自动确认延迟消息发送失败，确认记录ID: {}", confirmationId, e);
+        }
     }
 
     /**
@@ -1058,7 +1099,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * @description 自动确认每日服务（超时未确认的自动确认）
+     * @description 自动确认每日服务（超时未确认的自动确认）- 定时任务使用
      * @author CyberCaelum
      * @date 2026/3/16
      **/
@@ -1075,6 +1116,7 @@ public class OrderServiceImpl implements OrderService {
                     .id(confirmation.getId())
                     .status(DailyConfirmationStatusConstant.AUTO_CONFIRMED)
                     .autoConfirmTime(LocalDateTime.now())
+                    .updateTime(LocalDateTime.now())
                     .build();
             dailyConfirmationMapper.update(updateConfirmation);
             
@@ -1083,6 +1125,42 @@ public class OrderServiceImpl implements OrderService {
         }
         
         log.info("自动确认每日服务完成，共处理 {} 条记录", needConfirmList.size());
+    }
+    
+    /**
+     * @description 根据确认记录ID自动确认每日服务 - 延迟消息使用
+     * @author CyberCaelum
+     * @date 2026/3/23
+     * @param confirmationId 确认记录ID
+     **/
+    @Override
+    @Transactional
+    public void autoConfirmDailyServiceById(Long confirmationId) {
+        // 查询确认记录
+        DailyConfirmation confirmation = dailyConfirmationMapper.selectById(confirmationId);
+        if (confirmation == null) {
+            log.warn("自动确认失败：确认记录不存在，ID: {}", confirmationId);
+            return;
+        }
+        
+        // 只有待确认状态(PENDING)才需要自动确认
+        if (confirmation.getStatus() != DailyConfirmationStatusConstant.PENDING) {
+            log.info("无需自动确认：确认记录状态不是待确认，ID: {}，状态: {}", 
+                    confirmationId, confirmation.getStatus());
+            return;
+        }
+        
+        // 更新为系统自动确认
+        DailyConfirmation updateConfirmation = DailyConfirmation.builder()
+                .id(confirmationId)
+                .status(DailyConfirmationStatusConstant.AUTO_CONFIRMED)
+                .autoConfirmTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .build();
+        dailyConfirmationMapper.update(updateConfirmation);
+        
+        log.info("每日服务自动确认成功（延迟消息触发），确认记录ID: {}，订单ID: {}，日期: {}", 
+                confirmationId, confirmation.getOrderId(), confirmation.getServiceDate());
     }
 
     /**

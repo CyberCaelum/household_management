@@ -102,9 +102,15 @@ public interface OrderService {
     void autoStartService();
 
     /**
-     * 自动确认每日服务（超时未确认的自动确认）
+     * 自动确认每日服务（超时未确认的自动确认）- 定时任务使用
      */
     void autoConfirmDailyService();
+
+    /**
+     * 根据确认记录ID自动确认每日服务 - 延迟消息使用
+     * @param confirmationId 确认记录ID
+     */
+    void autoConfirmDailyServiceById(Long confirmationId);
 
     /**
      * 处理超时取消申请（转平台介入）
