@@ -51,7 +51,4 @@ public class Order {
     private Integer cancelType;//取消类型，0未取消，1协商一致取消，2雇主强制取消，3家政人员强制取消，4平台取消
     private BigDecimal heldAmount;//托管金额，雇员应得金额
     private String refundNumber;//退款单号
-    
-    // 乐观锁条件字段（非数据库字段，仅用于更新条件）
-    private Integer payStatusCondition;
 }

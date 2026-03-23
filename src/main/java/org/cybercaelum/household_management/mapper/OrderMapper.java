@@ -94,23 +94,4 @@ public interface OrderMapper {
      **/
     @Select("select * from `order` where recruitment_id = #{recruitmentId} and status in (0,2,3,4)")
     List<Order> getOrderByRecruitmentId(Long recruitmentId);
-
-    /**
-     * @description 使用乐观锁更新订单支付状态（用于防止并发支付回调）
-     * @author CyberCaelum
-     * @date 2026/3/21
-     * @param order 订单信息
-     * @return int 影响行数
-     **/
-    int updateOrderWithOptimisticLock(Order order);
-
-    /**
-     * @description 查询订单中未确认的每日确认记录数量
-     * @author CyberCaelum
-     * @date 2026/3/21
-     * @param orderId 订单id
-     * @return int 未确认天数
-     **/
-    @Select("SELECT COUNT(*) FROM daily_confirmation WHERE order_id = #{orderId} AND status = 0")
-    int countUnconfirmedDays(Long orderId);
 }

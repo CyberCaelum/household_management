@@ -32,7 +32,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * @author CyberCaelum
@@ -56,198 +55,6 @@ public class OrderServiceImpl implements OrderService {
     private final DisputeResolutionMapper disputeResolutionMapper;
 
     /**
-     * @description 结算计算结果内部类
-     * 统一封装订单结算的各项金额计算结果
-     **/
-    @lombok.Data
-    @lombok.AllArgsConstructor
-    @lombok.Builder
-    public static class SettlementCalculationResult {
-        private Integer workDays;                    // 实际工作天数
-        private Integer totalDays;                   // 订单总天数
-        private Integer unworkedDays;                // 未工作天数
-        private BigDecimal dailyRate;                // 日薪
-        private BigDecimal baseEarnings;             // 基础工作所得 = 工作天数 × 日薪
-        private BigDecimal penalty;                  // 违约金（正数表示雇主付给雇员，负数表示雇员被扣除）
-        private BigDecimal employeeFinal;            // 雇员最终所得
-        private BigDecimal commission;               // 平台佣金
-        private BigDecimal employerPayable;          // 雇主应支付金额
-        private BigDecimal refundAmount;             // 退款金额（订单总额 - 雇主应支付）
-        private Integer defaultingParty;             // 违约方
-        private String calculationType;              // 计算类型描述
-    }
-
-    /**
-     * @description 统一结算计算方法
-     * 根据订单和结算场景计算各项金额
-     * @author CyberCaelum
-     * @date 2026/3/21
-     * @param order 订单信息
-     * @param settlementType 结算类型：1-正常完成，2-协商取消，3-全额退款，4-部分结算
-     * @param defaultingParty 违约方：1-雇主，2-雇员，null-无违约方
-     * @return SettlementCalculationResult 结算计算结果
-     **/
-    private SettlementCalculationResult calculateSettlement(Order order, int settlementType, Integer defaultingParty) {
-        // 统计工作天数
-        Integer workDays = dailyConfirmationMapper.countConfirmedDays(order.getId());
-        Integer totalDays = order.getDays();
-        Integer unworkedDays = totalDays - workDays;
-        BigDecimal dailyRate = order.getPrice();
-        
-        // 基础工作所得
-        BigDecimal baseEarnings = dailyRate.multiply(new BigDecimal(workDays));
-        BigDecimal penalty = BigDecimal.ZERO;
-        BigDecimal employeeFinal = BigDecimal.ZERO;
-        BigDecimal commission = BigDecimal.ZERO;
-        BigDecimal employerPayable = BigDecimal.ZERO;
-        BigDecimal refundAmount = BigDecimal.ZERO;
-        String calculationType;
-        
-        switch (settlementType) {
-            case 1: // 正常完成结算
-                employeeFinal = baseEarnings;
-                commission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
-                employerPayable = employeeFinal.add(commission);
-                calculationType = "正常完成结算";
-                break;
-                
-            case 2: // 协商一致取消 - 按实际工作天数结算
-                employeeFinal = baseEarnings;
-                commission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
-                employerPayable = employeeFinal.add(commission);
-                refundAmount = order.getTotal().subtract(employerPayable);
-                if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
-                    refundAmount = BigDecimal.ZERO;
-                }
-                calculationType = "协商一致取消结算";
-                break;
-                
-            case 3: // 全额退款（平台裁决同意取消或拒单）
-                employeeFinal = BigDecimal.ZERO;
-                commission = BigDecimal.ZERO;
-                employerPayable = BigDecimal.ZERO;
-                refundAmount = order.getTotal();
-                calculationType = "全额退款结算";
-                break;
-                
-            case 4: // 部分结算（平台裁决）
-                if (defaultingParty == null) {
-                    // 无违约方：正常部分结算
-                    employeeFinal = baseEarnings;
-                    commission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
-                    employerPayable = employeeFinal.add(commission);
-                    calculationType = "部分结算（无违约方）";
-                } else if (DisputeResolutionConstant.EMPLOYER_DEFAULTING.equals(defaultingParty)) {
-                    // 雇主违约：雇员获得违约金补偿
-                    penalty = dailyRate.multiply(new BigDecimal(unworkedDays))
-                            .multiply(OrderRateConstant.PENALTY_RATE);
-                    employeeFinal = baseEarnings.add(penalty);
-                    commission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
-                    employerPayable = employeeFinal.add(commission);
-                    calculationType = "部分结算（雇主违约）";
-                } else if (DisputeResolutionConstant.EMPLOYEE_DEFAULTING.equals(defaultingParty)) {
-                    // 雇员违约：扣除违约金
-                    penalty = dailyRate.multiply(new BigDecimal(unworkedDays))
-                            .multiply(OrderRateConstant.PENALTY_RATE);
-                    employeeFinal = baseEarnings.subtract(penalty);
-                    if (employeeFinal.compareTo(BigDecimal.ZERO) < 0) {
-                        employeeFinal = BigDecimal.ZERO;
-                    }
-                    commission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
-                    employerPayable = employeeFinal.add(commission);
-                    calculationType = "部分结算（雇员违约）";
-                } else {
-                    // 未知违约方，按无违约方处理
-                    employeeFinal = baseEarnings;
-                    commission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
-                    employerPayable = employeeFinal.add(commission);
-                    calculationType = "部分结算（未知违约方，按无违约处理）";
-                }
-                
-                refundAmount = order.getTotal().subtract(employerPayable);
-                if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
-                    refundAmount = BigDecimal.ZERO;
-                }
-                break;
-                
-            default:
-                throw new OrderStatusErrorException("未知的结算类型: " + settlementType);
-        }
-        
-        log.info("结算计算完成：类型=[{}]，订单ID=[{}]，工作天数=[{}]，雇员所得=[{}]，雇主支付=[{}]，退款金额=[{}]",
-                calculationType, order.getId(), workDays, employeeFinal, employerPayable, refundAmount);
-        
-        return SettlementCalculationResult.builder()
-                .workDays(workDays)
-                .totalDays(totalDays)
-                .unworkedDays(unworkedDays)
-                .dailyRate(dailyRate)
-                .baseEarnings(baseEarnings)
-                .penalty(penalty)
-                .employeeFinal(employeeFinal)
-                .commission(commission)
-                .employerPayable(employerPayable)
-                .refundAmount(refundAmount)
-                .defaultingParty(defaultingParty)
-                .calculationType(calculationType)
-                .build();
-    }
-
-    /**
-     * @description 保存结算记录
-     * @author CyberCaelum
-     * @date 2026/3/21
-     * @param order 订单信息
-     * @param result 结算计算结果
-     * @param refundNo 退款单号（可为null）
-     **/
-    private void saveSettlementRecord(Order order, SettlementCalculationResult result, String refundNo) {
-        Long orderId = order.getId();
-        
-        // 查询是否已有结算记录
-        Settlement existingSettlement = settlementMapper.selectByOrderId(orderId);
-        
-        if (existingSettlement != null) {
-            // 更新现有结算记录
-            existingSettlement.setTotalDays(result.getWorkDays());
-            existingSettlement.setDailyRate(result.getDailyRate());
-            existingSettlement.setTotalAmount(result.getBaseEarnings());
-            existingSettlement.setFinalAmount(result.getEmployerPayable());
-            existingSettlement.setPenaltyDeduction(result.getPenalty());
-            existingSettlement.setDefaultingParty(result.getDefaultingParty());
-            existingSettlement.setStatus(SettlementStatusConstant.SETTLED);
-            existingSettlement.setSettlementTime(LocalDateTime.now());
-            existingSettlement.setOrderNumber(order.getOrderNumber());
-            if (refundNo != null) {
-                existingSettlement.setRefundNumber(refundNo);
-            }
-            settlementMapper.update(existingSettlement);
-            log.info("更新结算记录完成，订单ID: {}，类型: {}", orderId, result.getCalculationType());
-        } else {
-            // 创建新的结算记录
-            Settlement settlement = Settlement.builder()
-                    .orderId(orderId)
-                    .totalDays(result.getWorkDays())
-                    .dailyRate(result.getDailyRate())
-                    .totalAmount(result.getBaseEarnings())
-                    .finalAmount(result.getEmployerPayable())
-                    .penaltyDeduction(result.getPenalty())
-                    .defaultingParty(result.getDefaultingParty())
-                    .status(SettlementStatusConstant.SETTLED)
-                    .settlementTime(LocalDateTime.now())
-                    .orderNumber(order.getOrderNumber())
-                    .refundNumber(refundNo)
-                    .createTime(LocalDateTime.now())
-                    .build();
-            settlementMapper.insert(settlement);
-            log.info("创建结算记录完成，订单ID: {}，类型: {}", orderId, result.getCalculationType());
-        }
-        
-        // TODO: 调用支付系统，将 employeeFinal 打给雇员
-        // transferToEmployee(order.getEmployeeId(), result.getEmployeeFinal());
-    }
-
-    /**
      * @description 提交订单
      * @author CyberCaelum
      * @date 上午9:14 2026/3/12
@@ -267,7 +74,7 @@ public class OrderServiceImpl implements OrderService {
         }
         //控制同一招募不能同时有多个进行中的订单
         List<Order> orders = orderMapper.getOrderByRecruitmentId(recruitmentId);
-        if (orders != null && !orders.isEmpty()) {
+        if (orders == null || orders.isEmpty()) {
             throw new OrderStatusErrorException("订单已存在，请结束上一个订单");
         }
         //薪水在最大和最小之间
@@ -283,7 +90,7 @@ public class OrderServiceImpl implements OrderService {
                 .endTime(ordersSubmitDTO.getEndTime())//结束时间
                 .employerId(recruitment.getUserId())//雇佣者id，即发帖人id
                 .days(ordersSubmitDTO.getDays())//工作天数
-                .orderNumber(UUID.randomUUID().toString().replace("-", ""))//订单号
+                .orderNumber(String.valueOf(System.currentTimeMillis()) + recruitmentId)//订单号
                 .cancelType(CancelApplicationStatusConstant.TYPE_NOT_CANCELLED)//设置状态为未取消
                 .build();
         //复制地址
@@ -426,7 +233,6 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * @description 退款（根据平台裁决结果执行退款，实际状态更新在退款回调中处理）
-     * 退款金额统一从结算记录中读取，避免重复计算导致不一致
      * @author CyberCaelum
      * @date 上午10:28 2026/3/18
      * @param orderId 订单id
@@ -477,6 +283,9 @@ public class OrderServiceImpl implements OrderService {
         //生成退款订单号
         String refundNumber = String.valueOf(System.currentTimeMillis()) + order.getRecruitmentId();
         
+        //统计已确认工作天数（共用）
+        Integer days = dailyConfirmationMapper.countConfirmedDays(orderId);
+        
         //同意取消，全额退款（托管金额+平台佣金全部退给雇主）
         if (DisputeResolutionConstant.AGREE.equals(decision)){
             //调用微信退款接口，实际状态更新在回调中处理
@@ -491,39 +300,98 @@ public class OrderServiceImpl implements OrderService {
         
         //部分结算
         if (DisputeResolutionConstant.PARTIAL_SETTLEMENT.equals(decision)){
-            //从结算记录中读取退款金额，避免重复计算
-            Settlement settlement = settlementMapper.selectByOrderId(orderId);
-            if (settlement == null) {
-                throw new OrderStatusErrorException("结算记录不存在，无法执行退款");
-            }
-            
-            //退款金额 = 订单总额 - 结算金额（雇主实际应支付金额）
-            BigDecimal refundAmount = order.getTotal().subtract(settlement.getFinalAmount());
-            if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
-                refundAmount = BigDecimal.ZERO;
-            }
-            
-            //获取违约方用于日志记录
+            //获取违约方
             Integer defaultingParty = disputeResolution.getDefaultingParty();
-            String refundReason;
-            if (defaultingParty == null) {
-                refundReason = "平台同意部分退款";
-            } else if (DisputeResolutionConstant.EMPLOYER_DEFAULTING.equals(defaultingParty)) {
-                refundReason = "雇主违约，扣除违约金后部分退款";
-            } else if (DisputeResolutionConstant.EMPLOYEE_DEFAULTING.equals(defaultingParty)) {
-                refundReason = "雇员违约，扣除违约金后部分退款";
-            } else {
-                refundReason = "平台裁决部分退款";
+            
+            //雇员应得金额（工作天数 * 日薪）
+            BigDecimal employeeEarned = order.getPrice().multiply(new BigDecimal(days));
+            //平台佣金（雇员应得金额 * 佣金比例）
+            BigDecimal commission = employeeEarned.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+            //雇主应支付金额（雇员应得 + 平台佣金）
+            BigDecimal employerPayable = employeeEarned.add(commission);
+            
+            if (defaultingParty == null){
+                //没有违约人，平台裁决部分退款
+                //退款金额 = 订单总金额 - 雇主应支付金额
+                BigDecimal refundAmount = order.getTotal().subtract(employerPayable);
+                
+                wechatPayUtil.refund(order.getOrderNumber(), refundNumber, refundAmount,
+                        order.getTotal(), "平台同意部分退款");
+                
+                //发送延迟消息，用于处理退款超时
+                sendRefundTimeoutMessage(orderId, refundNumber);
+                
+                log.info("部分退款申请已提交（无违约方），订单ID: {}，退款单号: {}，退款金额: {}", 
+                        orderId, refundNumber, refundAmount);
+            } else if (DisputeResolutionConstant.EMPLOYER_DEFAULTING.equals(defaultingParty)){
+                //雇主违约：雇主需要支付违约金，违约金给雇员作为补偿
+                //计算未工作天数
+                Integer totalDays = order.getDays();
+                Integer unworkedDays = totalDays - days;
+                
+                //违约金（未工作天数 * 日薪 * 违约金比例），由雇主支付给雇员
+                BigDecimal penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                
+                //雇员应得 = 实际工作所得 + 违约金（雇主违约补偿）
+                BigDecimal employeeFinal = employeeEarned.add(penalty);
+                
+                //平台佣金 = 雇员应得 * 佣金比例
+                BigDecimal finalCommission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                
+                //雇主应支付 = 雇员应得 + 平台佣金
+                BigDecimal employerFinalPayable = employeeFinal.add(finalCommission);
+                
+                //退款金额 = 订单总金额 - 雇主应支付（雇主支付更多，退款更少）
+                BigDecimal refundAmount = order.getTotal().subtract(employerFinalPayable);
+                
+                //如果退款金额小于0，说明违约金超过原订单金额，不退款
+                if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    refundAmount = BigDecimal.ZERO;
+                }
+                
+                wechatPayUtil.refund(order.getOrderNumber(), refundNumber, refundAmount,
+                        order.getTotal(), "雇主违约，扣除违约金后部分退款");
+                
+                //发送延迟消息，用于处理退款超时
+                sendRefundTimeoutMessage(orderId, refundNumber);
+                
+                log.info("部分退款申请已提交（雇主违约），订单ID: {}，退款单号: {}，退款金额: {}，违约金: {}", 
+                        orderId, refundNumber, refundAmount, penalty);
+                
+            } else if (DisputeResolutionConstant.EMPLOYEE_DEFAULTING.equals(defaultingParty)){
+                //雇员违约：克扣雇员获得金额（违约金 = 未工作天数 * 日薪 * 违约金比例）
+                Integer totalDays = order.getDays();
+                Integer unworkedDays = totalDays - days;
+                
+                //违约金（未工作天数 * 日薪 * 违约金比例）
+                BigDecimal penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                
+                //雇员实际应得 = 实际工作所得 - 违约金（最低为0）
+                BigDecimal employeeFinal = employeeEarned.subtract(penalty);
+                if (employeeFinal.compareTo(BigDecimal.ZERO) < 0) {
+                    employeeFinal = BigDecimal.ZERO;
+                }
+                
+                //雇主应支付 = 雇员实际应得 + 平台佣金
+                BigDecimal employerFinalPayable = employeeFinal.add(commission);
+                
+                //退款金额 = 订单总金额 - 雇主应支付
+                BigDecimal refundAmount = order.getTotal().subtract(employerFinalPayable);
+                if (refundAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    refundAmount = BigDecimal.ZERO;
+                }
+                
+                wechatPayUtil.refund(order.getOrderNumber(), refundNumber, refundAmount,
+                        order.getTotal(), "雇员违约，扣除违约金后部分退款");
+                
+                //发送延迟消息，用于处理退款超时
+                sendRefundTimeoutMessage(orderId, refundNumber);
+                
+                log.info("部分退款申请已提交（雇员违约），订单ID: {}，退款单号: {}，退款金额: {}，违约金: {}", 
+                        orderId, refundNumber, refundAmount, penalty);
             }
-            
-            wechatPayUtil.refund(order.getOrderNumber(), refundNumber, refundAmount,
-                    order.getTotal(), refundReason);
-            
-            //发送延迟消息，用于处理退款超时
-            sendRefundTimeoutMessage(orderId, refundNumber);
-            
-            log.info("部分退款申请已提交，订单ID: {}，退款单号: {}，退款金额: {}，违约方: {}", 
-                    orderId, refundNumber, refundAmount, defaultingParty);
         }
     }
     
@@ -536,7 +404,7 @@ public class OrderServiceImpl implements OrderService {
      **/
     private void sendRefundTimeoutMessage(Long orderId, String refundNumber){
         //计算延迟投递时间（5分钟后）
-        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.REFUND_TIMEOUT_DEFAULT;
+        long deliveryTimestamp = System.currentTimeMillis() + 5 * 60 * 1000;
         try {
             RefundTimeoutMessage message = new RefundTimeoutMessage();
             message.setOrderId(orderId);
@@ -561,11 +429,10 @@ public class OrderServiceImpl implements OrderService {
      * @date 上午10:32 2026/3/13
      * @param orderNumber 订单号
      * @param payMethod 支付方式
-     * @param totalFee 微信支付金额（分）
      **/
     @Override
     @Transactional
-    public void paySuccess(String orderNumber, Integer payMethod, Integer totalFee) {
+    public void paySuccess(String orderNumber, Integer payMethod) {
         //根据订单号查询订单
         Order order = orderMapper.getOrderByNumber(orderNumber);
         
@@ -587,33 +454,15 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderStatusErrorException("订单状态异常，无法处理支付");
         }
         
-        // 支付金额一致性校验：将分转换为元进行比较
-        if (totalFee != null) {
-            BigDecimal wxPayAmount = new BigDecimal(totalFee).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
-            if (wxPayAmount.compareTo(order.getTotal()) != 0) {
-                log.error("支付金额不一致，订单号: {}，订单金额: {}，微信支付金额: {}", 
-                        orderNumber, order.getTotal(), wxPayAmount);
-                throw new OrderStatusErrorException("支付金额与订单金额不一致");
-            }
-        }
-        
-        //修改订单状态和信息（使用乐观锁防止并发）
+        //修改订单状态和信息
         Order payedOrder = Order.builder()
                 .id(order.getId())//主键
                 .payStatus(PayStatusConstant.PAID)//已支付
-                .payStatusCondition(PayStatusConstant.UN_PAID)//乐观锁条件：只有未支付状态才能更新
                 .paymentTime(LocalDateTime.now())//支付时间
                 .status(OrderStatusConstant.TO_BE_CONFIRMED)//从未支付变为待确认
                 .payMethod(payMethod)//支付方式
                 .build();
-        int affectedRows = orderMapper.updateOrderWithOptimisticLock(payedOrder);
-        
-        // 乐观锁校验：如果没有更新成功，说明已被其他线程处理
-        if (affectedRows == 0) {
-            log.warn("订单支付状态已被其他线程处理，订单号: {}", orderNumber);
-            return;
-        }
-        
+        orderMapper.updateOrder(payedOrder);
         // 设置招募信息为隐藏
         recruitmentService.updateRecruitmentStatus(RecruitmentStatusConstant.HIDDEN,order.getId());
         //生成每日确认记录
@@ -702,7 +551,7 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     @Transactional
-    public void rejection(OrdersRejectionDTO ordersRejectionDTO) {
+    public void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception {
         Long orderId = ordersRejectionDTO.getId();
         Order order = orderMapper.getOrderById(orderId);
         if (order == null) {
@@ -760,98 +609,16 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderNotFoundException("订单不存在");
         }
         
-        // 判断订单是否已付款
-        if (PayStatusConstant.PAID.equals(order.getPayStatus())) {
-            // 已支付，需要执行退款
-            // 通过微信查询订单支付状态，确保订单已支付
-            WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
-            if (!"SUCCESS".equals(wxPayOrderQueryResult.getTradeState())) {
-                throw new OrderStatusErrorException("订单未支付或支付状态异常");
-            }
-            
-            // 创建退款单号
-            String refundNo = String.valueOf(System.currentTimeMillis()) + order.getRecruitmentId();
-            
-            // 调用微信退款接口，全额退款
-            wechatPayUtil.refund(order.getOrderNumber(), refundNo, order.getTotal(), order.getTotal(), "平台取消订单，全额退款");
-            
-            // 发送退款超时消息，用于回调保底
-            sendRefundTimeoutMessage(orderId, refundNo);
-            
-            // 更新订单状态为已取消，设置退款中状态
-            Order updateOrder = Order.builder()
-                    .id(orderId)
-                    .status(OrderStatusConstant.CANCELLED)
-                    .cancelReason(ordersCancelDTO.getCancelReason())
-                    .cancelTime(LocalDateTime.now())
-                    .cancelType(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE) // 平台取消
-                    .payStatus(PayStatusConstant.REFUNDING) // 设置退款中状态
-                    .refundNumber(refundNo)
-                    .build();
-            orderMapper.updateOrder(updateOrder);
-            
-            log.info("平台取消订单，已申请全额退款，订单ID: {}，退款单号: {}，退款金额: {}", 
-                    orderId, refundNo, order.getTotal());
-        } else {
-            // 未支付，直接取消订单
-            Order updateOrder = Order.builder()
-                    .id(orderId)
-                    .status(OrderStatusConstant.CANCELLED)
-                    .cancelReason(ordersCancelDTO.getCancelReason())
-                    .cancelTime(LocalDateTime.now())
-                    .cancelType(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE) // 平台取消
-                    .build();
-            orderMapper.updateOrder(updateOrder);
-            
-            log.info("平台取消订单，订单未支付，直接取消，订单ID: {}", orderId);
-        }
-    }
-
-    /**
-     * @description 直接取消订单（用于待付款状态的订单）
-     * @author CyberCaelum
-     * @date 2026/3/21
-     * @param orderId 订单id
-     * @param reason 取消原因
-     **/
-    @Transactional
-    public void directCancel(Long orderId, String reason) {
-        Order order = orderMapper.getOrderById(orderId);
-        if (order == null) {
-            throw new OrderNotFoundException("订单不存在");
-        }
-        
-        // 只能取消待付款订单
-        if (!OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus())) {
-            throw new OrderStatusErrorException("只有待付款订单可以直接取消");
-        }
-        
-        // 权限校验：仅允许雇主或雇员本人取消
-        Long userId = BaseContext.getUserId();
-        if (!userId.equals(order.getEmployerId()) && !userId.equals(order.getEmployeeId())) {
-            throw new PermissionDeniedException("无权操作此订单");
-        }
-        
-        // 根据当前用户角色确定取消类型
-        Integer cancelType;
-        if (userId.equals(order.getEmployerId())) {
-            cancelType = CancelApplicationStatusConstant.TYPE_EMPLOYER_FORCE;
-        } else {
-            // 雇员取消
-            cancelType = CancelApplicationStatusConstant.TYPE_WORKER_FORCE;
-        }
-        
         // 更新订单状态为已取消
         Order updateOrder = Order.builder()
                 .id(orderId)
                 .status(OrderStatusConstant.CANCELLED)
-                .cancelReason(reason)
+                .cancelReason(ordersCancelDTO.getCancelReason())
                 .cancelTime(LocalDateTime.now())
-                .cancelType(cancelType)
+                .cancelType(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE) // 平台取消
                 .build();
         orderMapper.updateOrder(updateOrder);
-        
-        log.info("待付款订单直接取消成功，订单ID: {}，原因: {}", orderId, reason);
+        //TODO 判断是否付款然后进行退款处理
     }
 
     /**
@@ -900,12 +667,6 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderStatusErrorException("订单状态错误，无法完成");
         }
         
-        // 校验是否所有服务日都已确认
-        int unconfirmedDays = orderMapper.countUnconfirmedDays(id);
-        if (unconfirmedDays > 0) {
-            throw new OrderStatusErrorException("还有 " + unconfirmedDays + " 天服务未确认，无法完成订单");
-        }
-        
         // 更新订单状态为已完成
         Order updateOrder = Order.builder()
                 .id(id)
@@ -938,16 +699,6 @@ public class OrderServiceImpl implements OrderService {
             throw new PermissionDeniedException("无权操作此订单");
         }
         
-        // 校验服务日期在订单有效期内
-        if (serviceDate.isBefore(order.getStartTime()) || serviceDate.isAfter(order.getEndTime())) {
-            throw new OrderParamException("服务日期不在订单服务范围内");
-        }
-        
-        // 校验只能确认当天或之前的服务（防止提前确认）
-        if (serviceDate.isAfter(LocalDate.now())) {
-            throw new OrderParamException("不能提前确认未来日期的服务");
-        }
-        
         // 查询当日确认记录
         DailyConfirmation confirmation = dailyConfirmationMapper.selectByOrderIdAndDate(orderId, serviceDate);
         if (confirmation == null) {
@@ -974,11 +725,6 @@ public class OrderServiceImpl implements OrderService {
         DailyConfirmation confirmation = dailyConfirmationMapper.selectById(confirmationId);
         if (confirmation == null) {
             throw new OrderNotFoundException("确认记录不存在");
-        }
-        
-        // 校验家政人员已先确认
-        if (confirmation.getWorkerConfirmTime() == null) {
-            throw new OrderStatusErrorException("家政人员尚未确认，雇主无法确认");
         }
         
         Order order = orderMapper.getOrderById(confirmation.getOrderId());
@@ -1060,12 +806,6 @@ public class OrderServiceImpl implements OrderService {
             !OrderStatusConstant.TO_BE_CONFIRMED.equals(order.getStatus()) && //待被确认
             !OrderStatusConstant.CONFIRMED.equals(order.getStatus()) ) { //已接单
             throw new OrderStatusErrorException("当前订单状态无法取消");
-        }
-        
-        // 待付款订单直接取消，不走申请流程
-        if (OrderStatusConstant.PENDING_PAYMENT.equals(order.getStatus())) {
-            directCancel(orderId, reason);
-            return;
         }
         
         Long userId = BaseContext.getUserId();
@@ -1184,18 +924,18 @@ public class OrderServiceImpl implements OrderService {
         };
     }
 
+    //TODO 平台取消需要判断是哪一方违约
     /**
      * @description 平台裁决取消申请
      * @author CyberCaelum
      * @date 上午11:01 2026/3/16
      * @param applicationId 申请id
      * @param decision 裁决结果：1同意取消，2拒绝取消，3部分结算
-     * @param defaultingParty 违约方：1-雇主，2-雇员，null-无违约方
      * @param note 平台备注
      **/
     @Override
     @Transactional
-    public void platformDecideCancelApplication(Long applicationId, Integer decision, Integer defaultingParty, String note) {
+    public void platformDecideCancelApplication(Long applicationId, Integer decision, String note) {
         //获取申请信息
         CancelApplication application = cancelApplicationMapper.selectById(applicationId);
         if (application == null) {
@@ -1219,28 +959,10 @@ public class OrderServiceImpl implements OrderService {
         application.setPlatformNote(note);
         cancelApplicationMapper.update(application);
         
-        // 创建争议处理记录
-        DisputeResolution disputeResolution = DisputeResolution.builder()
-                .orderId(order.getId())
-                .sourceType(DisputeResolutionConstant.CANCEL_APPLY)
-                .sourceId(applicationId)
-                .defaultingParty(defaultingParty)
-                .decision(decision)
-                .operatorId(BaseContext.getUserId())
-                .note(note)
-                .createdTime(LocalDateTime.now())
-                .build();
-        disputeResolutionMapper.insertDisputeResolution(disputeResolution);
-        log.info("争议处理记录已创建，订单ID: {}，申请ID: {}，裁决结果: {}，违约方: {}", 
-                order.getId(), applicationId, decision, defaultingParty);
-        
         if (CancelApplicationStatusConstant.DECISION_AGREE.equals(decision) || 
             CancelApplicationStatusConstant.DECISION_PARTIAL.equals(decision)) {
-            // 同意取消或部分结算，先执行结算
+            // 同意取消或部分结算
             settleOrder(order.getId(), application.getId());
-            
-            // 调用退款方法执行实际退款
-            refund(order.getId());
             
             // 更新订单状态为已取消
             Order updateOrder = Order.builder()
@@ -1256,11 +978,10 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * @description 订单结算
-     * 统一入口：根据订单状态和场景自动选择合适的结算方式
      * @author CyberCaelum
      * @date 上午11:07 2026/3/16
      * @param orderId 订单id
-     * @param cancelApplicationId 取消申请id（正常完成时可传null）
+     * @param cancelApplicationId 取消申请id
      **/
     @Override
     @Transactional
@@ -1270,48 +991,41 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderNotFoundException("订单不存在");
         }
 
-        SettlementCalculationResult result;
-        
-        if (cancelApplicationId == null) {
-            // 正常订单完成结算
-            result = calculateSettlement(order, 1, null);
-        } else {
-            // 查询取消申请信息
-            CancelApplication application = cancelApplicationMapper.selectById(cancelApplicationId);
-            if (application == null) {
-                throw new OrderNotFoundException("取消申请不存在");
-            }
-            
-            // 查询争议处理结果（使用sourceId精确查询对应申请的裁决结果）
-            DisputeResolution disputeResolution = disputeResolutionMapper.selectBySourceIdAndType(
-                    cancelApplicationId, DisputeResolutionConstant.CANCEL_APPLY);
-            
-            if (disputeResolution != null) {
-                // 平台裁决后的结算
-                Integer decision = disputeResolution.getDecision();
-                Integer defaultingParty = disputeResolution.getDefaultingParty();
-                
-                if (DisputeResolutionConstant.AGREE.equals(decision)) {
-                    // 全额退款
-                    result = calculateSettlement(order, 3, defaultingParty);
-                } else if (DisputeResolutionConstant.PARTIAL_SETTLEMENT.equals(decision)) {
-                    // 部分结算
-                    result = calculateSettlement(order, 4, defaultingParty);
-                } else {
-                    // 其他情况按协商一致处理
-                    result = calculateSettlement(order, 2, null);
-                }
-            } else {
-                // 协商一致取消结算
-                result = calculateSettlement(order, 2, null);
-            }
+        // 统计已确认天数
+        int totalDays = dailyConfirmationMapper.countConfirmedDays(orderId);
+
+        // 计算金额，金额乘实际天数
+        BigDecimal totalAmount = order.getPrice().multiply(new BigDecimal(totalDays));
+        BigDecimal penaltyDeduction = BigDecimal.ZERO;
+
+        BigDecimal finalAmount = totalAmount;
+
+        if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            finalAmount = BigDecimal.ZERO;
         }
 
-        // 保存结算记录
-        saveSettlementRecord(order, result, null);
-        
-        log.info("订单结算完成，订单ID: {}，类型: {}，雇员所得: {}，雇主支付: {}", 
-                orderId, result.getCalculationType(), result.getEmployeeFinal(), result.getEmployerPayable());
+        // 创建结算记录
+        Settlement settlement = Settlement.builder()
+                .orderId(orderId)
+                .totalDays(totalDays)
+                .dailyRate(order.getPrice())
+                .totalAmount(totalAmount)
+                .penaltyDeduction(penaltyDeduction)
+                .finalAmount(finalAmount)
+                .status(SettlementStatusConstant.PENDING)
+                .createTime(LocalDateTime.now())
+                .build();
+
+        settlementMapper.insert(settlement);
+
+        // TODO: 调用支付系统，将托管金额打给被雇人员
+
+        // 更新结算状态为已结算
+        settlement.setStatus(SettlementStatusConstant.SETTLED);
+        settlement.setSettlementTime(LocalDateTime.now());
+        settlementMapper.update(settlement);
+        //TODO 更新订单信息
+        log.info("订单结算完成，订单ID: {}，结算金额: {}", orderId, finalAmount);
     }
 
     /**
@@ -1328,18 +1042,6 @@ public class OrderServiceImpl implements OrderService {
         
         for (Order order : orders) {
             try {
-                // 业务校验：订单不能被取消
-                if (OrderStatusConstant.CANCELLED.equals(order.getStatus())) {
-                    log.warn("订单已被取消，跳过自动开始，orderId: {}", order.getId());
-                    continue;
-                }
-                
-                // 业务校验：订单支付状态必须为已支付
-                if (!PayStatusConstant.PAID.equals(order.getPayStatus())) {
-                    log.warn("订单未支付，跳过自动开始，orderId: {}", order.getId());
-                    continue;
-                }
-                
                 // 更新订单状态为进行中（服务中）
                 Order updateOrder = Order.builder()
                         .id(order.getId())
@@ -1407,7 +1109,7 @@ public class OrderServiceImpl implements OrderService {
         
         log.info("处理超时取消申请完成，共处理 {} 条记录", timeoutApps.size());
     }
-////////////////////////////////////////////////////////////////////
+
     /**
      * @description 订单超时处理
      * @author CyberCaelum
@@ -1466,8 +1168,40 @@ public class OrderServiceImpl implements OrderService {
         
         Long orderId = order.getId();
         
-        // 使用统一的结算计算方法（全额退款，雇员违约）
-        SettlementCalculationResult result = calculateSettlement(order, 3, DisputeResolutionConstant.EMPLOYEE_DEFAULTING);
+        // 拒单退款：全额退给雇主，家政人员无收入
+        // 创建结算记录（家政人员收入为0）
+        Settlement existingSettlement = settlementMapper.selectByOrderId(orderId);
+        if (existingSettlement != null) {
+            // 更新现有结算记录
+            existingSettlement.setTotalDays(0);
+            existingSettlement.setTotalAmount(BigDecimal.ZERO);
+            existingSettlement.setFinalAmount(BigDecimal.ZERO);
+            existingSettlement.setPenaltyDeduction(BigDecimal.ZERO);
+            existingSettlement.setDefaultingParty(DisputeResolutionConstant.EMPLOYEE_DEFAULTING); // 家政人员拒单视为违约
+            existingSettlement.setStatus(SettlementStatusConstant.SETTLED);
+            existingSettlement.setSettlementTime(LocalDateTime.now());
+            existingSettlement.setRefundNumber(refundNo);
+            settlementMapper.update(existingSettlement);
+            log.info("更新拒单结算记录完成，订单号: {}", orderNo);
+        } else {
+            // 创建新的结算记录
+            Settlement settlement = Settlement.builder()
+                    .orderId(orderId)
+                    .totalDays(0)
+                    .dailyRate(order.getPrice())
+                    .totalAmount(BigDecimal.ZERO)
+                    .finalAmount(BigDecimal.ZERO)
+                    .penaltyDeduction(BigDecimal.ZERO)
+                    .defaultingParty(DisputeResolutionConstant.EMPLOYEE_DEFAULTING) // 家政人员拒单视为违约
+                    .status(SettlementStatusConstant.SETTLED)
+                    .settlementTime(LocalDateTime.now())
+                    .orderNumber(orderNo)
+                    .refundNumber(refundNo)
+                    .createTime(LocalDateTime.now())
+                    .build();
+            settlementMapper.insert(settlement);
+            log.info("创建拒单结算记录完成，订单号: {}", orderNo);
+        }
         
         // 更新订单信息
         Order updateOrder = Order.builder()
@@ -1480,16 +1214,13 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         orderMapper.updateOrder(updateOrder);
         
-        // 保存结算记录
-        saveSettlementRecord(order, result, refundNo);
-        
         log.info("拒单退款成功处理完成，订单号: {}，退款金额: {}分，雇主全额退款，家政人员无收入", 
                 orderNo, refundFee);
     }
 
     /**
      * @description 退款成功回调处理
-     * 只更新订单状态，结算逻辑统一由 settleOrder 处理
+     * 更新订单状态和结算信息
      * @author CyberCaelum
      * @date 2026/3/20
      * @param orderNo 订单号
@@ -1514,11 +1245,78 @@ public class OrderServiceImpl implements OrderService {
         
         Long orderId = order.getId();
         
-        // 查询争议处理结果获取违约方信息（用于更新托管金额）
-        DisputeResolution disputeResolution = disputeResolutionMapper.selectBySourceIdAndType(
+        // 查询争议处理结果
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(
                 orderId, DisputeResolutionConstant.CANCEL_APPLY);
+        if (disputeResolution == null) {
+            log.error("退款回调处理失败：没有裁决结果，订单号: {}", orderNo);
+            throw new DisputeResolutionIsNullException("没有裁决结果");
+        }
         
-        // 更新订单状态为已退款（结算记录已由 settleOrder 创建）
+        // 统计已确认工作天数
+        Integer days = dailyConfirmationMapper.countConfirmedDays(orderId);
+        
+        // 根据裁决结果计算结算金额
+        Integer decision = disputeResolution.getDecision();
+        Integer defaultingParty = disputeResolution.getDefaultingParty();
+        
+        // 基础金额计算
+        BigDecimal employeeEarned = order.getPrice().multiply(new BigDecimal(days)); // 雇员工作所得
+        BigDecimal penalty = BigDecimal.ZERO; // 违约金
+        BigDecimal employeeFinal = employeeEarned; // 雇员最终所得
+        BigDecimal finalCommission; // 平台佣金
+        BigDecimal employerPayable; // 雇主应支付
+        
+        if (DisputeResolutionConstant.AGREE.equals(decision)) {
+            // 全额退款：雇员没有所得，雇主全额退款
+            employeeFinal = BigDecimal.ZERO;
+            finalCommission = BigDecimal.ZERO;
+            employerPayable = BigDecimal.ZERO;
+            log.info("全额退款处理，订单号: {}", orderNo);
+            
+        } else if (DisputeResolutionConstant.PARTIAL_SETTLEMENT.equals(decision)) {
+            Integer totalDays = order.getDays();
+            Integer unworkedDays = totalDays - days;
+            
+            if (defaultingParty == null) {
+                // 无违约方：正常部分结算
+                finalCommission = employeeEarned.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeEarned.add(finalCommission);
+                log.info("部分退款处理（无违约方），订单号: {}", orderNo);
+                
+            } else if (DisputeResolutionConstant.EMPLOYER_DEFAULTING.equals(defaultingParty)) {
+                // 雇主违约：雇员获得违约金补偿
+                penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                employeeFinal = employeeEarned.add(penalty);
+                finalCommission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeFinal.add(finalCommission);
+                log.info("部分退款处理（雇主违约），订单号: {}，违约金: {}", orderNo, penalty);
+                
+            } else if (DisputeResolutionConstant.EMPLOYEE_DEFAULTING.equals(defaultingParty)) {
+                // 雇员违约：扣除违约金
+                penalty = order.getPrice().multiply(new BigDecimal(unworkedDays))
+                        .multiply(OrderRateConstant.PENALTY_RATE);
+                employeeFinal = employeeEarned.subtract(penalty);
+                if (employeeFinal.compareTo(BigDecimal.ZERO) < 0) {
+                    employeeFinal = BigDecimal.ZERO;
+                }
+                finalCommission = employeeFinal.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeFinal.add(finalCommission);
+                log.info("部分退款处理（雇员违约），订单号: {}，违约金: {}", orderNo, penalty);
+                
+            } else {
+                // 未知违约方，按无违约方处理
+                finalCommission = employeeEarned.multiply(OrderRateConstant.PLATFORM_COMMISSION_RATE);
+                employerPayable = employeeEarned.add(finalCommission);
+                log.warn("未知违约方: {}，按无违约方处理，订单号: {}", defaultingParty, orderNo);
+            }
+        } else {
+            log.error("未知的裁决结果: {}，订单号: {}", decision, orderNo);
+            throw new OrderStatusErrorException("未知的裁决结果");
+        }
+        
+        // 更新订单信息
         Order updateOrder = Order.builder()
                 .id(orderId)
                 .status(OrderStatusConstant.CANCELLED)  // 订单状态改为已取消
@@ -1526,11 +1324,50 @@ public class OrderServiceImpl implements OrderService {
                 .refundTime(LocalDateTime.now())        // 退款时间
                 .cancelType(CancelApplicationStatusConstant.TYPE_PLATFORM_FORCE)  // 平台强制取消
                 .refundNumber(refundNo)                 // 退款单号
+                .heldAmount(employeeFinal)              // 托管金额 = 雇员最终所得
                 .build();
         orderMapper.updateOrder(updateOrder);
         
-        log.info("退款成功处理完成，订单号: {}，退款金额: {}分，结算记录已由settleOrder创建", 
-                orderNo, refundFee);
+        // 插入或更新结算记录
+        // 先查询是否已有结算记录
+        Settlement existingSettlement = settlementMapper.selectByOrderId(orderId);
+        if (existingSettlement != null) {
+            // 更新现有结算记录
+            existingSettlement.setTotalDays(days);
+            existingSettlement.setTotalAmount(employeeEarned);
+            existingSettlement.setFinalAmount(employerPayable);
+            existingSettlement.setPenaltyDeduction(penalty);
+            existingSettlement.setDefaultingParty(defaultingParty);
+            existingSettlement.setStatus(SettlementStatusConstant.SETTLED);
+            existingSettlement.setSettlementTime(LocalDateTime.now());
+            existingSettlement.setRefundNumber(refundNo);
+            settlementMapper.update(existingSettlement);
+            log.info("更新结算记录完成，订单号: {}", orderNo);
+        } else {
+            // 创建新的结算记录
+            Settlement settlement = Settlement.builder()
+                    .orderId(orderId)
+                    .totalDays(days)
+                    .dailyRate(order.getPrice())
+                    .totalAmount(employeeEarned)
+                    .finalAmount(employerPayable)
+                    .penaltyDeduction(penalty)
+                    .defaultingParty(defaultingParty)
+                    .status(SettlementStatusConstant.SETTLED)
+                    .settlementTime(LocalDateTime.now())
+                    .orderNumber(orderNo)
+                    .refundNumber(refundNo)
+                    .createTime(LocalDateTime.now())
+                    .build();
+            settlementMapper.insert(settlement);
+            log.info("创建结算记录完成，订单号: {}", orderNo);
+        }
+        
+        // 8. TODO: 给雇员打款（将employeeFinal转账给雇员）
+        // transferToEmployee(order.getEmployeeId(), employeeFinal);
+        
+        log.info("退款成功处理完成，订单号: {}，退款金额: {}分，雇员所得: {}，雇主支付: {}", 
+                orderNo, refundFee, employeeFinal, employerPayable);
     }
 
     /**
@@ -1666,9 +1503,7 @@ public class OrderServiceImpl implements OrderService {
                         orderNumber, queryResult.getTransactionId());
                 
                 // 调用支付成功处理（幂等性检查在 paySuccess 方法中）
-                // 从微信查询结果获取实际支付金额（分）
-                Integer totalFee = queryResult.getTotalFee() != null ? queryResult.getTotalFee() : null;
-                paySuccess(orderNumber, PayMethodConstant.WECHAT_PAY, totalFee);
+                paySuccess(orderNumber, PayMethodConstant.WECHAT_PAY);
                 
             } else if ("NOTPAY".equals(tradeState)) {
                 // 未支付，继续等待

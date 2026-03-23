@@ -49,7 +49,6 @@ public class AdminOrderController {
      * @date 2026/3/15
      * @param applicationId 申请ID
      * @param decision 裁决结果：1-同意取消，2-拒绝取消，3-部分结算
-     * @param defaultingParty 违约方：1-雇主，2-雇员，不传表示无违约方
      * @param note 平台备注
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
@@ -58,11 +57,9 @@ public class AdminOrderController {
     @PutMapping("/platformDecide/{applicationId}")
     public Result platformDecide(@PathVariable Long applicationId,
                                   @RequestParam Integer decision,
-                                  @RequestParam(required = false) Integer defaultingParty,
                                   @RequestParam(required = false) String note) {
-        log.info("平台裁决取消申请，applicationId: {}，decision: {}，defaultingParty: {}，note: {}", 
-                applicationId, decision, defaultingParty, note);
-        orderService.platformDecideCancelApplication(applicationId, decision, defaultingParty, note);
+        log.info("平台裁决取消申请，applicationId: {}，decision: {}，note: {}", applicationId, decision, note);
+        orderService.platformDecideCancelApplication(applicationId, decision, note);
         return Result.success();
     }
 }

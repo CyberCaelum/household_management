@@ -63,7 +63,7 @@ public class PayNotifyController {
                 log.info("支付成功，订单号: {}, 微信订单号: {}, 金额: {}分", orderNo, transactionId, totalFee);
 
                 // 4. 更新订单状态（幂等处理在 paySuccess 方法中）
-                orderService.paySuccess(orderNo, PayMethodConstant.WECHAT_PAY, totalFee);
+                orderService.paySuccess(orderNo, PayMethodConstant.WECHAT_PAY);
 
                 // 5. 返回成功响应给微信（必须返回成功，否则微信会重复通知）
                 return wechatPayUtil.buildNotifySuccessResponse();

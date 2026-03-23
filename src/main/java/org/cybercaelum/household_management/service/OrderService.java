@@ -13,7 +13,7 @@ public interface OrderService {
     String nativeOrder(OrdersPaymentDTO ordersPaymentDTO);
 
     //支付成功，修改订单状态
-    void paySuccess(String outTradeNo,Integer payMethod, Integer totalFee);
+    void paySuccess(String outTradeNo,Integer payMethod);
 
     //查看历史订单
     PageResult history(Integer page, Integer pageSize, Integer status);
@@ -81,10 +81,9 @@ public interface OrderService {
      * 平台裁决取消申请
      * @param applicationId 申请ID
      * @param decision 裁决结果：1-同意取消，2-拒绝取消，3-部分结算
-     * @param defaultingParty 违约方：1-雇主，2-雇员，null-无违约方
      * @param note 平台备注
      */
-    void platformDecideCancelApplication(Long applicationId, Integer decision, Integer defaultingParty, String note);
+    void platformDecideCancelApplication(Long applicationId, Integer decision, String note);
 
     // ==================== 结算相关 ====================
 
