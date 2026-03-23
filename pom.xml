@@ -30,7 +30,17 @@
         <java.version>17</java.version>
         <springdoc.version>2.7.0</springdoc.version>
     </properties>
-
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>2023.0.3</version>   <!-- 与 Spring Boot 3.5.x 兼容的版本 -->
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -137,6 +147,11 @@
             <artifactId>rocketmq-v5-client-spring-boot-starter</artifactId>
             <version>2.3.1</version>
         </dependency>
+        <!-- Spring Cloud OpenFeign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -174,13 +189,6 @@
                     <outputDirectory>${project.basedir}/licenses</outputDirectory>
                     <includedScopes>compile,runtime</includedScopes>
                     <failOnMissing>true</failOnMissing>
-
-                    <!-- 允许的许可证 -->
-                    <acceptedLicenses>
-                        <acceptedLicense>MIT</acceptedLicense>
-                        <acceptedLicense>Apache License, Version 2.0</acceptedLicense>
-                        <acceptedLicense>The BSD License</acceptedLicense>
-                    </acceptedLicenses>
                 </configuration>
             </plugin>
         </plugins>

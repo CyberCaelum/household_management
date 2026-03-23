@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class Session implements Serializable {
+public class OpenimGroup implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -27,7 +27,7 @@ public class Session implements Serializable {
     private Long recruitmentId;//招募id
     private Long employeeId;//雇员id
     private Long employerId;//雇主id，发布招募的用户
-    private String openimSessionId;//使用商品id_雇主id_雇员id拼接
+    private String openimGroupId;//使用商品id_雇主id_雇员id拼接
     private Integer status;//会话状态，0为结束，1为活动
     private LocalDateTime createTime;//创建时间
     private LocalDateTime updateTime;//更新时间

@@ -1,0 +1,33 @@
+package org.cybercaelum.household_management.feign;
+
+import org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo;
+import org.cybercaelum.household_management.pojo.dto.OpenimBootAddDTO;
+import org.cybercaelum.household_management.pojo.entity.OpenimBoot;
+import org.cybercaelum.household_management.pojo.entity.OpenimResult;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+
+@FeignClient(
+        name = "openim-client",
+        url = "${household.openim.api-address}"
+)
+public interface OpenimFeignClient {
+
+    /**
+     * @description 请求openim增加聊天机器人
+     * @author CyberCaelum
+     * @date 2026/3/23
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 机器人信息
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo>
+     **/
+    @PostMapping("/user/add_notification_account")
+    OpenimResult<NotificationAccountInfo> addNotificationAccount(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody OpenimBoot request
+    );
+}
