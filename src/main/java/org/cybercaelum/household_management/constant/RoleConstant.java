@@ -11,9 +11,15 @@ public class RoleConstant {
     /**
      * 管理员
      */
-    public static final Integer ADMIN = 0;      // 管理员
+    public static final Integer ADMIN = 0;              // 管理员
+    
     /**
      * 普通用户
      */
-    public static final Integer USER = 1;       // 普通用户
+    public static final Integer USER = 1;               // 普通用户
+    
+    /**
+     * 客服
+     */
+    public static final Integer CUSTOMER_SERVICE = 2;   // 客服
 }

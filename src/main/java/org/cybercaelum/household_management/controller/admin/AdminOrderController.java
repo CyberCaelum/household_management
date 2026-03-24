@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.OrdersCancelDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.service.OrderService;
@@ -36,6 +38,7 @@ public class AdminOrderController {
      **/
     @Operation(summary = "平台取消订单", description = "平台强制取消订单")
     @SecurityRequirement(name = "bearerAuth")
+    @RequireRole(RoleConstant.ADMIN)  // 仅管理员可操作
     @PutMapping("/cancel")
     public Result adminCancel(@RequestBody OrdersCancelDTO ordersCancelDTO) {
         log.info("平台取消订单，orderId: {}", ordersCancelDTO.getId());
@@ -54,6 +57,7 @@ public class AdminOrderController {
      **/
     @Operation(summary = "平台裁决", description = "平台对取消申请进行裁决")
     @SecurityRequirement(name = "bearerAuth")
+    @RequireRole({RoleConstant.ADMIN, RoleConstant.CUSTOMER_SERVICE})  // 管理员或客服都可操作
     @PutMapping("/platformDecide/{applicationId}")
     public Result platformDecide(@PathVariable Long applicationId,
                                   @RequestParam Integer decision,
