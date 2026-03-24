@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @date 2026/3/23
  */
 @RestController
-@RequestMapping("/admin/Openim")
+@RequestMapping("/admin/openim")
 @Slf4j
 @RequiredArgsConstructor
 @Tag(name = "平台聊天系统管理", description = "平台聊天系统管理相关接口")
@@ -46,4 +46,6 @@ public class AdminOpenimController {
         openimBootService.addBoot(openimBootAddDTO);
         return Result.success();
     }
+    //添加客服账号
+    //
 }

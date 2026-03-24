@@ -1,6 +1,5 @@
 package org.cybercaelum.household_management.annotation;
 
-import io.swagger.v3.oas.annotations.Operation;
 import org.cybercaelum.household_management.enumeration.OperationType;
 
 import java.lang.annotation.ElementType;
