@@ -49,7 +49,7 @@ public interface UserMapper {
      * @return org.cybercaelum.household_management.pojo.entity.User
      **/
     @Select("select * from user where id = #{id}")
-    User getById(Integer id);
+    User getById(Long id);
 
     /**
      * @description 更新用户的用户名，密码，手机号，头像

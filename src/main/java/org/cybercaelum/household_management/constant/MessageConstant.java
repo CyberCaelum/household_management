@@ -39,6 +39,7 @@ public class MessageConstant {
     public static final String MAX_SALARY_IS_NULL = "最高薪资不能为空";
     public static final String DURATION_TYPE_ERROR = "天数范围错误";
     public static final String ROLE_TYPE_ERROR = "用户种类错误";
+    public static final String USERID_IS_NULL = "用户id为空";
 
     // 评论相关
     public static final String COMMENT_CONTENT_EMPTY = "评论内容不能为空";
@@ -60,4 +61,5 @@ public class MessageConstant {
     public static final String DAYS_RANGE_ERROR = "工作天数必须在1-100天之间";
     public static final String ORDER_TIME_RANGE_ERROR = "时间范围不合理";
     public static final String ORDER_STATUS_ERROR = "订单状态错误";
+    public static final String GROUP_TYPE_ERROR = "群组类型错误";
 }

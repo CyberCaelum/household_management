@@ -1,11 +1,20 @@
 package org.cybercaelum.household_management.pojo.vo;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 /**
  * @author CyberCaelum
  * @version 1.0
  * @description: 群组创建返回值
  * @date 2026/3/25 上午8:20
  */
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
 public class GroupInfo {
     private String groupID;
     private String groupName;

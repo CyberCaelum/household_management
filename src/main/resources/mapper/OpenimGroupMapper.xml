@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.cybercaelum.household_management.mapper.OpenimGroupMapper">
     <insert id="insertGroup" keyProperty="id" useGeneratedKeys="true">
-        insert into openim_group (recruitment_id, employer_id, employee_id, openim_group_id, status, group_type,create_time, update_time) VALUE
+        insert into openim_group (recruitment_id, employer_id, employee_id, openim_group_id, status, group_type,create_time, update_time) VALUES
         (#{recruitmentId},#{employerId},#{employeeId},#{openimGroupId},#{status},#{groupType},#{createTime},#{updateTime})
     </insert>
 </mapper>

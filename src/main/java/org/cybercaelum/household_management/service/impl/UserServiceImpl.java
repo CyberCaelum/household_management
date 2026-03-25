@@ -268,7 +268,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void resetPassword(Long staffId, String newPassword) {
         // 1. 校验员工是否存在
-        User user = userMapper.getById(staffId.intValue());
+        User user = userMapper.getById(staffId);
         if (user == null) {
             throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
         }
@@ -289,7 +289,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateStatus(Long staffId, Integer status) {
         // 1. 校验员工是否存在
-        User user = userMapper.getById(staffId.intValue());
+        User user = userMapper.getById(staffId);
         if (user == null) {
             throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
         }

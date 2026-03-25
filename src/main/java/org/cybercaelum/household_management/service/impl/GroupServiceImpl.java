@@ -3,19 +3,25 @@ package org.cybercaelum.household_management.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.GroupTypeConstant;
+import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.OpenimRequestErrorException;
 import org.cybercaelum.household_management.exception.RecruitmentNotFoundException;
+import org.cybercaelum.household_management.exception.RoleErrorException;
+import org.cybercaelum.household_management.exception.UserNotFoundException;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.mapper.OpenimGroupMapper;
 import org.cybercaelum.household_management.mapper.RecruitmentMapper;
+import org.cybercaelum.household_management.mapper.UserMapper;
 import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
 import org.cybercaelum.household_management.pojo.dto.OpenimGroupCreateDTO;
 import org.cybercaelum.household_management.pojo.entity.OpenimGroup;
 import org.cybercaelum.household_management.pojo.entity.OpenimResult;
 import org.cybercaelum.household_management.pojo.entity.Recruitment;
+import org.cybercaelum.household_management.pojo.entity.User;
 import org.cybercaelum.household_management.pojo.vo.GroupInfo;
 import org.cybercaelum.household_management.service.GroupService;
 import org.cybercaelum.household_management.service.OpenImService;
+import org.cybercaelum.household_management.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,16 +44,34 @@ public class GroupServiceImpl implements GroupService {
     private final OpenimGroupMapper openimGroupMapper;
     private final RecruitmentMapper recruitmentMapper;
     private final OpenimFeignClient openimFeignClient;
+    private final UserMapper userMapper;
 
     @Transactional
     @Override
     public GroupInfo createGroup(GroupCreateDTO groupCreateDTO) {
-
-        //群主为机器人
-        //检查招募存在，用户是否有对应的招募，
-        Recruitment recruitment = recruitmentMapper.selectRecruitmentById(groupCreateDTO.getRecruitmentId());
         Long initiator = groupCreateDTO.getInitiator();//发起人id
         Long accepter = groupCreateDTO.getAccepter();//接受人id
+        //群主为机器人
+        //查询数据库师傅已经存在群组了
+        OpenimGroup openimGroup = openimGroupMapper.groupIsExist(groupCreateDTO);
+        if (openimGroup != null){
+            return GroupInfo.builder()
+                    .groupID(openimGroup.getOpenimGroupId())
+                    .build();
+        }
+        //查询用户是否存在
+        if (!BaseContext.getUserId().equals(initiator)){
+            //判断发起人id和请求人相同
+            throw new RoleErrorException("角色错误");
+        }
+        User user = userMapper.getById(initiator);
+        User user1 = userMapper.getById(accepter);
+        if (user == null || user1 == null) {
+            throw new UserNotFoundException("用户不存在");
+        }
+        //检查招募存在，用户是否有对应的招募，
+        Recruitment recruitment = recruitmentMapper.selectRecruitmentById(groupCreateDTO.getRecruitmentId());
+
         if (recruitment == null) {
             throw new RecruitmentNotFoundException("招募不存在");
         }
@@ -73,7 +97,7 @@ public class GroupServiceImpl implements GroupService {
             memberUserIDs.add(accepter.toString());
         }
         //客服
-        if (Objects.equals(groupCreateDTO.getGroupType(), GroupTypeConstant.PRIVATE_CHAT)){
+        if (Objects.equals(groupCreateDTO.getGroupType(), GroupTypeConstant.CUSTOMER_SERVICE)){
             //设置拓展字段，设置成员id
             groupInfo.setEx("客服");
             memberUserIDs.add(initiator.toString());
@@ -94,7 +118,7 @@ public class GroupServiceImpl implements GroupService {
         if (result.getErrCode() != 0){
             throw new OpenimRequestErrorException("创建群组失败");
         }
-        OpenimGroup openimGroup = OpenimGroup.builder()
+        OpenimGroup openimGroup2 = OpenimGroup.builder()
                 .recruitmentId(groupCreateDTO.getRecruitmentId())
                 .employeeId(initiator)
                 .employerId(accepter)
@@ -103,7 +127,7 @@ public class GroupServiceImpl implements GroupService {
                 .groupType(groupCreateDTO.getGroupType())//群组种类
                 .build();
         //获取数据存入数据库
-        openimGroupMapper.insertGroup(openimGroup);
+        openimGroupMapper.insertGroup(openimGroup2);
         //返回前端
         return result.getData();
         //前端需要将群两个人的名字头像信息存入数据库，
