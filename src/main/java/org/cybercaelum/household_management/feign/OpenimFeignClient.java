@@ -1,5 +1,6 @@
 package org.cybercaelum.household_management.feign;
 
+import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
 import org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo;
 import org.cybercaelum.household_management.pojo.dto.OpenimBootAddDTO;
 import org.cybercaelum.household_management.pojo.entity.OpenimBoot;
@@ -29,5 +30,21 @@ public interface OpenimFeignClient {
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
             @RequestBody OpenimBoot request
+    );
+
+    /**
+     * @description 创建聊天群组
+     * @author CyberCaelum
+     * @date 上午8:48 2026/3/25
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 机器人信息
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo>
+     **/
+    @PostMapping("/group/create_group")
+    OpenimResult<NotificationAccountInfo> createGroup(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody GroupCreateDTO request
     );
 }

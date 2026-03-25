@@ -1,0 +1,45 @@
+package org.cybercaelum.household_management.controller.user;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
+import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.pojo.vo.GroupCreateVO;
+import org.cybercaelum.household_management.service.GroupService;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * @author CyberCaelum
+ * @version 1.0
+ * @description: 群组相关服务
+ * @date 2026/3/25 上午8:10
+ */
+@RestController
+@RequestMapping("/group")
+@Slf4j
+@RequiredArgsConstructor
+@Tag(name = "群组相关服务",description = "群组相关服务")
+@Validated
+public class GroupController {
+
+    private final GroupService groupService;
+
+    //创建群组聊天
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/create")
+    @Operation(summary = "新增聊天群组",description = "新增聊天群组")
+    public Result createGroup(@RequestBody GroupCreateDTO groupCreateDTO) {
+        log.info("创建群组groupCreateDTO = {}", groupCreateDTO);
+        //TODO调用service
+        GroupCreateVO groupCreateVO = groupService.createGroup(groupService);
+        return Result.success(groupCreateVO);
+    }
+
+}
