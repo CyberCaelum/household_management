@@ -38,7 +38,7 @@ public class AdminOrderController {
      **/
     @Operation(summary = "平台取消订单", description = "平台强制取消订单")
     @SecurityRequirement(name = "bearerAuth")
-    @RequireRole(RoleConstant.ADMIN)  // 仅管理员可操作
+    @RequireRole({RoleConstant.ADMIN, RoleConstant.CUSTOMER_SERVICE})  // 仅管理员可操作
     @PutMapping("/cancel")
     public Result adminCancel(@RequestBody OrdersCancelDTO ordersCancelDTO) {
         log.info("平台取消订单，orderId: {}", ordersCancelDTO.getId());

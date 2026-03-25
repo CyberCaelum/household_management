@@ -9,6 +9,7 @@ import org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo;
 import org.cybercaelum.household_management.pojo.dto.OpenimBootAddDTO;
 import org.cybercaelum.household_management.pojo.entity.OpenimBoot;
 import org.cybercaelum.household_management.pojo.entity.OpenimResult;
+import org.cybercaelum.household_management.service.OpenImService;
 import org.cybercaelum.household_management.service.OpenimBootService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +29,7 @@ public class OpenimBootServiceImpl implements OpenimBootService {
 
     private final OpenimBootMapper openimBootMapper;
     private final OpenimFeignClient openimFeignClient;
+    private final OpenImService openImService;
 
     /**
      * @description 新增机器人账号
@@ -45,9 +47,10 @@ public class OpenimBootServiceImpl implements OpenimBootService {
         if (openimBootAddDTO.getFaceUrl() != null && !openimBootAddDTO.getFaceUrl().isEmpty()) {
             openimBoot.setFaceUrl(openimBootAddDTO.getFaceUrl());
         }
-        //请求openim
+        //请求openim TODO
         OpenimResult<NotificationAccountInfo> openimResult =
-                openimFeignClient.addNotificationAccount(null,null,openimBoot);
+                openimFeignClient.addNotificationAccount(String.valueOf(System.currentTimeMillis())
+                        , openImService.getAdminToken(),openimBoot);
         //判断请求是否成功
         if (openimResult.getErrCode() != 0){
             throw new OpenimRequestErrorException("创建机器人账号失败");

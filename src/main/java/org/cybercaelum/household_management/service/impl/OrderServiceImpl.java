@@ -471,6 +471,100 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
+     * @description 查询订单支付状态（供前端轮询）
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param orderId 订单ID
+     * @return org.cybercaelum.household_management.pojo.vo.OrderPayStatusVO
+     **/
+    @Override
+    public OrderPayStatusVO queryPayStatus(Long orderId) {
+        // 1. 查询订单
+        Order order = orderMapper.getOrderById(orderId);
+        if (order == null) {
+            throw new OrderNotFoundException("订单不存在");
+        }
+        
+        // 2. 校验权限：只有订单相关方（雇主或被雇者）可以查询
+        Long currentUserId = BaseContext.getUserId();
+        if (!currentUserId.equals(order.getEmployerId()) && !currentUserId.equals(order.getEmployeeId())) {
+            throw new PermissionDeniedException("无权查询该订单的支付状态");
+        }
+        
+        // 3. 构建支付状态描述
+        String payStatusDesc = getPayStatusDesc(order.getPayStatus());
+        String orderStatusDesc = getOrderStatusDesc(order.getStatus());
+        
+        // 4. 构建返回VO
+        return OrderPayStatusVO.builder()
+                .orderId(order.getId())
+                .orderNumber(order.getOrderNumber())
+                .payStatus(order.getPayStatus())
+                .payStatusDesc(payStatusDesc)
+                .orderStatus(order.getStatus())
+                .orderStatusDesc(orderStatusDesc)
+                .totalAmount(order.getTotal())
+                .paymentTime(order.getPaymentTime())
+                .payMethod(order.getPayMethod())
+                .paid(PayStatusConstant.PAID.equals(order.getPayStatus()))
+                .build();
+    }
+    
+    /**
+     * @description 获取支付状态描述
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param payStatus 支付状态码
+     * @return java.lang.String
+     **/
+    private String getPayStatusDesc(Integer payStatus) {
+        if (payStatus == null) {
+            return "未知";
+        }
+        switch (payStatus) {
+            case 0:
+                return "未支付";
+            case 1:
+                return "已支付";
+            case 2:
+                return "已退款";
+            case 3:
+                return "退款中";
+            default:
+                return "未知";
+        }
+    }
+    
+    /**
+     * @description 获取订单状态描述
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param orderStatus 订单状态码
+     * @return java.lang.String
+     **/
+    private String getOrderStatusDesc(Integer orderStatus) {
+        if (orderStatus == null) {
+            return "未知";
+        }
+        switch (orderStatus) {
+            case 0:
+                return "待付款";
+            case 1:
+                return "已取消";
+            case 2:
+                return "待被雇者确认";
+            case 3:
+                return "已接单";
+            case 4:
+                return "进行中";
+            case 5:
+                return "已完成";
+            default:
+                return "未知";
+        }
+    }
+
+    /**
      * @description 查看历史订单
      * @author CyberCaelum
      * @date 上午10:13 2026/3/13
@@ -821,7 +915,7 @@ public class OrderServiceImpl implements OrderService {
                 .disputeReason(reason)
                 .build();
         //TODO 确认为争议后怎么处理？
-        //自动通知平台介入，
+        //自动通知平台介入，创建客服雇员雇主的群组，把订单，争议都发送到群组里
         dailyConfirmationMapper.update(updateConfirmation);
     }
 

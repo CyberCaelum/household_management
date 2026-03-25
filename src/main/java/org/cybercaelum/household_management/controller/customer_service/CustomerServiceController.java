@@ -1,4 +1,4 @@
-package org.cybercaelum.household_management.controller.kefu;
+package org.cybercaelum.household_management.controller.customer_service;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

@@ -15,6 +15,15 @@ public interface OrderService {
     //支付成功，修改订单状态
     void paySuccess(String outTradeNo,Integer payMethod);
 
+    /**
+     * @description 查询订单支付状态（供前端轮询）
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param orderId 订单ID
+     * @return org.cybercaelum.household_management.pojo.vo.OrderPayStatusVO
+     **/
+    OrderPayStatusVO queryPayStatus(Long orderId);
+
     //查看历史订单
     PageResult history(Integer page, Integer pageSize, Integer status);
 

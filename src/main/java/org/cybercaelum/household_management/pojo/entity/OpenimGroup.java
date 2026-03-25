@@ -29,6 +29,7 @@ public class OpenimGroup implements Serializable {
     private Long employerId;//雇主id，发布招募的用户
     private String openimGroupId;//使用商品id_雇主id_雇员id拼接
     private Integer status;//会话状态，0为结束，1为活动
+    private Integer groupType;//群组种类,1私聊，2客服
     private LocalDateTime createTime;//创建时间
     private LocalDateTime updateTime;//更新时间
 }

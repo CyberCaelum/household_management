@@ -1,10 +1,10 @@
 package org.cybercaelum.household_management.feign;
 
-import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
+import org.cybercaelum.household_management.pojo.dto.OpenimGroupCreateDTO;
 import org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo;
-import org.cybercaelum.household_management.pojo.dto.OpenimBootAddDTO;
 import org.cybercaelum.household_management.pojo.entity.OpenimBoot;
 import org.cybercaelum.household_management.pojo.entity.OpenimResult;
+import org.cybercaelum.household_management.pojo.vo.GroupInfo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,9 +42,9 @@ public interface OpenimFeignClient {
      * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo>
      **/
     @PostMapping("/group/create_group")
-    OpenimResult<NotificationAccountInfo> createGroup(
+    OpenimResult<GroupInfo> createGroup(
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
-            @RequestBody GroupCreateDTO request
+            @RequestBody OpenimGroupCreateDTO request
     );
 }

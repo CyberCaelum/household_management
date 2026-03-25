@@ -29,6 +29,6 @@ public class User implements Serializable {
     private String password; //密码
     private LocalDateTime createTime; //创建时间
     private Integer status; //账号状态，0为注销，1为启用
-    private Integer role; //账号权限，0为管理员，1为用户，2客服
+    private Integer role; //账号权限，0为管理员，1为用户，2客服，3机器人账号
     private String profileUrl; //头像地址
 }

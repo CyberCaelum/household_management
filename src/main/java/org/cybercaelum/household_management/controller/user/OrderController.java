@@ -63,9 +63,21 @@ public class OrderController {
         return Result.success(codeUrl);
     }
 
-    //TODO 前端轮询查看订单状态的接口
-    //定时处理后台启动一个定时任务，定期扫描那些“已创建但长时间未支付”且“未收到回调”的订单（比如超过5分钟）
-    // 调用 queryOrder 方法向微信核实真实状态。如果微信返回 SUCCESS，则主动更新本地订单。
+    /**
+     * @description 查询订单支付状态（供前端轮询）
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param orderId 订单ID
+     * @return org.cybercaelum.household_management.pojo.entity.Result<org.cybercaelum.household_management.pojo.vo.OrderPayStatusVO>
+     **/
+    @Operation(summary = "查询支付状态", description = "查询订单支付状态，供前端轮询使用")
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/payStatus/{orderId}")
+    public Result<OrderPayStatusVO> queryPayStatus(@PathVariable Long orderId) {
+        log.info("查询订单支付状态，orderId: {}", orderId);
+        OrderPayStatusVO payStatusVO = orderService.queryPayStatus(orderId);
+        return Result.success(payStatusVO);
+    }
 
     /**
      * @description 查看历史订单
@@ -315,22 +327,4 @@ public class OrderController {
         orderService.respondCancelApplication(applicationId, agree);
         return Result.success();
     }
-
-    // ==================== 催单 ====================
-//
-//    /**
-//     * @description 用户催单
-//     * @author CyberCaelum
-//     * @date 2026/3/15
-//     * @param id 订单id
-//     * @return org.cybercaelum.household_management.pojo.entity.Result
-//     **/
-//    @Operation(summary = "催单", description = "用户催单提醒")
-//    @SecurityRequirement(name = "bearerAuth")
-//    @PutMapping("/reminder/{id}")
-//    public Result reminder(@PathVariable Long id) {
-//        log.info("用户催单，orderId: {}", id);
-//        orderService.reminder(id);
-//        return Result.success();
-//    }
 }

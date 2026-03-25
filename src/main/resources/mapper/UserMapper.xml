@@ -7,4 +7,32 @@
         insert into user (phone_number,username,password,create_time,status,role,profile_url)
             values (#{phoneNumber},#{username},#{password},#{createTime},#{status},#{role},#{profileUrl})
     </insert>
+
+    <!-- 员工分页查询（排除普通用户 role=0） -->
+    <select id="pageStaff" resultType="org.cybercaelum.household_management.pojo.entity.User">
+        select * from user
+        <where>
+            role != 0
+            <if test="name != null and name != ''">
+                and username like concat('%', #{name}, '%')
+            </if>
+            <if test="role != null">
+                and role = #{role}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <!-- 重置员工密码 -->
+    <update id="resetPassword">
+        update user set password = #{password} where id = #{staffId}
+    </update>
+
+    <!-- 修改员工账号状态 -->
+    <update id="updateStatus">
+        update user set status = #{status} where id = #{staffId}
+    </update>
 </mapper>

@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
-import org.cybercaelum.household_management.pojo.vo.GroupCreateVO;
+import org.cybercaelum.household_management.pojo.vo.GroupInfo;
 import org.cybercaelum.household_management.service.GroupService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,9 +37,9 @@ public class GroupController {
     @Operation(summary = "新增聊天群组",description = "新增聊天群组")
     public Result createGroup(@RequestBody GroupCreateDTO groupCreateDTO) {
         log.info("创建群组groupCreateDTO = {}", groupCreateDTO);
-        //TODO调用service
-        GroupCreateVO groupCreateVO = groupService.createGroup(groupService);
-        return Result.success(groupCreateVO);
+        //TODO 调用service
+        GroupInfo groupInfo = groupService.createGroup(groupCreateDTO);
+        return Result.success(groupInfo);
     }
 
 }

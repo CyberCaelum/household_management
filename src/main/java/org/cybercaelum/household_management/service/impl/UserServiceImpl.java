@@ -1,5 +1,7 @@
 package org.cybercaelum.household_management.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.JwtClaimsConstant;
@@ -12,9 +14,12 @@ import org.cybercaelum.household_management.exception.PasswordErrorException;
 import org.cybercaelum.household_management.exception.PhoneNumberUsedException;
 import org.cybercaelum.household_management.exception.UsernameExistException;
 import org.cybercaelum.household_management.mapper.UserMapper;
+import org.cybercaelum.household_management.pojo.dto.CreateStaffDTO;
+import org.cybercaelum.household_management.pojo.dto.StaffPageDTO;
 import org.cybercaelum.household_management.pojo.dto.UserLoginDTO;
 import org.cybercaelum.household_management.pojo.dto.UserRegisterDTO;
 import org.cybercaelum.household_management.pojo.dto.UserUpdateDTO;
+import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.User;
 import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.cybercaelum.household_management.properties.JwtProperties;
@@ -29,6 +34,7 @@ import org.springframework.util.DigestUtils;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author CyberCaelum
@@ -196,5 +202,99 @@ public class UserServiceImpl implements UserService {
         userMapper.deleteUserById(BaseContext.getUserId());
         //设置用户发过的招聘为不可见
         //删除线程的信息
+    }
+
+    @Override
+    public void createStaff(CreateStaffDTO createStaffDTO) {
+        String password = createStaffDTO.getPassword();
+        String phoneNumber = createStaffDTO.getPhoneNumber();
+        String username = createStaffDTO.getUserName();
+        User user = userMapper.getByUserName(username);
+        if (user != null){
+            //用户名已存在
+            throw new UsernameExistException(MessageConstant.USERNAME_EXIST);
+        }
+        user = userMapper.getByPhoneNumber(phoneNumber);
+        if (user != null){
+            if (Objects.equals(user.getStatus(), StatusConstant.ENABLE)){//账号在使用
+                //电话号已使用
+                throw new PhoneNumberUsedException(MessageConstant.PHONE_NUMBER_USED);
+            }
+        }
+        //加密密码
+        password = DigestUtils.md5DigestAsHex(password.getBytes());
+        User user1 = User.builder()
+                .password(password)
+                .profileUrl("客服头像")
+                .username(username)
+                .role(createStaffDTO.getRole())
+                .status(StatusConstant.ENABLE)
+                .createTime(LocalDateTime.now())
+                .phoneNumber(phoneNumber)
+                .build();
+        //新用户注册
+        userMapper.insertNewUser(user1);
+        // 注册到 OpenIM（使用生成的用户ID）
+        try {
+            String userIdStr = String.valueOf(user1.getId());
+            openImService.registerUser(userIdStr, username, user1.getProfileUrl());
+        } catch (Exception e) {
+            log.error("OpenIM 用户注册失败, userId={}", user1.getId(), e);
+            // 记录日志，但不影响主流程
+        }
+    }
+
+    /**
+     * @description 员工分页查询
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param staffPageDTO 分页查询条件
+     * @return org.cybercaelum.household_management.pojo.entity.PageResult
+     **/
+    @Override
+    public PageResult pageStaff(StaffPageDTO staffPageDTO) {
+        PageHelper.startPage(staffPageDTO.getPage(), staffPageDTO.getPageSize());
+        Page<User> page = (Page<User>) userMapper.pageStaff(staffPageDTO);
+        return new PageResult(page.getTotal(), page.getResult());
+    }
+
+    /**
+     * @description 重置员工密码
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param staffId 员工id
+     * @param newPassword 新密码
+     **/
+    @Override
+    public void resetPassword(Long staffId, String newPassword) {
+        // 1. 校验员工是否存在
+        User user = userMapper.getById(staffId.intValue());
+        if (user == null) {
+            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
+        }
+        // 2. 对新密码进行MD5加密
+        String encryptedPassword = DigestUtils.md5DigestAsHex(newPassword.getBytes());
+        // 3. 更新密码
+        userMapper.resetPassword(staffId, encryptedPassword);
+        log.info("重置员工 {} 的密码成功", staffId);
+    }
+
+    /**
+     * @description 修改员工账号状态
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param staffId 员工id
+     * @param status 账号状态
+     **/
+    @Override
+    public void updateStatus(Long staffId, Integer status) {
+        // 1. 校验员工是否存在
+        User user = userMapper.getById(staffId.intValue());
+        if (user == null) {
+            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
+        }
+        // 2. 更新状态
+        userMapper.updateStatus(staffId, status);
+        log.info("修改员工 {} 的状态为 {} 成功", staffId, status);
     }
 }

@@ -12,10 +12,6 @@ import java.lang.annotation.Target;
  * @version 1.0
  * @description: 角色权限校验注解
  * @date: 2026/3/24
- * 
- * 使用示例：
- * @RequireRole(RoleConstant.ADMIN)                    // 仅管理员
- * @RequireRole({RoleConstant.ADMIN, RoleConstant.CUSTOMER_SERVICE})  // 管理员或客服
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

@@ -38,6 +38,7 @@ public class MessageConstant {
     public static final String MIN_SALARY_IS_NULL = "最低薪资不能为空";
     public static final String MAX_SALARY_IS_NULL = "最高薪资不能为空";
     public static final String DURATION_TYPE_ERROR = "天数范围错误";
+    public static final String ROLE_TYPE_ERROR = "用户种类错误";
 
     // 评论相关
     public static final String COMMENT_CONTENT_EMPTY = "评论内容不能为空";

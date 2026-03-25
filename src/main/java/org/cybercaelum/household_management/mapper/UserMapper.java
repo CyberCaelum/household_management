@@ -2,9 +2,13 @@ package org.cybercaelum.household_management.mapper;
 
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+import org.cybercaelum.household_management.pojo.dto.StaffPageDTO;
 import org.cybercaelum.household_management.pojo.entity.User;
+
+import java.util.List;
 
 @Mapper
 public interface UserMapper {
@@ -64,4 +68,31 @@ public interface UserMapper {
      **/
     @Update("update user set status = 0 where id = #{userid}")
     void deleteUserById(Long userId);
+
+    /**
+     * @description 员工分页查询（排除普通用户）
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param staffPageDTO 分页查询条件
+     * @return java.util.List<org.cybercaelum.household_management.pojo.entity.User>
+     **/
+    List<User> pageStaff(StaffPageDTO staffPageDTO);
+
+    /**
+     * @description 重置员工密码
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param staffId 员工id
+     * @param password 加密后的密码
+     **/
+    void resetPassword(@Param("staffId") Long staffId, @Param("password") String password);
+
+    /**
+     * @description 修改员工账号状态
+     * @author CyberCaelum
+     * @date 2026/3/24
+     * @param staffId 员工id
+     * @param status 账号状态
+     **/
+    void updateStatus(@Param("staffId") Long staffId, @Param("status") Integer status);
 }

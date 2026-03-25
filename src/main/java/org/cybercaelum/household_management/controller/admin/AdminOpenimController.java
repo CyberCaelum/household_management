@@ -46,6 +46,6 @@ public class AdminOpenimController {
         openimBootService.addBoot(openimBootAddDTO);
         return Result.success();
     }
-    //添加客服账号
+    //手动结束聊天会话
     //
 }
