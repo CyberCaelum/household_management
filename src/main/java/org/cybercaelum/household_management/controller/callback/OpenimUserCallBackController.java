@@ -26,12 +26,31 @@ public class OpenimUserCallBackController {
 
     private final OpenimUserCallBackService openimUserCallBackService;
 
+    /**
+     * @description openim用户在线状态回调
+     * @author CyberCaelum
+     * @date 2026/3/29
+     * @param userCallbackDTO 用户信息
+     * @return org.cybercaelum.household_management.pojo.vo.OpenimCallbackVO
+     **/
     @Operation(summary = "用户登录openim回调",description = "用户登录openim回调")
     @PostMapping("/afterOnline")
     public OpenimCallbackVO afterOnline(@RequestBody OpenimUserCallbackDTO userCallbackDTO){
         log.info("用户登录openim回调：{}",userCallbackDTO);
-        //TODO 接受回调后将客服登录
         OpenimCallbackVO callbackVO = openimUserCallBackService.afterOnline(userCallbackDTO);
+        return callbackVO;
+    }
+
+    /**
+     * @description openim用户离线状态回调
+     * @author CyberCaelum
+     * @date 2026/3/29
+     * @param userCallbackDTO 回调用户信息
+     * @return org.cybercaelum.household_management.pojo.vo.OpenimCallbackVO
+     **/
+    public OpenimCallbackVO afterOffLine(@RequestBody OpenimUserCallbackDTO userCallbackDTO){
+        log.info("用户离线openim回调：{}",userCallbackDTO);
+        OpenimCallbackVO callbackVO = openimUserCallBackService.afterOffLine(userCallbackDTO);
         return callbackVO;
     }
 }
