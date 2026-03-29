@@ -3,8 +3,12 @@ package org.cybercaelum.household_management.controller.callback;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.pojo.dto.OpenimUserCallbackDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.pojo.vo.OpenimCallbackVO;
+import org.cybercaelum.household_management.service.OpenimUserCallBackService;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,10 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OpenimUserCallBackController {
 
+    private final OpenimUserCallBackService openimUserCallBackService;
+
     @Operation(summary = "用户登录openim回调",description = "用户登录openim回调")
     @PostMapping("/afterOnline")
-    public Result afterOnline(){
+    public OpenimCallbackVO afterOnline(@RequestBody OpenimUserCallbackDTO userCallbackDTO){
+        log.info("用户登录openim回调：{}",userCallbackDTO);
         //TODO 接受回调后将客服登录
-        return Result.success();
+        OpenimCallbackVO callbackVO = openimUserCallBackService.afterOnline(userCallbackDTO);
+        return callbackVO;
     }
 }
