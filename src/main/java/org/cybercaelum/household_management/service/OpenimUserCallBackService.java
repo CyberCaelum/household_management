@@ -5,4 +5,6 @@ import org.cybercaelum.household_management.pojo.vo.OpenimCallbackVO;
 
 public interface OpenimUserCallBackService {
     OpenimCallbackVO afterOnline(OpenimUserCallbackDTO userCallbackDTO);
+
+    OpenimCallbackVO afterOffLine(OpenimUserCallbackDTO userCallbackDTO);
 }
