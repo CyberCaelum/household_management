@@ -48,6 +48,8 @@ public class OpenimUserCallBackController {
      * @param userCallbackDTO 回调用户信息
      * @return org.cybercaelum.household_management.pojo.vo.OpenimCallbackVO
      **/
+    @Operation(summary = "用户离线openim回调",description = "用户离线openim回调")
+    @PostMapping("/afterOffline")
     public OpenimCallbackVO afterOffLine(@RequestBody OpenimUserCallbackDTO userCallbackDTO){
         log.info("用户离线openim回调：{}",userCallbackDTO);
         OpenimCallbackVO callbackVO = openimUserCallBackService.afterOffLine(userCallbackDTO);

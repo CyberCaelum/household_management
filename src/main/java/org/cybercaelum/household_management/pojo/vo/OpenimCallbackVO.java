@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.cybercaelum.household_management.pojo.entity.Result;
 
 /**
  * @author CyberCaelum
@@ -26,4 +27,15 @@ public class OpenimCallbackVO {
     private String errDlt = "";//自定义错误码对应的详细错误信息。
     @Builder.Default
     private String nextCode = "";//下一步执行指令，1表示拒绝继续执行，actionCode等于0时设置。
+
+    public static OpenimCallbackVO error(String errMsg, String errDlt,Integer errCode) {
+        OpenimCallbackVO openimCallbackVO = OpenimCallbackVO.builder()
+                .actionCode(1)
+                .errCode(errCode)
+                .errMsg(errMsg)
+                .errDlt(errDlt)
+                .nextCode("1")
+                .build();;
+        return openimCallbackVO;
+    }
 }
