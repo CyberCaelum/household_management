@@ -1,5 +1,7 @@
 package org.cybercaelum.household_management.service.impl;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.CustomerServiceConstant;
 import org.cybercaelum.household_management.constant.CustomerServiceRedisKeyConstant;
 import org.cybercaelum.household_management.constant.OpenimCallbackCommandConstant;
@@ -23,11 +25,13 @@ import java.util.Map;
  * @date 2026/3/28
  */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class OpenimUserCallBackServiceImpl implements OpenimUserCallBackService {
 
-    private static StringRedisTemplate stringRedisTemplate;
-    private static RedisTemplate<String,Object> redisTemplate;
-    private static UserMapper userMapper;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisTemplate<String,Object> redisTemplate;
+    private final UserMapper userMapper;
 
     /**
      * @description 用户登录状态回调，处理客服在线状态
@@ -40,17 +44,14 @@ public class OpenimUserCallBackServiceImpl implements OpenimUserCallBackService 
     public OpenimCallbackVO afterOnline(OpenimUserCallbackDTO userCallbackDTO) {
         //验证回调命令是否正确
         if (!OpenimCallbackCommandConstant.AFTER_USER_ONLINE_COMMAND.equals(userCallbackDTO.getCallbackCommand())){
-            return OpenimCallbackVO.builder()
-                    .actionCode(1)
-                    .errCode(400)
-                    .errMsg("用户在线状态回调错误")
-                    .errDlt("用户在线状态回调命令错误")
-                    .nextCode("1")
-                    .build();
+            return OpenimCallbackVO.error("用户在线状态回调错误","用户在线状态回调命令错误",400);
         }
         //获取登录用户信息
         Long csId = Long.valueOf(userCallbackDTO.getUserID());
         User user = userMapper.getById(csId);
+        if (user == null) {//用户不存在
+            return OpenimCallbackVO.error("用户在线状态回调错误","服务器用户不存在",400);
+        }
         //如果登录不是客服放行
         if (RoleConstant.CUSTOMER_SERVICE != user.getRole()){
             return OpenimCallbackVO.builder().build();

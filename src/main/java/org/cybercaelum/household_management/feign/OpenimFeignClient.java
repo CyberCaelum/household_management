@@ -1,7 +1,9 @@
 package org.cybercaelum.household_management.feign;
 
+import org.cybercaelum.household_management.pojo.dto.GetUsersOnlineStatusDTO;
 import org.cybercaelum.household_management.pojo.dto.OpenimGroupCreateDTO;
 import org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo;
+import org.cybercaelum.household_management.pojo.dto.UserOnlineStatusDTO;
 import org.cybercaelum.household_management.pojo.entity.OpenimBoot;
 import org.cybercaelum.household_management.pojo.entity.OpenimResult;
 import org.cybercaelum.household_management.pojo.vo.GroupInfo;
@@ -9,6 +11,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+
+import java.util.List;
 
 @FeignClient(
         name = "openim-client",
@@ -46,5 +50,21 @@ public interface OpenimFeignClient {
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
             @RequestBody OpenimGroupCreateDTO request
+    );
+
+    /**
+     * @description 查询用户在线状态
+     * @author CyberCaelum
+     * @date 2026/3/29
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 用户id列表
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult
+     **/
+    @PostMapping("/user/get_users_online_status")
+    OpenimResult<List<UserOnlineStatusDTO>> getUsersOnlineStatus(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody GetUsersOnlineStatusDTO request
     );
 }

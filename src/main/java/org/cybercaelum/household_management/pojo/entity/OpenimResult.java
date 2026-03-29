@@ -1,6 +1,8 @@
 package org.cybercaelum.household_management.pojo.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author CyberCaelum
@@ -9,6 +11,8 @@ import lombok.Data;
  * @date 2026/3/23
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class OpenimResult<T> {
     private Integer errCode;
     private String errMsg;
