@@ -11,6 +11,19 @@ spring:
       url: jdbc:mysql://${household.datasource.host}:${household.datasource.port}/${household.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
       username: ${household.datasource.username}
       password: ${household.datasource.password}
+  data:
+    redis:
+      database: ${spring.data.redis.database}
+      password: ${spring.data.redis.password}
+      port: ${spring.data.redis.port}
+      host: ${spring.data.redis.host}
+      timeout: ${spring.data.redis.timeout}
+      lettuce:
+        pool:
+          max-active: ${spring.data.redis.lettuce.pool.max-active}
+          max-idle: ${spring.data.redis.lettuce.pool.max-idle}
+          min-idle: ${spring.data.redis.lettuce.pool.min-idle}
+
 
 mybatis:
   #mapper配置文件
@@ -77,4 +90,5 @@ household:
     endpoint: ${household.rocketmq.endpoint}
     producer:
       group: ${household.rocketmq.producer.group}
+
 
