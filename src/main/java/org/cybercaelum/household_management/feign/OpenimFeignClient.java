@@ -65,10 +65,25 @@ public interface OpenimFeignClient {
             @RequestBody GetUsersOnlineStatusDTO request
     );
 
+    /**
+     * @description 添加openim账号好友
+     * @author CyberCaelum
+     * @date 2026/3/30
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 用户id列表
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<java.lang.String>
+     **/
     @PostMapping("/friend/import_friend")
     OpenimResult<String> importFriend(
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
             @RequestBody ImportFriendDTO request
+    );
+
+    OpenimResult<GroupListDTO> getGroupsInfo(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody List<String> request
     );
 }

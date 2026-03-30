@@ -107,7 +107,4 @@ public class OpenimUserCallBackServiceImpl implements OpenimUserCallBackService 
         stringRedisTemplate.delete(onlineKey);
         return OpenimCallbackVO.builder().build();
     }
-    //TODO 设置一个2分钟的定时任务，定时清理redis中的异常客服
-
-
 }
