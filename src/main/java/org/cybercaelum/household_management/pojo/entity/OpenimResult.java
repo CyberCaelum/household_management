@@ -14,8 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OpenimResult<T> {
-    private Integer errCode;
-    private String errMsg;
-    private String errDlt;
+    private Integer errCode;//错误码
+    private String errMsg;//错误信息
+    private String errDlt;//详细错误信息
     private T data;
 }

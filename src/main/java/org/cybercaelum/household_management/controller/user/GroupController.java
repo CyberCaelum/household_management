@@ -31,25 +31,41 @@ public class GroupController {
 
     private final GroupService groupService;
 
-    //创建群组聊天
-    @SecurityRequirement(name = "bearerAuth")
-    @PostMapping("/create")
-    @Operation(summary = "新增聊天群组",description = "新增聊天群组")
-    public Result createGroup(@RequestBody GroupCreateDTO groupCreateDTO) {
-        log.info("创建群组groupCreateDTO = {}", groupCreateDTO);
-        //TODO 调用service
-        GroupInfo groupInfo = groupService.createGroup(groupCreateDTO);
-        return Result.success(groupInfo);
-    }
+//    //创建群组聊天
+//    @SecurityRequirement(name = "bearerAuth")
+//    @PostMapping("/create")
+//    @Operation(summary = "新增聊天群组",description = "新增聊天群组")
+//    public Result createGroup(@RequestBody GroupCreateDTO groupCreateDTO) {
+//        log.info("创建群组groupCreateDTO = {}", groupCreateDTO);
+//        //TODO 调用service
+//        GroupInfo groupInfo = groupService.createGroup(groupCreateDTO);
+//        return Result.success(groupInfo);
+//    }
 
     //创建私聊
+    /**
+     * @description 创建私聊
+     * @author CyberCaelum
+     * @date 2026/3/30
+     * @param groupCreateDTO
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/create/private_chat")
     @Operation(summary = "创建私聊",description = "创建私聊")
     public Result creatPrivateChat(@RequestBody GroupCreateDTO groupCreateDTO) {
         log.info("创建私聊groupCreateDTO = {}", groupCreateDTO);
         GroupInfo groupInfo = groupService.createPrivateChat(groupCreateDTO);
-        return Result.success();
+        return Result.success(groupInfo);
     }
+
+    //创建客服群组
+    public Result createCsCHat(@RequestBody GroupCreateDTO groupCreateDTO) {
+        log.info("创建客服聊天groupCreateDTO = {}", groupCreateDTO);
+        GroupInfo groupInfo = groupService.createCsChat(groupCreateDTO);
+        return Result.success(groupInfo);
+    }
+
+    //创建争议群组
 
 }
