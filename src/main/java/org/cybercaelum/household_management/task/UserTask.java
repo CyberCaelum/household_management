@@ -33,6 +33,7 @@ public class UserTask {
     private final StringRedisTemplate stringRedisTemplate;
     private final OpenimFeignClient openimFeignClient;
     private final OpenImService openImService;
+
     /**
      * @description 定时清理不在线的客服
      * @author CyberCaelum
@@ -66,7 +67,6 @@ public class UserTask {
         //计算离线客服
         Set<String> offlineUserIds = new HashSet<>(onlineCsIds);
         offlineUserIds.removeAll(trulyOnlineUserIds);
-        //将redis中的在线客服直接
         //遍历离线客服清除会话信息
         for (String userId : offlineUserIds){
             //将客服信息从set中删除
