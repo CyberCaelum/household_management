@@ -42,4 +42,14 @@ public class GroupController {
         return Result.success(groupInfo);
     }
 
+    //创建私聊
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/create/private_chat")
+    @Operation(summary = "创建私聊",description = "创建私聊")
+    public Result creatPrivateChat(@RequestBody GroupCreateDTO groupCreateDTO) {
+        log.info("创建私聊groupCreateDTO = {}", groupCreateDTO);
+        GroupInfo groupInfo = groupService.createPrivateChat(groupCreateDTO);
+        return Result.success();
+    }
+
 }

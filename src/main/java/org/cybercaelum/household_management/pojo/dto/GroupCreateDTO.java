@@ -26,10 +26,4 @@ public class GroupCreateDTO {
     //对应的招募id
     @NotNull(message = MessageConstant.RECRUITMENT_ID_EMPTY)
     private Long recruitmentId;
-    //发起的是什么请求，客服介入还是私聊，1为私聊，2为客服
-    private Integer groupType;
-    @AssertTrue(message = MessageConstant.GROUP_TYPE_ERROR)
-    private boolean isGroupTypeValid(){
-        return groupType != null && (groupType ==1||groupType ==2);
-    }
 }
