@@ -15,4 +15,8 @@ public class OpenimCallbackCommandConstant {
      * 用户离线状态回调
      */
     public static final String AFTER_USER_OFFLINE_COMMAND = "callbackAfterUserOfflineCommand";
+    /**
+     * 发送群消息后的回调
+     */
+    public static final String AFTER_SEND_GROUP_MSG_COMMAND = "callbackAfterUserLoginCommand";
 }

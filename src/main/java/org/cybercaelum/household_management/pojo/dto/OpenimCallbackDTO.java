@@ -1,10 +1,9 @@
-package org.cybercaelum.household_management.pojo.vo;
+package org.cybercaelum.household_management.pojo.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.cybercaelum.household_management.pojo.entity.Result;
 
 /**
  * @author CyberCaelum
@@ -16,7 +15,7 @@ import org.cybercaelum.household_management.pojo.entity.Result;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class OpenimCallbackVO {
+public class OpenimCallbackDTO {
     @Builder.Default
     private Integer actionCode = 0;//表示业务系统的回调是否正确执行。0表示操作成功。
     @Builder.Default
@@ -28,14 +27,14 @@ public class OpenimCallbackVO {
     @Builder.Default
     private String nextCode = "";//下一步执行指令，1表示拒绝继续执行，actionCode等于0时设置。
 
-    public static OpenimCallbackVO error(String errMsg, String errDlt,Integer errCode) {
-        OpenimCallbackVO openimCallbackVO = OpenimCallbackVO.builder()
+    public static OpenimCallbackDTO error(String errMsg, String errDlt, Integer errCode) {
+        OpenimCallbackDTO openimCallbackDTO = OpenimCallbackDTO.builder()
                 .actionCode(1)
                 .errCode(errCode)
                 .errMsg(errMsg)
                 .errDlt(errDlt)
                 .nextCode("1")
                 .build();;
-        return openimCallbackVO;
+        return openimCallbackDTO;
     }
 }
