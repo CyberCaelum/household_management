@@ -11,4 +11,6 @@ import org.cybercaelum.household_management.pojo.vo.GroupInfo;
  */
 public interface GroupService {
     GroupInfo createGroup(GroupCreateDTO groupCreateDTO);
+
+    GroupInfo createPrivateChat(GroupCreateDTO groupCreateDTO);
 }

@@ -67,6 +67,7 @@ public class UserTask {
         //计算离线客服
         Set<String> offlineUserIds = new HashSet<>(onlineCsIds);
         offlineUserIds.removeAll(trulyOnlineUserIds);
+
         //遍历离线客服清除会话信息
         for (String userId : offlineUserIds){
             //将客服信息从set中删除

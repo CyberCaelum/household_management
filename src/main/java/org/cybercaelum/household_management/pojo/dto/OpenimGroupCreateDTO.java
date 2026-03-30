@@ -36,9 +36,13 @@ public class OpenimGroupCreateDTO {
         private String introduction;      // 群简介
         private String faceURL;           // 群头像 URL
         private String ex;                // 扩展字段
-        private Integer groupType;        // 群类型（例如 2 表示大群）
-        private Integer needVerification; // 入群验证方式（0 表示不需要验证）
-        private Integer lookMemberInfo;   // 成员信息查看权限
-        private Integer applyMemberFriend;// 申请成员好友权限
+        @Builder.Default
+        private Integer groupType = 2;        // 群类型（例如 2 表示大群）
+        @Builder.Default
+        private Integer needVerification = 1; // 入群验证方式（0 表示不需要验证）
+        @Builder.Default
+        private Integer lookMemberInfo = 1;   // 成员信息查看权限
+        @Builder.Default
+        private Integer applyMemberFriend = 1;// 申请成员好友权限
     }
 }

@@ -1,9 +1,6 @@
 package org.cybercaelum.household_management.feign;
 
-import org.cybercaelum.household_management.pojo.dto.GetUsersOnlineStatusDTO;
-import org.cybercaelum.household_management.pojo.dto.OpenimGroupCreateDTO;
-import org.cybercaelum.household_management.pojo.dto.NotificationAccountInfo;
-import org.cybercaelum.household_management.pojo.dto.UserOnlineStatusDTO;
+import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.OpenimBoot;
 import org.cybercaelum.household_management.pojo.entity.OpenimResult;
 import org.cybercaelum.household_management.pojo.vo.GroupInfo;
@@ -66,5 +63,12 @@ public interface OpenimFeignClient {
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
             @RequestBody GetUsersOnlineStatusDTO request
+    );
+
+    @PostMapping("/friend/import_friend")
+    OpenimResult<String> importFriend(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody ImportFriendDTO request
     );
 }
