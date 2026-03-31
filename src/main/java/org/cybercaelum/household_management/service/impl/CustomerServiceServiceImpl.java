@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author CyberCaelum
@@ -33,6 +34,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisTemplate<String,Object> redisTemplate;
     private final UserMapper userMapper;
+    private static final long TASK_TTL_SECONDS = 20;
 
     /**
      * @description 用户登录状态回调，处理客服在线状态
@@ -69,6 +71,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         csInfo.put("maxSessions",String.valueOf(CustomerServiceConstant.DEFAULT_MAX_SESSIONS));//最大会话数量限制
         csInfo.put("currentSessions","0");//目前会话数量
         stringRedisTemplate.opsForHash().putAll(onlineKey, csInfo);
+
 
         return OpenimCallbackDTO.builder().build();
     }
@@ -129,11 +132,43 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         }
         //获取聊天群组id
         String groupId = messageCallbackDTO.getGroupID();
-        //TODO 需要一个set维护所有客服的有效群聊，从群聊中查询是否存在这个群聊然后更新群聊状态
+        //TODO 需要一个set维护所有客服的有效群聊，从群聊中查询是否存在这个群聊然后更新群聊状态，这个set使用用户id来表示
+        //获取群组对应的redis中的key
+        String csSessionKey = CustomerServiceRedisKeyConstant.getCsSessionKey(groupId);
+        //刷新key对应的会话信息
+
         return OpenimCallbackDTO.builder().build();
     }
-    //TODO 分配客服，需要用户id，需要存储群组信息，name:用户id，map："客服名"：kefuid,"创建时间"：时间，“最后活跃时间”：时间，“过期时间”：时间
-
+    //客服无需新建群组，只需在结束后将客服踢出，需要时加入客服，争议同理
+    //创建群组并分配客服
+    public String createCsGroup(Long userId){
+        //TODO 需要实现分配算法
+        String csId = "";
+        //groupId = userId_csId_时间标识
+        //redis中的groupId使用用户id方便查询
+        String groupId = String.valueOf(userId);
+        String csSessionKey = CustomerServiceRedisKeyConstant.getCsSessionKey(groupId);
+        //查询是否存在用户对应的会话
+        if (stringRedisTemplate.hasKey(csSessionKey)){
+            //TODO 如果存在直接返回
+            return "cs_" + userId;
+        }
+        Map<String,String> csInfo = new HashMap<>();
+        csInfo.put("csId",String.valueOf(csId));
+        csInfo.put("userId",String.valueOf(userId));
+        csInfo.put("createTime",String.valueOf(System.currentTimeMillis()));
+        csInfo.put("lastActiveTime",String.valueOf(System.currentTimeMillis()));
+        csInfo.put("status",String.valueOf(1));
+        //在redis中存储会话信息
+        stringRedisTemplate.opsForHash().putAll(csSessionKey, csInfo);
+        //增加对应的客服的状态信息，会话数量加1
+        String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(csId));
+        stringRedisTemplate.opsForHash().increment(onlineKey, "currentSessions", 1);
+        //设置会话过期时间
+        stringRedisTemplate.expire(csSessionKey,20, TimeUnit.MINUTES);
+        //返回拼接的会话
+        return "";
+    }
     //TODO 需要实现openim的消息回调，刷新群组的活跃时间
 
     //TODO 查看用户是否重复请求客服

@@ -224,7 +224,8 @@ public class GroupServiceImpl implements GroupService {
      **/
     @Override
     public GroupInfo createCsChat(GroupCreateDTO groupCreateDTO) {
-        //客服聊天没有接受人，只有发起人，群组id应该对应的是发起人id_客服id
+        //客服聊天没有接受人，只有发起人，群组id应该对应的是发起人id_客服id，
+        // 为了避免之后重新分配客服时，重复groupid，应该再后面添加唯一标识，这里使用时间标识String.valueOf(System.currentTimeMillis())
         Long initiatorId = groupCreateDTO.getInitiator();//发起人id
         if (groupCreateDTO.getAccepter()!=null){
             throw new GroupCreateErrorException("创建客服群组错误");
