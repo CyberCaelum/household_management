@@ -40,9 +40,15 @@ public class CustomerServiceRedisKeyConstant {
 
     /**
      * 等待分配的用户队列 List
-     * cs:waiting:queue -> [{userId, userType, requestTime}]
+     * cs:waiting:queue -> [{userId, requestTime}]
      */
     public static final String CS_WAITING_QUEUE_KEY = "cs:waiting:queue";
+    
+    /**
+     * 等待队列用户ID集合 Set（用于快速判重）
+     * cs:waiting:set -> [userId1, userId2, ...]
+     */
+    public static final String CS_WAITING_SET_KEY = "cs:waiting:set";
 
     /**
      * 客服统计信息 Hash

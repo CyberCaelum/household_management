@@ -59,8 +59,17 @@ public class GroupController {
         return Result.success(groupInfo);
     }
 
-    //创建客服群组
-    public Result createCsCHat(@RequestBody GroupCreateDTO groupCreateDTO) {
+    /**
+     * @description 创建客服群组
+     * @author CyberCaelum
+     * @date 2026/3/31
+     * @param groupCreateDTO 群组信息
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/create/cs_chat")
+    @Operation(summary = "创建客服聊天群组", description = "创建用户与客服的聊天群组")
+    public Result createCsChat(@RequestBody GroupCreateDTO groupCreateDTO) {
         log.info("创建客服聊天groupCreateDTO = {}", groupCreateDTO);
         GroupInfo groupInfo = groupService.createCsChat(groupCreateDTO);
         return Result.success(groupInfo);
