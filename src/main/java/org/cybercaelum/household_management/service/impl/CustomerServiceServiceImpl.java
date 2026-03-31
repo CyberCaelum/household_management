@@ -7,6 +7,7 @@ import org.cybercaelum.household_management.constant.CustomerServiceRedisKeyCons
 import org.cybercaelum.household_management.constant.OpenimCallbackCommandConstant;
 import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.mapper.UserMapper;
+import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
 import org.cybercaelum.household_management.pojo.dto.MessageCallbackDTO;
 import org.cybercaelum.household_management.pojo.dto.OpenimUserCallbackDTO;
 import org.cybercaelum.household_management.pojo.entity.User;
@@ -15,9 +16,11 @@ import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,7 +37,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisTemplate<String,Object> redisTemplate;
     private final UserMapper userMapper;
-    private static final long TASK_TTL_SECONDS = 20;
+    private static final long TASK_TTL_MINUTES = 20;
 
     /**
      * @description 用户登录状态回调，处理客服在线状态
@@ -122,36 +125,62 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     public OpenimCallbackDTO freshCsGroup(MessageCallbackDTO messageCallbackDTO) {
         //判断回调命令
         if (!OpenimCallbackCommandConstant.AFTER_SEND_GROUP_MSG_COMMAND.equals(messageCallbackDTO.getCallbackCommand())){
-            return OpenimCallbackDTO.builder()
-                    .actionCode(1)
-                    .errCode(400)
-                    .errMsg("发送群消息后的回调错误")
-                    .errDlt("发送群消息后的回调命令错误")
-                    .nextCode("1")
-                    .build();
+            return OpenimCallbackDTO.error("发送群消息后的回调错误","发送群消息后的回调命令错误",400);
         }
         //获取聊天群组id
         String groupId = messageCallbackDTO.getGroupID();
-        //TODO 需要一个set维护所有客服的有效群聊，从群聊中查询是否存在这个群聊然后更新群聊状态，这个set使用用户id来表示
-        //获取群组对应的redis中的key
-        String csSessionKey = CustomerServiceRedisKeyConstant.getCsSessionKey(groupId);
-        //刷新key对应的会话信息
-
+        //客服群组的id是cs开头的，
+        if (groupId.startsWith("cs")){
+            //取出其中的用户id,cs_userId
+            String userIdStr = groupId.substring(3);
+            //获取群组对应的redis中的key
+            String csSessionKey = CustomerServiceRedisKeyConstant.getCsSessionKey(userIdStr);
+            //TODO 这里要判断是否存在会话，如果不存在会话需要重新匹配和排队，如果存在刷新会话
+            //刷新key对应的会话信息
+            stringRedisTemplate.opsForHash().put(csSessionKey, "lastActiveTime", String.valueOf(System.currentTimeMillis()));
+            //刷新过期时间
+            stringRedisTemplate.expire(csSessionKey,TASK_TTL_MINUTES, TimeUnit.MINUTES);
+        }
+        else {
+            //不是客服群组直接放行
+            return OpenimCallbackDTO.builder().build();
+        }
         return OpenimCallbackDTO.builder().build();
     }
     //客服无需新建群组，只需在结束后将客服踢出，需要时加入客服，争议同理
-    //创建群组并分配客服
-    public String createCsGroup(Long userId){
-        //TODO 需要实现分配算法
-        String csId = "";
-        //groupId = userId_csId_时间标识
+
+    /**
+     * @description 分配客服并记录redis客服信息
+     * @author CyberCaelum
+     * @date 2026/3/31
+     * @param userId 用户id
+     * @return java.lang.String
+     **/
+    public CsGroupAssignmentResult createCsGroup(Long userId){
+        //查找最佳客服
+        Long csIdLong = findBestCustomerService();
+        if (csIdLong == null) {
+            return CsGroupAssignmentResult.builder()
+                    .status(CsGroupAssignmentResult.Status.NO_AVAILABLE_CS)
+                    .csId("")
+                    .message("当前无可用客服，已进入排队")
+                    .build();
+        }
+        String csId = String.valueOf(findBestCustomerService());
         //redis中的groupId使用用户id方便查询
         String groupId = String.valueOf(userId);
         String csSessionKey = CustomerServiceRedisKeyConstant.getCsSessionKey(groupId);
-        //查询是否存在用户对应的会话
+        //查询是redis否存在用户对应的会话，如果存在说明有客服处理，直接返回空
         if (stringRedisTemplate.hasKey(csSessionKey)){
-            //TODO 如果存在直接返回
-            return "cs_" + userId;
+            //刷新key对应的会话信息
+            stringRedisTemplate.opsForHash().put(csSessionKey, "lastActiveTime", String.valueOf(System.currentTimeMillis()));
+            //刷新过期时间
+            stringRedisTemplate.expire(csSessionKey,TASK_TTL_MINUTES, TimeUnit.MINUTES);
+            return CsGroupAssignmentResult.builder()
+                    .status(CsGroupAssignmentResult.Status.SESSION_EXISTS)
+                    .csId("")
+                    .message("用户已有会话")
+                    .build();
         }
         Map<String,String> csInfo = new HashMap<>();
         csInfo.put("csId",String.valueOf(csId));
@@ -165,14 +194,73 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(csId));
         stringRedisTemplate.opsForHash().increment(onlineKey, "currentSessions", 1);
         //设置会话过期时间
-        stringRedisTemplate.expire(csSessionKey,20, TimeUnit.MINUTES);
-        //返回拼接的会话
-        return "";
+        stringRedisTemplate.expire(csSessionKey,TASK_TTL_MINUTES, TimeUnit.MINUTES);
+        //返回客服id
+        return CsGroupAssignmentResult.builder()
+                .status(CsGroupAssignmentResult.Status.SUCCESS)
+                .csId(csId)
+                .message("用户已有会话")
+                .build();
     }
-    //TODO 需要实现openim的消息回调，刷新群组的活跃时间
 
-    //TODO 查看用户是否重复请求客服
+    /**
+     * @description 查找最佳客服
+     * @author CyberCaelum
+     * @date 2026/3/31
+     * @return java.lang.Long
+     **/
+    private Long findBestCustomerService(){
+        Set<String> onlineCsIds = stringRedisTemplate.opsForSet().members(
+                CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY
+        );
+        if (onlineCsIds.isEmpty()){
+            return null;
+        }
+        Long bestCsId = null;
+        int minLoad = Integer.MAX_VALUE;
+        int maxSessions = Integer.MAX_VALUE;
+        //实现最小负载优先
+        for (String csIdStr : onlineCsIds){
+            Long csId = Long.valueOf(csIdStr);
+            String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
+            //获取客服在线信息
+            Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(onlineKey);
+
+            if (CollectionUtils.isEmpty(entries)) {
+                continue;
+            }
+            int currentSessions = Integer.parseInt((String) entries.getOrDefault("currentSessions", "0"));
+            int csMaxSessions = Integer.parseInt((String) entries.getOrDefault("maxSessions", "10"));
+            // 检查是否还有空闲
+            if (currentSessions >= csMaxSessions) {
+                continue;
+            }
+            // 选择负载最小的客服（按负载率）
+            double loadRate = (double) currentSessions / csMaxSessions;
+            double minLoadRate = (double) minLoad / maxSessions;
+
+            if (loadRate < minLoadRate) {
+                minLoad = currentSessions;
+                maxSessions = csMaxSessions;
+                bestCsId = csId;
+            }
+        }
+        return bestCsId;
+    }
+
     //TODO 排队机制
-    //TODO 分配客服算法
 
+    /**
+     * @description 结束会话，可能是客户主动结束，客服主动结束，超时自动结束
+     * @author CyberCaelum
+     * @date 2026/3/31
+     * @param csId 客服id
+     * @param userId 用户id
+     **/
+    private void releaseCsSession(Long csId,Long userId){
+        String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
+        stringRedisTemplate.opsForHash().increment(onlineKey, "currentSessions", -1);
+        String csSessionKey = CustomerServiceRedisKeyConstant.getCsSessionKey(String.valueOf(userId));
+        stringRedisTemplate.delete(csSessionKey);
+    }
 }

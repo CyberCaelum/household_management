@@ -37,12 +37,12 @@ public class OpenimGroupCreateDTO {
         private String faceURL;           // 群头像 URL
         private String ex;                // 扩展字段
         @Builder.Default
-        private Integer groupType = 2;        // 群类型（例如 2 表示大群）
+        private Integer groupType = 2;        // 固定为 2
         @Builder.Default
-        private Integer needVerification = 1; // 入群验证方式（0 表示不需要验证）
+        private Integer needVerification = 1; // 入群验证方式，0：申请加入群需要同意，成员邀请可直接进群；1：所有人进群需要验证，除了群主管理员邀请进群；2：直接进群
         @Builder.Default
-        private Integer lookMemberInfo = 1;   // 成员信息查看权限
+        private Integer lookMemberInfo = 1;   // 成员信息查看权限，0：允许查看群成员信息；1：不允许查看群成员信息
         @Builder.Default
-        private Integer applyMemberFriend = 1;// 申请成员好友权限
+        private Integer applyMemberFriend = 1;// 申请成员好友权限，0：允许从群成员处添加好友；1：不允许添加
     }
 }
