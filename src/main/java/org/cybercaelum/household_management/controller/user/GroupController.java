@@ -47,7 +47,7 @@ public class GroupController {
      * @description 创建私聊
      * @author CyberCaelum
      * @date 2026/3/30
-     * @param groupCreateDTO
+     * @param groupCreateDTO 私聊信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
     @SecurityRequirement(name = "bearerAuth")
