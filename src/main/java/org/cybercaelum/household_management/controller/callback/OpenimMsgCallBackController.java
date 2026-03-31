@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OpenimMsgCallBackController {
 
-    private CustomerServiceService customerServiceService;
+    private final CustomerServiceService customerServiceService;
 
     @Operation(summary = "用户发送消息openim回调",description = "用户发送消息openim回调")
     @PostMapping("/afterSendGroupMsg")

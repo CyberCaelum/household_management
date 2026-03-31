@@ -20,8 +20,7 @@ public class GroupCreateDTO {
     //群组发起人id
     @NotNull(message = MessageConstant.USERID_IS_NULL)
     private Long initiator;
-    //接受人id
-    @NotNull(message = MessageConstant.USERID_IS_NULL)
+
     private Long accepter;
     //对应的招募id
     @NotNull(message = MessageConstant.RECRUITMENT_ID_EMPTY)

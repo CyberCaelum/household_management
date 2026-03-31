@@ -233,10 +233,48 @@ public class GroupServiceImpl implements GroupService {
             throw new UserNotFoundException("用户不存在");
         }
 
-        //创建id为cs_userId的客服群聊，
-        //接受分配客服返回的客服id，如果为空直接返回群聊信息，如果不为空，直接将分配的客服加入群聊，结束后踢出客服
-        //TODO 分配客服
-        return null;
+        //创建id为cs_userId的客服群聊
+        String groupID = "cs_" + initiatorId;
+        
+        //设置群组信息
+        OpenimGroupCreateDTO.GroupInfo groupInfo = OpenimGroupCreateDTO.GroupInfo.builder()
+                .groupID(groupID)
+                .groupName("客服咨询-" + initiatorId)
+                .build();
+        
+        List<String> memberUserIDs = new ArrayList<>();
+        //设置拓展字段
+        groupInfo.setEx("客服");
+        memberUserIDs.add(initiatorId.toString());
+        //设置群组
+        OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
+                .memberUserIDs(memberUserIDs)
+                .ownerUserID("")//TODO 需要创建机器人账号，这里填写机器人账号
+                .groupInfo(groupInfo)
+                .build();
+        //发送创建群组请求
+        OpenimResult<GroupInfo> groupResult = openimFeignClient.createGroup(
+                String.valueOf(System.currentTimeMillis()),
+                openImService.getAdminToken()
+                ,openimGroupCreateDTO);
+        //判断是否错误或者已经存在群组
+        if (groupResult.getErrCode() != 0 && groupResult.getErrCode() != 1202){
+            throw new OpenimRequestErrorException("创建客服群组失败");
+        }
+        //群组已存在,查询群组信息并返回
+        if (groupResult.getErrCode() == 1202){
+            OpenimResult<GroupListDTO> groupsInfo = openimFeignClient.getGroupsInfo(
+                    String.valueOf(System.currentTimeMillis()),
+                    openImService.getAdminToken()
+                    ,new ArrayList<>(Arrays.asList(groupID))
+            );
+            if (groupsInfo.getErrCode() != 0){
+                throw new OpenimRequestErrorException("查询客服群组信息失败");
+            }
+            return groupsInfo.getData().getGroupInfos().get(0);
+        }
+        //返回前端
+        return groupResult.getData();
     }
     //争议的群组id为发起人id_订单id_接受人id_客服id
 }

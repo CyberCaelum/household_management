@@ -8,6 +8,7 @@ import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.pojo.dto.GetUsersOnlineStatusDTO;
 import org.cybercaelum.household_management.pojo.dto.UserOnlineStatusDTO;
 import org.cybercaelum.household_management.pojo.entity.OpenimResult;
+import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.cybercaelum.household_management.service.OpenImService;
 import org.cybercaelum.household_management.service.UserService;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -33,6 +34,7 @@ public class UserTask {
     private final StringRedisTemplate stringRedisTemplate;
     private final OpenimFeignClient openimFeignClient;
     private final OpenImService openImService;
+    private final CustomerServiceService customerServiceService;
 
     /**
      * @description 定时清理不在线的客服
@@ -73,9 +75,11 @@ public class UserTask {
             //将客服信息从set中删除
             stringRedisTemplate.opsForSet().remove(
                     CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
-                    String.valueOf(userId));
+                    userId);
             //删除在线状态
             String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(userId));
+            //结束客服的会话
+            customerServiceService.endAllSessionsByCs(Long.valueOf(userId));
             stringRedisTemplate.delete(onlineKey);
         }
     }
