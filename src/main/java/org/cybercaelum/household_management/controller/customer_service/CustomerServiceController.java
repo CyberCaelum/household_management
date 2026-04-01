@@ -133,7 +133,18 @@ public class CustomerServiceController {
         if (sessionEndDTO.getUserId() == null) {
             sessionEndDTO.setUserId(currentUserId);
         }
-        
+        //权限验证
+        if (!currentUserId.equals(sessionEndDTO.getUserId())){
+            return Result.error("无权结束会话");
+        }
+        if (BaseContext.getRole() == RoleConstant.CUSTOMER_SERVICE) {
+            Map<String,String> session = customerServiceService.getUserSession(sessionEndDTO.getUserId());
+            if (session != null || String.valueOf(currentUserId).equals(session.get("csId"))) {
+                return Result.error("无权结束会话");
+            }
+        }
+
+
         // 判断是用户结束还是会话结束
         if (sessionEndDTO.getReason() == null) {
             // 根据当前角色判断
@@ -169,7 +180,8 @@ public class CustomerServiceController {
                 "hasSession", true,
                 "csId", session.get("csId"),
                 "createTime", session.get("createTime"),
-                "lastActiveTime", session.get("lastActiveTime")
+                "lastActiveTime", session.get("lastActiveTime"),
+                "groupId", "cs_" + userId // 添加群组ID
         ));
     }
     
