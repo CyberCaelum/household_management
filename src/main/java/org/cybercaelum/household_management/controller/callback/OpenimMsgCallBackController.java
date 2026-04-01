@@ -29,7 +29,7 @@ public class OpenimMsgCallBackController {
     @PostMapping("/afterSendGroupMsg")
     public OpenimCallbackDTO afterSendGroupMsg(@RequestBody MessageCallbackDTO messageCallbackDTO){
         log.info("用户发送消息openim回调messageCallbackDTO = {}", messageCallbackDTO);
-        customerServiceService.freshCsGroup(messageCallbackDTO);
-        return new OpenimCallbackDTO();
+        OpenimCallbackDTO openimCallbackDTO = customerServiceService.freshCsGroup(messageCallbackDTO);
+        return openimCallbackDTO;
     }
 }
