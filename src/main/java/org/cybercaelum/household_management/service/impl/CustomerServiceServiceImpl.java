@@ -8,15 +8,12 @@ import org.cybercaelum.household_management.constant.CustomerServiceConstant;
 import org.cybercaelum.household_management.constant.CustomerServiceRedisKeyConstant;
 import org.cybercaelum.household_management.constant.OpenimCallbackCommandConstant;
 import org.cybercaelum.household_management.constant.RoleConstant;
+import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.mapper.UserMapper;
-import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
-import org.cybercaelum.household_management.pojo.dto.MessageCallbackDTO;
-import org.cybercaelum.household_management.pojo.dto.OpenimUserCallbackDTO;
-import org.cybercaelum.household_management.pojo.dto.SessionEndDTO;
-import org.cybercaelum.household_management.pojo.dto.WaitingUserDTO;
+import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.User;
-import org.cybercaelum.household_management.pojo.dto.OpenimCallbackDTO;
 import org.cybercaelum.household_management.service.CustomerServiceService;
+import org.cybercaelum.household_management.service.OpenImService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -43,6 +40,8 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final RedisTemplate<String,Object> redisTemplate;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final OpenimFeignClient openimFeignClient;
+    private final OpenImService openImService;
     private static final long TASK_TTL_MINUTES = 20;
 
     /**
@@ -227,12 +226,68 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         //设置会话过期时间
         stringRedisTemplate.expire(csSessionKey, TASK_TTL_MINUTES, TimeUnit.MINUTES);
 
+        //将客服加入群聊
+        joinCsToGroup(userId, csId);
+
         //返回客服id
         return CsGroupAssignmentResult.builder()
                 .status(CsGroupAssignmentResult.Status.SUCCESS)
                 .csId(csId)
                 .message("客服分配成功")
                 .build();
+    }
+
+    /**
+     * @description 将客服加入群聊
+     * @author CyberCaelum
+     * @date 2026/4/1
+     * @param userId 用户id
+     * @param csId 客服id
+     **/
+    private void joinCsToGroup(Long userId, String csId) {
+        try {
+            String groupId = "cs_" + userId;
+            JoinGroupDTO joinGroupDTO = JoinGroupDTO.builder()
+                    .groupID(groupId)
+                    .joinSource(1) // 管理员邀请
+                    .inviterUserID(csId)
+                    .build();
+            
+            openimFeignClient.joinGroup(
+                    String.valueOf(System.currentTimeMillis()),
+                    openImService.getAdminToken(),
+                    joinGroupDTO
+            );
+            log.info("客服 {} 已加入群聊 {}", csId, groupId);
+        } catch (Exception e) {
+            log.error("客服加入群聊失败，userId={}, csId={}", userId, csId, e);
+        }
+    }
+
+    /**
+     * @description 将客服踢出群聊
+     * @author CyberCaelum
+     * @date 2026/4/1
+     * @param userId 用户id
+     * @param csId 客服id
+     **/
+    private void kickCsFromGroup(Long userId, Long csId) {
+        try {
+            String groupId = "cs_" + userId;
+            QuitGroupDTO quitGroupDTO = QuitGroupDTO.builder()
+                    .groupID(groupId)
+                    .userID(String.valueOf(csId))
+                    .build();
+            
+            openimFeignClient.quitGroup(
+                    String.valueOf(System.currentTimeMillis()),
+                    openImService.getAdminToken(),
+                    quitGroupDTO
+            );
+            log.info("客服 {} 已退出群聊 {}", csId, groupId);
+        } catch (Exception e) {
+            log.error("客服退出群聊失败，userId={}, csId={}", userId, csId, e);
+        }
     }
 
     /**
@@ -494,6 +549,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         // 从客服的会话集合中移除
         String csSessionsKey = CustomerServiceRedisKeyConstant.getCsSessionsKey(csId);
         stringRedisTemplate.opsForHash().delete(csSessionsKey, String.valueOf(userId));
+        
+        // 将客服踢出群聊
+        kickCsFromGroup(userId, csId);
         
         // 会话结束后，尝试处理等待队列中的用户
         processWaitingQueue();
