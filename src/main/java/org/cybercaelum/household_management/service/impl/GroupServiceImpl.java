@@ -163,7 +163,7 @@ public class GroupServiceImpl implements GroupService {
                 .friendUserIDs(new ArrayList<>(Arrays.asList(String.valueOf(accepterId))))
                 .build();
         //调用openim添加好友
-        OpenimResult<String> result = openimFeignClient.importFriend(
+        OpenimResult<Object> result = openimFeignClient.importFriend(
                 String.valueOf(System.currentTimeMillis()),
                 openImService.getAdminToken(),
                 importFriendDTO
@@ -246,6 +246,7 @@ public class GroupServiceImpl implements GroupService {
         //设置拓展字段
         groupInfo.setEx("客服");
         memberUserIDs.add(initiatorId.toString());
+        //TODO 添加机器人账号
         //设置群组
         OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
                 .memberUserIDs(memberUserIDs)
@@ -276,5 +277,8 @@ public class GroupServiceImpl implements GroupService {
         //返回前端
         return groupResult.getData();
     }
+
+    //TODO 将指定用户拉入指定群组
+
     //争议的群组id为发起人id_订单id_接受人id_客服id
 }

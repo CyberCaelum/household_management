@@ -8,10 +8,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.annotation.RequireRole;
 import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.context.BaseContext;
+import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
+import org.cybercaelum.household_management.pojo.dto.JoinGroupDTO;
 import org.cybercaelum.household_management.pojo.dto.SessionEndDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.service.CustomerServiceService;
+import org.cybercaelum.household_management.service.OpenImService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -30,6 +33,8 @@ import java.util.Map;
 public class CustomerServiceController {
 
     private final CustomerServiceService customerServiceService;
+    private final OpenimFeignClient openimFeignClient;
+    private final OpenImService openImService;
 
     @Operation(summary = "获取待处理争议列表", description = "获取当前客服待处理的争议工单")
     @SecurityRequirement(name = "bearerAuth")
