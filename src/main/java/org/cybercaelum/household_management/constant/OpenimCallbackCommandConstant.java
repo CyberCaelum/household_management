@@ -18,5 +18,5 @@ public class OpenimCallbackCommandConstant {
     /**
      * 发送群消息后的回调
      */
-    public static final String AFTER_SEND_GROUP_MSG_COMMAND = "callbackAfterUserLoginCommand";
+    public static final String AFTER_SEND_GROUP_MSG_COMMAND = "callbackAfterSendGroupMsgCommand";
 }

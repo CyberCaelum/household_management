@@ -28,7 +28,7 @@ public class CustomerServiceRedisKeyConstant {
 
     /**
      * 会话详情 Hash
-     * cs:session:{sessionId} -> {csId, userId, createTime, lastActivityTime, status}
+     * cs:session:{userId} -> {csId, userId, createTime, lastActivityTime, status}
      */
     public static final String CS_SESSION_KEY = "cs:session:%s";
 
