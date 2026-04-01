@@ -176,7 +176,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     //客服无需新建群组，只需在结束后将客服踢出，需要时加入客服，争议同理
 
     /**
-     * @description 分配客服并记录redis客服信息
+     * @description 分配客服并记录redis客服信息，并加入群组
      * @author CyberCaelum
      * @date 2026/3/31
      * @param userId 用户id
@@ -226,6 +226,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         stringRedisTemplate.opsForHash().put(csSessionsKey, groupId, String.valueOf(userId));
         //设置会话过期时间
         stringRedisTemplate.expire(csSessionKey, TASK_TTL_MINUTES, TimeUnit.MINUTES);
+
         //返回客服id
         return CsGroupAssignmentResult.builder()
                 .status(CsGroupAssignmentResult.Status.SUCCESS)

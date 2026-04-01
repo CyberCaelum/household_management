@@ -75,15 +75,57 @@ public interface OpenimFeignClient {
      * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<java.lang.String>
      **/
     @PostMapping("/friend/import_friend")
-    OpenimResult<String> importFriend(
+    OpenimResult<Object> importFriend(
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
             @RequestBody ImportFriendDTO request
     );
 
+    /**
+     * @description 获取指定群组信息
+     * @author CyberCaelum
+     * @date 上午9:01 2026/4/1
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 群组ID列表
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<org.cybercaelum.household_management.pojo.dto.GroupListDTO>
+     **/
+    @PostMapping("/group/get_groups_info")
     OpenimResult<GroupListDTO> getGroupsInfo(
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
             @RequestBody List<String> request
+    );
+
+    /**
+     * @description 指定用户加入指定群聊
+     * @author CyberCaelum
+     * @date 上午9:03 2026/4/1
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 请求信息
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<java.lang.Object>
+     **/
+    @PostMapping("/group/join_group")
+    OpenimResult<Object> joinGroup(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody JoinGroupDTO request
+    );
+
+    /**
+     * @description 让某个群成员退出指定群组
+     * @author CyberCaelum
+     * @date 上午9:08 2026/4/1
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 群组id，用户id
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<java.lang.Object>
+     **/
+    @PostMapping("/group/quit_group")
+    OpenimResult<Object> quitGroup(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody QuitGroupDTO request
     );
 }
