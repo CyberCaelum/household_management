@@ -8,9 +8,14 @@ import org.cybercaelum.household_management.constant.CustomerServiceConstant;
 import org.cybercaelum.household_management.constant.CustomerServiceRedisKeyConstant;
 import org.cybercaelum.household_management.constant.OpenimCallbackCommandConstant;
 import org.cybercaelum.household_management.constant.RoleConstant;
+import org.cybercaelum.household_management.context.BaseContext;
+import org.cybercaelum.household_management.controller.customer_service.CustomerServiceController;
+import org.cybercaelum.household_management.exception.GroupCreateErrorException;
+import org.cybercaelum.household_management.exception.SessionEndErrorException;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.mapper.UserMapper;
 import org.cybercaelum.household_management.pojo.dto.*;
+import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.entity.User;
 import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.cybercaelum.household_management.service.OpenImService;
@@ -43,6 +48,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final OpenimFeignClient openimFeignClient;
     private final OpenImService openImService;
     private static final long TASK_TTL_MINUTES = 20;
+    private final CustomerServiceController customerServiceController;
 
     /**
      * @description 用户登录状态回调，处理客服在线状态
@@ -672,5 +678,63 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         
         // 删除客服会话集合
         stringRedisTemplate.delete(csSessionsKey);
+    }
+
+    @Override
+    public CsGroupAssignmentResult requestCustomerService(Long userId) {
+        CsGroupAssignmentResult result = createCsGroup(userId);
+        switch (result.getStatus()){
+            case SUCCESS :
+                return result;
+            case SESSION_EXISTS:
+                return result;
+            case NO_AVAILABLE_CS:
+                addToWaitingQueue(userId);
+                return result;
+            default:
+                throw new GroupCreateErrorException("请求客服失败");
+        }
+    }
+
+    @Override
+    public Integer getPosition(Long userId) {
+        int position = getWaitingPosition(userId);
+        if (position == -1){
+            Map<String,String> session = getUserSession(userId);
+            if (session != null){
+                throw new GroupCreateErrorException("正在会话中");
+            }
+            throw new GroupCreateErrorException("排队失败");
+        }
+        return position;
+    }
+
+    public void toEndSession(SessionEndDTO sessionEndDTO){
+        Long currentUserId = BaseContext.getUserId();
+
+        // 如果用户没有提供userId，使用当前用户ID
+        if (sessionEndDTO.getUserId() == null) {
+            throw new SessionEndErrorException("会话结束错误，必须双方id");
+        }
+        //权限验证
+        if (!currentUserId.equals(sessionEndDTO.getUserId()) && !currentUserId.equals(sessionEndDTO.getCsId())){
+            throw new SessionEndErrorException("无权结束会话");
+        }
+        // 判断是用户结束还是会话结束
+        if (sessionEndDTO.getReason() == null) {
+            // 根据当前角色判断
+            if (currentUserId.equals(sessionEndDTO.getUserId())) {
+                sessionEndDTO.setReason(SessionEndDTO.REASON_USER_INITIATED);
+            } else {
+                sessionEndDTO.setReason(SessionEndDTO.REASON_CS_INITIATED);
+            }
+        }
+
+        log.info("结束会话：userId={}, reason={}", sessionEndDTO.getUserId(), sessionEndDTO.getReason());
+
+        boolean success = endSession(sessionEndDTO);
+        if (!success) {
+            throw new SessionEndErrorException("会话不存在或已结束");
+        }
     }
 }
