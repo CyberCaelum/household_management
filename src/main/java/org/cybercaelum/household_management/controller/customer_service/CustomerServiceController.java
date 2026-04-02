@@ -108,6 +108,6 @@ public class CustomerServiceController {
             throw new BaseException("会话不存在");
         }
         //返回群组信息
-        return Result.success("cs_" + userId);
+        return Result.success("cs_" + session.get("userId"));
     }
 }

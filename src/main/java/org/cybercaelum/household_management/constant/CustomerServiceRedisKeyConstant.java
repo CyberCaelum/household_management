@@ -34,7 +34,7 @@ public class CustomerServiceRedisKeyConstant {
 
     /**
      * 用户当前会话 String
-     * cs:user:{userId} -> sessionId
+     * cs:user:{userId} -> csId
      */
     public static final String CS_USER_SESSION_KEY = "cs:user:%s";
 
@@ -85,8 +85,8 @@ public class CustomerServiceRedisKeyConstant {
     /**
      * 获取会话详情Key
      */
-    public static String getCsSessionKey(String sessionId) {
-        return String.format(CS_SESSION_KEY, sessionId);
+    public static String getCsSessionKey(String userId) {
+        return String.format(CS_SESSION_KEY, userId);
     }
 
     /**
