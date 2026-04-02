@@ -9,13 +9,11 @@ import org.cybercaelum.household_management.constant.CustomerServiceRedisKeyCons
 import org.cybercaelum.household_management.constant.OpenimCallbackCommandConstant;
 import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.context.BaseContext;
-import org.cybercaelum.household_management.controller.customer_service.CustomerServiceController;
 import org.cybercaelum.household_management.exception.GroupCreateErrorException;
 import org.cybercaelum.household_management.exception.SessionEndErrorException;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.mapper.UserMapper;
 import org.cybercaelum.household_management.pojo.dto.*;
-import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.entity.User;
 import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.cybercaelum.household_management.service.OpenImService;
@@ -48,7 +46,6 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final OpenimFeignClient openimFeignClient;
     private final OpenImService openImService;
     private static final long TASK_TTL_MINUTES = 20;
-    private final CustomerServiceController customerServiceController;
 
     /**
      * @description 用户登录状态回调，处理客服在线状态
@@ -163,6 +160,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                 
                 if (result.getStatus() == CsGroupAssignmentResult.Status.NO_AVAILABLE_CS) {
                     // 没有可用客服，加入等待队列
+                    addToWaitingQueue(userId);
                     log.info("用户 {} 加入等待队列", userId);
                 }
             } else {
@@ -231,7 +229,11 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         stringRedisTemplate.opsForHash().put(csSessionsKey, groupId, String.valueOf(userId));
         //设置会话过期时间
         stringRedisTemplate.expire(csSessionKey, TASK_TTL_MINUTES, TimeUnit.MINUTES);
-
+        //维护一个用户id->csId 的映射
+        String csUserSessionKey = CustomerServiceRedisKeyConstant.getCsUserSessionKey(userId);
+        stringRedisTemplate.opsForValue().set(csUserSessionKey,csId);
+        //从排队中移除
+        removeFromWaitingQueue(userId);
         //将客服加入群聊
         joinCsToGroup(userId, csId);
 
@@ -540,7 +542,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * @param csId 客服id
      * @param userId 用户id
      **/
-    private void releaseCsSession(Long csId, Long userId){
+    public void releaseCsSession(Long csId, Long userId){
         String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
         // 使用读取-计算-写入保证类型一致
         String currentSessionsStr = (String) stringRedisTemplate.opsForHash().get(onlineKey, "currentSessions");
@@ -555,7 +557,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         // 从客服的会话集合中移除
         String csSessionsKey = CustomerServiceRedisKeyConstant.getCsSessionsKey(csId);
         stringRedisTemplate.opsForHash().delete(csSessionsKey, String.valueOf(userId));
-        
+        // 删除用户id->客服id的映射
+        String csUserSessionKey = CustomerServiceRedisKeyConstant.getCsUserSessionKey(userId);
+        stringRedisTemplate.delete(csUserSessionKey);
         // 将客服踢出群聊
         kickCsFromGroup(userId, csId);
         
@@ -719,6 +723,11 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         //权限验证
         if (!currentUserId.equals(sessionEndDTO.getUserId()) && !currentUserId.equals(sessionEndDTO.getCsId())){
             throw new SessionEndErrorException("无权结束会话");
+        }
+        String csUserSessionKey = CustomerServiceRedisKeyConstant.getCsUserSessionKey(currentUserId);
+        String csId = stringRedisTemplate.opsForValue().get(csUserSessionKey);
+        if (csId == null || csId != String.valueOf(sessionEndDTO.getCsId())){
+            throw new SessionEndErrorException("客服id错误");
         }
         // 判断是用户结束还是会话结束
         if (sessionEndDTO.getReason() == null) {

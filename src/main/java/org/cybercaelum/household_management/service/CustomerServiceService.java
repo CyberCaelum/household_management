@@ -1,6 +1,5 @@
 package org.cybercaelum.household_management.service;
 
-import org.aspectj.weaver.Position;
 import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
 import org.cybercaelum.household_management.pojo.dto.MessageCallbackDTO;
 import org.cybercaelum.household_management.pojo.dto.OpenimUserCallbackDTO;
@@ -80,4 +79,5 @@ public interface CustomerServiceService {
 
     void toEndSession(SessionEndDTO sessionEndDTO);
 
+    void releaseCsSession(Long csId, Long userId);
 }

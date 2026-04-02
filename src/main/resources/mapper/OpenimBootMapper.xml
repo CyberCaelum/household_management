@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.cybercaelum.household_management.mapper.OpenimBootMapper">
     <insert id="addBoot" keyProperty="id" useGeneratedKeys="true">
-        insert into openim_boot (nick_name, boot_id, face_url, appMangerLevel) VALUE
+        insert into openim_boot (nick_name, boot_id, face_url, appMangerLevel) VALUES
         (#{nickName},#{bootId},#{faceUrl},#{appMangerLevel})
     </insert>
 </mapper>

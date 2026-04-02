@@ -34,7 +34,7 @@ public class OpenimCallbackDTO {
                 .errMsg(errMsg)
                 .errDlt(errDlt)
                 .nextCode("1")
-                .build();;
+                .build();
         return openimCallbackDTO;
     }
 }
