@@ -187,7 +187,7 @@ public class GroupServiceImpl implements GroupService {
         //设置群组
         OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
                 .memberUserIDs(memberUserIDs)
-                .ownerUserID("")//TODO 需要创建机器人账号，这里填写机器人账号
+                .ownerUserID("13")//TODO 需要创建机器人账号，这里填写机器人账号
                 .groupInfo(groupInfo)
                 .build();
         //发送创建群组请求
@@ -250,7 +250,7 @@ public class GroupServiceImpl implements GroupService {
         //设置群组
         OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
                 .memberUserIDs(memberUserIDs)
-                .ownerUserID("")//TODO 需要创建机器人账号，这里填写机器人账号
+                .ownerUserID("13")//TODO 需要创建机器人账号，这里填写机器人账号
                 .groupInfo(groupInfo)
                 .build();
         //发送创建群组请求

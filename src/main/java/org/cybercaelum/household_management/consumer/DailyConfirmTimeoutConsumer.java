@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 @Slf4j
 @RocketMQMessageListener(
+        endpoints = "127.0.0.1:8081",
         consumerGroup = "daily-confirm-timeout",
         topic = RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TOPIC,
         tag = RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TAG

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @date 2026/3/28
  */
 @RestController
-@RequestMapping("/openim/callback/user")
+@RequestMapping("/openim/callback")
 @Slf4j
 @RequiredArgsConstructor
 public class OpenimUserCallBackController {
@@ -33,7 +33,7 @@ public class OpenimUserCallBackController {
      * @return org.cybercaelum.household_management.pojo.vo.OpenimCallbackVO
      **/
     @Operation(summary = "用户登录openim回调",description = "用户登录openim回调")
-    @PostMapping("/afterOnline")
+    @PostMapping("/callbackAfterUserOnlineCommand")
     public OpenimCallbackDTO afterOnline(@RequestBody OpenimUserCallbackDTO userCallbackDTO){
         log.info("用户登录openim回调：{}",userCallbackDTO);
         OpenimCallbackDTO callbackDTO = customerServiceService.afterOnline(userCallbackDTO);
@@ -48,7 +48,7 @@ public class OpenimUserCallBackController {
      * @return org.cybercaelum.household_management.pojo.vo.OpenimCallbackVO
      **/
     @Operation(summary = "用户离线openim回调",description = "用户离线openim回调")
-    @PostMapping("/afterOffline")
+    @PostMapping("/callbackAfterUserOfflineCommand")
     public OpenimCallbackDTO afterOffLine(@RequestBody OpenimUserCallbackDTO userCallbackDTO){
         log.info("用户离线openim回调：{}",userCallbackDTO);
         OpenimCallbackDTO callbackVO = customerServiceService.afterOffLine(userCallbackDTO);

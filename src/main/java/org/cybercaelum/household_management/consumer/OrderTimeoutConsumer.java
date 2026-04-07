@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(
+        endpoints = "127.0.0.1:8081",
         consumerGroup = "order-cancel",
         topic = RocketMQConstant.ORDER_TIMEOUT_TOPIC,
         tag = RocketMQConstant.ORDER_CANCEL_TAG
