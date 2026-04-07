@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @date 2026/3/30
  */
 @RestController
-@RequestMapping("/openim/callback/msg")
+@RequestMapping("/openim/callback")
 @Slf4j
 @RequiredArgsConstructor
 public class OpenimMsgCallBackController {
@@ -26,7 +26,7 @@ public class OpenimMsgCallBackController {
     private final CustomerServiceService customerServiceService;
 
     @Operation(summary = "用户发送消息openim回调",description = "用户发送消息openim回调")
-    @PostMapping("/afterSendGroupMsg")
+    @PostMapping("/callbackAfterSendGroupMsgCommand")
     public OpenimCallbackDTO afterSendGroupMsg(@RequestBody MessageCallbackDTO messageCallbackDTO){
         log.info("用户发送消息openim回调messageCallbackDTO = {}", messageCallbackDTO);
         OpenimCallbackDTO openimCallbackDTO = customerServiceService.freshCsGroup(messageCallbackDTO);

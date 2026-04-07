@@ -8,7 +8,7 @@ spring:
     allow-bean-definition-overriding: true
   datasource:
       driver-class-name: ${household.datasource.driver-class-name}
-      url: jdbc:mysql://${household.datasource.host}:${household.datasource.port}/${household.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+      url: jdbc:mariadb://${household.datasource.host}:${household.datasource.port}/${household.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
       username: ${household.datasource.username}
       password: ${household.datasource.password}
   data:
@@ -85,10 +85,15 @@ household:
     # OpenIM 管理员账号
     admin-user-id: ${household.openim.admin-user-id:imAdmin}
     # 默认平台ID (1-9)
-    default-platform-id: ${household.openim.default-platform-id:1}
-  rocketmq:
-    endpoint: ${household.rocketmq.endpoint}
-    producer:
-      group: ${household.rocketmq.producer.group}
+    default-platform-id: ${household.openim.default-platform-id:5}
+
+rocketmq:
+  producer:
+    endpoints: 127.0.0.1:8081
+    ssl-enabled: false
+
+
+
+
 
 

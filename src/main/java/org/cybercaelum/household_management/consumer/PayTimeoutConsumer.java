@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 @Slf4j
 @RocketMQMessageListener(
+        endpoints = "127.0.0.1:8081",
         consumerGroup = "pay-timeout",
         topic = RocketMQConstant.PAY_TIMEOUT_TOPIC,
         tag = RocketMQConstant.PAY_TIMEOUT_TAG

@@ -19,9 +19,9 @@ import org.cybercaelum.household_management.constant.MessageConstant;
 @NoArgsConstructor
 @Data
 public class UserRegisterDTO {
-    @NotEmpty(message = MessageConstant.USERNAME_EMPTY)//用户名不能为null或空字符串
-    @Size(max = 8, message = MessageConstant.USERNAME_TOO_LONG)//用户名长度最大为8个字符
-    @Pattern(regexp = "^[a-zA-Z0-9\\u4e00-\\u9fa5]+$", message = MessageConstant.USERNAME_STANDARD)//用户名只能包含字母、数字和中文
+//    @NotEmpty(message = MessageConstant.USERNAME_EMPTY)//用户名不能为null或空字符串
+//    @Size(max = 8, message = MessageConstant.USERNAME_TOO_LONG)//用户名长度最大为8个字符
+//    @Pattern(regexp = "^[a-zA-Z0-9\\u4e00-\\u9fa5]+$", message = MessageConstant.USERNAME_STANDARD)//用户名只能包含字母、数字和中文
     private String username; //用户名
 
     @NotEmpty(message = MessageConstant.PASSWORD_EMPTY)//密码不能为null或空字符串

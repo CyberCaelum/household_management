@@ -12,14 +12,10 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "household.rocketmq")
+@ConfigurationProperties(prefix = "rocketmq.producer.endpoints")
 public class RocketMQProperties {
     /**
      * Proxy 地址
      */
     private String endpoint;
-    /**
-     * 发送者组
-     */
-    private String group;
 }

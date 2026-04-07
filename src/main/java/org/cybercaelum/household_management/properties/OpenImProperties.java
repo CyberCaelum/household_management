@@ -33,5 +33,5 @@ public class OpenImProperties {
     /**
      * 默认平台ID
      */
-    private Integer defaultPlatformId = 1;
+    private Integer defaultPlatformId = 5;
 }
