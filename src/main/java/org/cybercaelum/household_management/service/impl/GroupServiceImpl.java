@@ -3,16 +3,16 @@ package org.cybercaelum.household_management.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.GroupTypeConstant;
+import org.cybercaelum.household_management.constant.RobotConstant;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.*;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
+import org.cybercaelum.household_management.mapper.DailyConfirmationMapper;
+import org.cybercaelum.household_management.mapper.OrderMapper;
 import org.cybercaelum.household_management.mapper.RecruitmentMapper;
 import org.cybercaelum.household_management.mapper.UserMapper;
 import org.cybercaelum.household_management.pojo.dto.*;
-import org.cybercaelum.household_management.pojo.entity.OpenimGroup;
-import org.cybercaelum.household_management.pojo.entity.OpenimResult;
-import org.cybercaelum.household_management.pojo.entity.Recruitment;
-import org.cybercaelum.household_management.pojo.entity.User;
+import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.GroupInfo;
 import org.cybercaelum.household_management.service.GroupService;
 import org.cybercaelum.household_management.service.OpenImService;
@@ -39,87 +39,9 @@ public class GroupServiceImpl implements GroupService {
     private final RecruitmentMapper recruitmentMapper;
     private final OpenimFeignClient openimFeignClient;
     private final UserMapper userMapper;
-    //TODO 私聊
-    //TODO 获取发起人和接收人，将群主设为机器人，将群id拼接，发起创建请求，创建失败获取失败错误码，解析错误码，
-    //如果错误码是群已存在，查询群信息发送给前端，如果创建成功返回群信息
+    private final OrderMapper orderMapper;
+    private final DailyConfirmationMapper dailyConfirmationMapper;
 
-    //TODO 客服
-
-    //TODO 争议
-//    @Transactional
-//    @Override
-//    public GroupInfo createGroup(GroupCreateDTO groupCreateDTO) {
-//        Long initiator = groupCreateDTO.getInitiator();//发起人id
-//        Long accepter = groupCreateDTO.getAccepter();//接受人id
-//        //群主为机器人
-//
-//        //查询用户是否存在
-//        if (!BaseContext.getUserId().equals(initiator)){
-//            //判断发起人id和请求人相同
-//            throw new RoleErrorException("角色错误");
-//        }
-//        User user = userMapper.getById(initiator);
-//        User user1 = userMapper.getById(accepter);
-//        if (user == null || user1 == null) {
-//            throw new UserNotFoundException("用户不存在");
-//        }
-//        //检查招募存在，用户是否有对应的招募，
-//        Recruitment recruitment = recruitmentMapper.selectRecruitmentById(groupCreateDTO.getRecruitmentId());
-//
-//        if (recruitment == null) {
-//            throw new RecruitmentNotFoundException("招募不存在");
-//        }
-//        if (!Objects.equals(recruitment.getUserId(), initiatorId) && !Objects.equals(recruitment.getUserId(), accepterId)) {
-//            throw new RecruitmentNotFoundException("招募对应用户错误");
-//        }
-//        //群ID为拼接发起人ID_招募id_接受人id
-//        String groupID = initiatorId+"_"+groupCreateDTO.getRecruitmentId()+"_"+accepterId;
-//        OpenimGroupCreateDTO.GroupInfo groupInfo = OpenimGroupCreateDTO.GroupInfo.builder()
-//                .groupID(groupID)
-//                .groupName(groupID)
-//                .groupType(2)
-//                .needVerification(1)
-//                .applyMemberFriend(1)
-//                .lookMemberInfo(0)
-//                .build();
-//        List<String> memberUserIDs = new ArrayList<>();
-//        //私聊
-//
-//            //设置拓展字段，设置成员id
-//            groupInfo.setEx("私聊");
-//            memberUserIDs.add(initiator.toString());
-//            memberUserIDs.add(accepter.toString());
-//
-//        //客服
-//
-//            //设置拓展字段，设置成员id
-//            groupInfo.setEx("客服");
-//            memberUserIDs.add(initiator.toString());
-//            memberUserIDs.add(accepter.toString());
-//            //TODO 需要完成客服分配
-//            //memberUserIDs.add()
-//
-//        OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
-//                .memberUserIDs(memberUserIDs)
-//                .ownerUserID("")//TODO 需要创建机器人账号，这里填写机器人账号
-//                .groupInfo(groupInfo)
-//                .build();
-//        //发送创建群组请求
-//        OpenimResult<GroupInfo> result = openimFeignClient.createGroup(
-//                String.valueOf(System.currentTimeMillis()),
-//                openImService.getAdminToken()
-//                ,openimGroupCreateDTO);
-//        if (result.getErrCode() != 0){
-//            throw new OpenimRequestErrorException("创建群组失败");
-//        }
-//        //返回前端
-//        return result.getData();
-//        //前端需要将群两个人的名字头像信息存入数据库，
-//        //后端创建私聊需要完整的权限校验和权限限制
-//        //然后监听onGroupMemberInfoChanged回调，当发生改变的时候修改前端数据库，然后刷新界面信息
-//    }
-
-    //创建私聊
     /**
      * @description 创建私聊
      * @author CyberCaelum
@@ -184,7 +106,7 @@ public class GroupServiceImpl implements GroupService {
         //设置群组
         OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
                 .memberUserIDs(memberUserIDs)
-                .ownerUserID("13")//TODO 需要创建机器人账号，这里填写机器人账号
+                .ownerUserID(RobotConstant.id.toString())
                 .groupInfo(groupInfo)
                 .build();
         //发送创建群组请求
@@ -243,11 +165,10 @@ public class GroupServiceImpl implements GroupService {
         //设置拓展字段
         groupInfo.setEx("客服");
         memberUserIDs.add(initiatorId.toString());
-        //TODO 添加机器人账号
         //设置群组
         OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
                 .memberUserIDs(memberUserIDs)
-                .ownerUserID("13")//TODO 需要创建机器人账号，这里填写机器人账号
+                .ownerUserID(RobotConstant.id.toString())
                 .groupInfo(groupInfo)
                 .build();
         //发送创建群组请求
@@ -276,22 +197,105 @@ public class GroupServiceImpl implements GroupService {
     }
 
     //创建争议群聊
+    //TODO 只创建一个争议群聊，不分类型，详细信息由系统号发送到群聊中进行标识
+    //TODO 需要编写系统号发送信息feign接口
     @Override
     public GroupInfo createDisputeChat(DisputeSessionDTO disputeSessionDTO){
         //订单争议
         if (disputeSessionDTO.getOrderId() != null
                 && disputeSessionDTO.getDailyConfirmationId() == null){
             //查找订单信息，确认聊天双方
+            Order order = orderMapper.getOrderById(disputeSessionDTO.getOrderId());
+            Long employerId = order.getEmployerId();
+            Long employeeId = order.getEmployeeId();
             //创建双方的群组，dispute_order_双方id+订单id
-
+            String groupId = "dispute_order_" + employerId + "_" + employeeId;
+            List<String> memberUserIDs = new ArrayList<>();
+            memberUserIDs.add(employerId.toString());
+            memberUserIDs.add(employeeId.toString());
+            //设置群组信息
+            OpenimGroupCreateDTO.GroupInfo groupInfo = OpenimGroupCreateDTO.GroupInfo.builder()
+                    .groupID(groupId)
+                    .groupName("订单争议-" + disputeSessionDTO.getOrderId())
+                    .build();
+            //设置群组
+            OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
+                    .memberUserIDs(memberUserIDs)
+                    .ownerUserID(RobotConstant.id.toString())
+                    .groupInfo(groupInfo)
+                    .build();
+            //发送创建群组请求
+            OpenimResult<GroupInfo> groupResult = openimFeignClient.createGroup(
+                    String.valueOf(System.currentTimeMillis()),
+                    openImService.getAdminToken()
+                    ,openimGroupCreateDTO);
+            //判断是否错误或者已经存在群组
+            if (groupResult.getErrCode() != 0 && groupResult.getErrCode() != 1202){
+                throw new OpenimRequestErrorException("创建争议群组失败");
+            }
+            //群组已存在,查询群组信息并返回
+            if (groupResult.getErrCode() == 1202){
+                OpenimResult<GroupListDTO> groupsInfo = openimFeignClient.getGroupsInfo(
+                        String.valueOf(System.currentTimeMillis()),
+                        openImService.getAdminToken()
+                        ,new ArrayList<>(Arrays.asList(groupId))
+                );
+                if (groupsInfo.getErrCode() != 0){
+                    throw new OpenimRequestErrorException("查询客服群组信息失败");
+                }
+                return groupsInfo.getData().getGroupInfos().get(0);
+            }
+            return groupResult.getData();
         }
         //每日确定争议
         if (disputeSessionDTO.getOrderId() ==null
                 && disputeSessionDTO.getDailyConfirmationId() != null){
             //查找订单确认聊天双方，
+            DailyConfirmation dailyConfirmation = dailyConfirmationMapper.selectById(disputeSessionDTO.getDailyConfirmationId());
+            Order order = orderMapper.getOrderById(dailyConfirmation.getOrderId());
+            Long employerId = order.getEmployerId();
+            Long employeeId = order.getEmployeeId();
             //dispute_daily_双方id+每日确认id
+            String groupId = "dispute_daily_" + employerId + "_" + employeeId;
+            List<String> memberUserIDs = new ArrayList<>();
+            memberUserIDs.add(employerId.toString());
+            memberUserIDs.add(employeeId.toString());
+            //设置群组信息
+            OpenimGroupCreateDTO.GroupInfo groupInfo = OpenimGroupCreateDTO.GroupInfo.builder()
+                    .groupID(groupId)
+                    .groupName("每日确定争议-" + disputeSessionDTO.getDailyConfirmationId())
+                    .build();
+            //设置群组
+            OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()
+                    .memberUserIDs(memberUserIDs)
+                    .ownerUserID(RobotConstant.id.toString())
+                    .groupInfo(groupInfo)
+                    .build();
+            //发送创建群组请求
+            OpenimResult<GroupInfo> groupResult = openimFeignClient.createGroup(
+                    String.valueOf(System.currentTimeMillis()),
+                    openImService.getAdminToken()
+                    ,openimGroupCreateDTO);
+            //判断是否错误或者已经存在群组
+            if (groupResult.getErrCode() != 0 && groupResult.getErrCode() != 1202){
+                throw new OpenimRequestErrorException("创建争议群组失败");
+            }
+            //群组已存在,查询群组信息并返回
+            if (groupResult.getErrCode() == 1202){
+                OpenimResult<GroupListDTO> groupsInfo = openimFeignClient.getGroupsInfo(
+                        String.valueOf(System.currentTimeMillis()),
+                        openImService.getAdminToken()
+                        ,new ArrayList<>(Arrays.asList(groupId))
+                );
+                if (groupsInfo.getErrCode() != 0){
+                    throw new OpenimRequestErrorException("查询客服群组信息失败");
+                }
+                return groupsInfo.getData().getGroupInfos().get(0);
+            }
+            return groupResult.getData();
         }
-        return null;
+        else {
+            throw new GroupCreateErrorException("群组创建错误");
+        }
     }
-    //争议的群组id为发起人id_订单id_接受人id_客服id
 }
