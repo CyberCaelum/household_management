@@ -1,5 +1,6 @@
 package org.cybercaelum.household_management.service;
 
+import org.cybercaelum.household_management.pojo.dto.DisputeSessionDTO;
 import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
 import org.cybercaelum.household_management.pojo.vo.GroupInfo;
 
@@ -14,4 +15,6 @@ public interface GroupService {
     GroupInfo createPrivateChat(GroupCreateDTO groupCreateDTO);
 
     GroupInfo createCsChat(GroupCreateDTO groupCreateDTO);
+
+    GroupInfo createDisputeChat(DisputeSessionDTO disputeSessionDTO);
 }

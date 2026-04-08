@@ -17,6 +17,7 @@ import org.cybercaelum.household_management.mapper.*;
 import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.*;
+import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.cybercaelum.household_management.service.OrderService;
 import org.cybercaelum.household_management.service.RecruitmentService;
 import org.cybercaelum.household_management.utils.WechatPayUtil;
@@ -53,6 +54,7 @@ public class OrderServiceImpl implements OrderService {
     private final WechatPayUtil wechatPayUtil;
     private final RocketMQClientTemplate rocketMQClientTemplate;
     private final DisputeResolutionMapper disputeResolutionMapper;
+    private final CustomerServiceService customerServiceService;
 
     /**
      * @description 提交订单
@@ -914,9 +916,16 @@ public class OrderServiceImpl implements OrderService {
                 .status(DailyConfirmationStatusConstant.EMPLOYER_REJECTED)
                 .disputeReason(reason)
                 .build();
-        //TODO 确认为争议后怎么处理？
-        //自动通知平台介入，创建客服雇员雇主的群组，把订单，争议都发送到群组里
         dailyConfirmationMapper.update(updateConfirmation);
+        //TODO 确认为争议后怎么处理？
+        //获取雇员
+        Long employeeId = order.getEmployeeId();
+        //分配客服
+
+
+        //自动通知平台介入，创建客服雇员雇主的群组，把订单，争议都发送到群组里
+        //TODO 管理员手动分配客服，让客服加入群组
+
     }
 
     /**
