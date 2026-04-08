@@ -8,10 +8,7 @@ import org.cybercaelum.household_management.exception.*;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.mapper.RecruitmentMapper;
 import org.cybercaelum.household_management.mapper.UserMapper;
-import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
-import org.cybercaelum.household_management.pojo.dto.GroupListDTO;
-import org.cybercaelum.household_management.pojo.dto.ImportFriendDTO;
-import org.cybercaelum.household_management.pojo.dto.OpenimGroupCreateDTO;
+import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.OpenimGroup;
 import org.cybercaelum.household_management.pojo.entity.OpenimResult;
 import org.cybercaelum.household_management.pojo.entity.Recruitment;
@@ -278,7 +275,23 @@ public class GroupServiceImpl implements GroupService {
         return groupResult.getData();
     }
 
-    //TODO 将指定用户拉入指定群组
+    //创建争议群聊
+    @Override
+    public GroupInfo createDisputeChat(DisputeSessionDTO disputeSessionDTO){
+        //订单争议
+        if (disputeSessionDTO.getOrderId() != null
+                && disputeSessionDTO.getDailyConfirmationId() == null){
+            //查找订单信息，确认聊天双方
+            //创建双方的群组，dispute_order_双方id+订单id
 
+        }
+        //每日确定争议
+        if (disputeSessionDTO.getOrderId() ==null
+                && disputeSessionDTO.getDailyConfirmationId() != null){
+            //查找订单确认聊天双方，
+            //dispute_daily_双方id+每日确认id
+        }
+        return null;
+    }
     //争议的群组id为发起人id_订单id_接受人id_客服id
 }

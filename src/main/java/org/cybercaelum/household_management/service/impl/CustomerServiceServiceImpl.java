@@ -235,7 +235,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         //从排队中移除
         removeFromWaitingQueue(userId);
         //将客服加入群聊
-        joinCsToGroup(userId, csId);
+        joinCsToGroup(userId, csId,"cs_"+userId);
 
         //返回客服id
         return CsGroupAssignmentResult.builder()
@@ -251,10 +251,10 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * @date 2026/4/1
      * @param userId 用户id
      * @param csId 客服id
+     * @param groupId 群组id
      **/
-    private void joinCsToGroup(Long userId, String csId) {
+    private void joinCsToGroup(Long userId, String csId,String groupId) {
         try {
-            String groupId = "cs_" + userId;
             JoinGroupDTO joinGroupDTO = JoinGroupDTO.builder()
                     .groupID(groupId)
                     .joinSource(1) // 管理员邀请
@@ -746,4 +746,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
             throw new SessionEndErrorException("会话不存在或已结束");
         }
     }
+
+    //TODO 分配争议给客服
+
 }
