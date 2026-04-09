@@ -33,4 +33,7 @@ public interface DisputeResolutionMapper {
      **/
     @Select("select * from dispute_resolution where order_id = #{id} and source_type = #{sourceType}")
     DisputeResolution selectDisputeResolutionByOrderId(Long id,Integer sourceType);
+
+    @Select("select * from dispute_resolution where id = #{disputeId}")
+    DisputeResolution selectById(Long disputeId);
 }

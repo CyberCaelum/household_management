@@ -97,4 +97,6 @@ public interface CustomerServiceService {
      * @return org.cybercaelum.household_management.pojo.vo.CsStatisticsVO
      **/
     org.cybercaelum.household_management.pojo.vo.CsStatisticsVO getCsStatistics(Long csId);
+
+    void assignDispute(Long disputeId, Long kefuId);
 }
