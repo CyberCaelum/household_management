@@ -14,10 +14,13 @@ import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
 import org.cybercaelum.household_management.pojo.dto.JoinGroupDTO;
 import org.cybercaelum.household_management.pojo.dto.SessionEndDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.pojo.vo.CsStatisticsVO;
+import org.cybercaelum.household_management.pojo.vo.PendingDisputeVO;
 import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.cybercaelum.household_management.service.OpenImService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,20 +44,21 @@ public class CustomerServiceController {
     @SecurityRequirement(name = "bearerAuth")
     @RequireRole({RoleConstant.ADMIN, RoleConstant.CUSTOMER_SERVICE})
     @GetMapping("/disputes/pending")
-    public Result getPendingDisputes() {
+    public Result<List<PendingDisputeVO>> getPendingDisputes() {
         log.info("获取待处理争议列表");
-        // TODO: 实现业务逻辑
-        return Result.success();
+        List<PendingDisputeVO> list = customerServiceService.getPendingDisputes();
+        return Result.success(list);
     }
 
     @Operation(summary = "获取客服统计", description = "获取客服工作统计数据")
     @SecurityRequirement(name = "bearerAuth")
     @RequireRole({RoleConstant.ADMIN, RoleConstant.CUSTOMER_SERVICE})
     @GetMapping("/statistics")
-    public Result getStatistics() {
+    public Result<CsStatisticsVO> getStatistics() {
         log.info("获取客服统计");
-        // TODO: 实现业务逻辑
-        return Result.success();
+        Long csId = BaseContext.getUserId();
+        CsStatisticsVO statistics = customerServiceService.getCsStatistics(csId);
+        return Result.success(statistics);
     }
 
     @Operation(summary = "分配争议给客服", description = "将争议工单分配给指定客服")

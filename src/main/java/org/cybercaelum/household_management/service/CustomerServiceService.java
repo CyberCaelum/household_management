@@ -80,4 +80,21 @@ public interface CustomerServiceService {
     void toEndSession(SessionEndDTO sessionEndDTO);
 
     void releaseCsSession(Long csId, Long userId);
+
+    /**
+     * @description 获取待处理争议列表
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @return java.util.List<org.cybercaelum.household_management.pojo.vo.PendingDisputeVO>
+     **/
+    java.util.List<org.cybercaelum.household_management.pojo.vo.PendingDisputeVO> getPendingDisputes();
+
+    /**
+     * @description 获取客服统计信息
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @param csId 客服ID（可选，为null则只返回总体统计）
+     * @return org.cybercaelum.household_management.pojo.vo.CsStatisticsVO
+     **/
+    org.cybercaelum.household_management.pojo.vo.CsStatisticsVO getCsStatistics(Long csId);
 }

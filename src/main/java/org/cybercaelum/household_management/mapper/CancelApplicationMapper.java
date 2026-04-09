@@ -49,4 +49,22 @@ public interface CancelApplicationMapper {
      */
     @Select("SELECT * FROM cancel_application WHERE status = 4")
     List<CancelApplication> selectPlatformProcessing();
+
+    /**
+     * @description 查询所有待平台处理的取消申请（status = 4 平台介入处理中）
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @return java.util.List<org.cybercaelum.household_management.pojo.entity.CancelApplication>
+     **/
+    @Select("SELECT * FROM cancel_application WHERE status = 4 ORDER BY create_time DESC")
+    List<CancelApplication> selectPendingCancelApplications();
+
+    /**
+     * @description 统计待平台处理的取消申请数量（status = 4 平台介入处理中）
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @return java.lang.Integer
+     **/
+    @Select("SELECT COUNT(*) FROM cancel_application WHERE status = 4")
+    Integer countPendingCancelApplications();
 }

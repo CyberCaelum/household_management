@@ -64,4 +64,22 @@ public interface DailyConfirmationMapper {
      * @param list 确认记录列表
      **/
     void batchInsert(List<DailyConfirmation> list);
+
+    /**
+     * @description 查询所有待处理的争议记录（status = 2 雇主拒绝/争议）
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @return java.util.List<org.cybercaelum.household_management.pojo.entity.DailyConfirmation>
+     **/
+    @Select("SELECT * FROM daily_confirmation WHERE status = 2 ORDER BY create_time DESC")
+    List<DailyConfirmation> selectPendingDisputes();
+
+    /**
+     * @description 统计待处理的争议数量（status = 2 雇主拒绝/争议）
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @return java.lang.Integer
+     **/
+    @Select("SELECT COUNT(*) FROM daily_confirmation WHERE status = 2")
+    Integer countPendingDisputes();
 }

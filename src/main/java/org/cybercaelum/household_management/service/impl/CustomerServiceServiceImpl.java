@@ -12,9 +12,12 @@ import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.GroupCreateErrorException;
 import org.cybercaelum.household_management.exception.SessionEndErrorException;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
-import org.cybercaelum.household_management.mapper.UserMapper;
+import org.cybercaelum.household_management.mapper.*;
 import org.cybercaelum.household_management.pojo.dto.*;
-import org.cybercaelum.household_management.pojo.entity.User;
+import org.cybercaelum.household_management.pojo.entity.*;
+import org.cybercaelum.household_management.pojo.vo.*;
+import org.cybercaelum.household_management.constant.CancelApplicationStatusConstant;
+import org.cybercaelum.household_management.constant.DailyConfirmationStatusConstant;
 import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.cybercaelum.household_management.service.OpenImService;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -22,6 +25,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +49,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final ObjectMapper objectMapper;
     private final OpenimFeignClient openimFeignClient;
     private final OpenImService openImService;
+    private final DailyConfirmationMapper dailyConfirmationMapper;
+    private final CancelApplicationMapper cancelApplicationMapper;
+    private final OrderMapper orderMapper;
     private static final long TASK_TTL_MINUTES = 20;
 
     /**
@@ -748,5 +755,153 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     }
 
     //TODO 分配争议给客服
+
+    /**
+     * @description 获取待处理争议列表
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @return java.util.List<org.cybercaelum.household_management.pojo.vo.PendingDisputeVO>
+     **/
+    @Override
+    public List<PendingDisputeVO> getPendingDisputes() {
+        List<PendingDisputeVO> result = new ArrayList<>();
+        
+        // 1. 查询平台介入中的取消申请（status = 4）
+        List<CancelApplication> cancelApplications = cancelApplicationMapper.selectPendingCancelApplications();
+        for (CancelApplication app : cancelApplications) {
+            // 查询订单信息
+            Order order = orderMapper.getOrderById(app.getOrderId());
+            String orderNumber = order != null ? order.getOrderNumber() : "";
+            
+            // 查询申请人信息
+            User applicant = userMapper.getById(app.getApplicantId());
+            String applicantName = applicant != null ? applicant.getUsername() : "";
+            
+            PendingDisputeVO vo = PendingDisputeVO.builder()
+                    .id(app.getId())
+                    .disputeType(1)
+                    .disputeTypeName("取消申请争议")
+                    .orderId(app.getOrderId())
+                    .orderNumber(orderNumber)
+                    .sourceId(app.getId())
+                    .reason(app.getReason())
+                    .status(app.getStatus())
+                    .statusName("平台介入处理中")
+                    .applicantId(app.getApplicantId())
+                    .applicantName(applicantName)
+                    .applicantRole(app.getApplicantRole())
+                    .applicantRoleName(app.getApplicantRole() == 1 ? "雇主" : "家政人员")
+                    .serviceDate(null)
+                    .createTime(app.getCreateTime())
+                    .build();
+            result.add(vo);
+        }
+        
+        // 2. 查询每日确认争议（status = 2 雇主拒绝/争议）
+        List<DailyConfirmation> dailyConfirmations = dailyConfirmationMapper.selectPendingDisputes();
+        for (DailyConfirmation confirmation : dailyConfirmations) {
+            // 查询订单信息
+            Order order = orderMapper.getOrderById(confirmation.getOrderId());
+            String orderNumber = order != null ? order.getOrderNumber() : "";
+            
+            PendingDisputeVO vo = PendingDisputeVO.builder()
+                    .id(confirmation.getId())
+                    .disputeType(2)
+                    .disputeTypeName("每日确认争议")
+                    .orderId(confirmation.getOrderId())
+                    .orderNumber(orderNumber)
+                    .sourceId(confirmation.getId())
+                    .reason(confirmation.getDisputeReason())
+                    .status(confirmation.getStatus())
+                    .statusName("雇主争议")
+                    .applicantId(null) // 每日确认争议是雇主发起的，但表中没记录，可以从订单中获取雇主ID
+                    .applicantName("")
+                    .applicantRole(1)
+                    .applicantRoleName("雇主")
+                    .serviceDate(confirmation.getServiceDate())
+                    .createTime(confirmation.getCreateTime())
+                    .build();
+            
+            // 补充申请人信息
+            if (order != null) {
+                vo.setApplicantId(order.getEmployerId());
+                User employer = userMapper.getById(order.getEmployerId());
+                if (employer != null) {
+                    vo.setApplicantName(employer.getUsername());
+                }
+            }
+            
+            result.add(vo);
+        }
+        
+        // 按创建时间倒序排列
+        result.sort((a, b) -> {
+            if (a.getCreateTime() == null || b.getCreateTime() == null) {
+                return 0;
+            }
+            return b.getCreateTime().compareTo(a.getCreateTime());
+        });
+        
+        return result;
+    }
+
+    /**
+     * @description 获取客服统计信息
+     * @author CyberCaelum
+     * @date 2026/4/9
+     * @param csId 客服ID（可选，为null则只返回总体统计）
+     * @return org.cybercaelum.household_management.pojo.vo.CsStatisticsVO
+     **/
+    @Override
+    public CsStatisticsVO getCsStatistics(Long csId) {
+        CsStatisticsVO.CsStatisticsVOBuilder builder = CsStatisticsVO.builder();
+        
+        // 1. 在线客服数量
+        Set<String> onlineCsIds = stringRedisTemplate.opsForSet().members(
+                CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY
+        );
+        builder.onlineCsCount(onlineCsIds != null ? onlineCsIds.size() : 0);
+        
+        // 2. 当前会话数量（所有客服的会话总数）
+        int totalSessions = 0;
+        if (onlineCsIds != null) {
+            for (String onlineCsId : onlineCsIds) {
+                String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(onlineCsId));
+                String currentSessionsStr = (String) stringRedisTemplate.opsForHash().get(onlineKey, "currentSessions");
+                if (currentSessionsStr != null) {
+                    totalSessions += Integer.parseInt(currentSessionsStr);
+                }
+            }
+        }
+        builder.currentSessionCount(totalSessions);
+        
+        // 3. 等待队列人数
+        Long waitingCount = stringRedisTemplate.opsForSet().size(
+                CustomerServiceRedisKeyConstant.CS_WAITING_SET_KEY
+        );
+        builder.waitingQueueCount(waitingCount != null ? waitingCount.intValue() : 0);
+        
+        // 4. 待处理争议数量（取消申请 + 每日确认争议）
+        Integer cancelDisputeCount = cancelApplicationMapper.countPendingCancelApplications();
+        Integer dailyDisputeCount = dailyConfirmationMapper.countPendingDisputes();
+        builder.pendingDisputeCount((cancelDisputeCount != null ? cancelDisputeCount : 0) 
+                + (dailyDisputeCount != null ? dailyDisputeCount : 0));
+        
+        // 5. 当前客服的会话数量和最大限制（如果提供了csId）
+        if (csId != null) {
+            String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
+            String currentSessionsStr = (String) stringRedisTemplate.opsForHash().get(onlineKey, "currentSessions");
+            String maxSessionsStr = (String) stringRedisTemplate.opsForHash().get(onlineKey, "maxSessions");
+            
+            builder.mySessionCount(currentSessionsStr != null ? Integer.parseInt(currentSessionsStr) : 0);
+            builder.myMaxSessions(maxSessionsStr != null ? Integer.parseInt(maxSessionsStr) 
+                    : CustomerServiceConstant.DEFAULT_MAX_SESSIONS);
+        } else {
+            builder.mySessionCount(0);
+            builder.myMaxSessions(CustomerServiceConstant.DEFAULT_MAX_SESSIONS);
+        }
+        
+        return builder.build();
+    }
 
 }
