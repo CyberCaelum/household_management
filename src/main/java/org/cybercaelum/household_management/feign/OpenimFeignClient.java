@@ -128,4 +128,11 @@ public interface OpenimFeignClient {
             @RequestHeader("token") String token,
             @RequestBody QuitGroupDTO request
     );
+
+    @PostMapping("/msg/send_msg")
+    OpenimResult<MsgSendResultDTO> sendMag(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody MessageSendDTO request
+    );
 }
