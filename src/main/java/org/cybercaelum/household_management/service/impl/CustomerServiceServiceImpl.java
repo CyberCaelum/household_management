@@ -52,6 +52,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final DailyConfirmationMapper dailyConfirmationMapper;
     private final CancelApplicationMapper cancelApplicationMapper;
     private final OrderMapper orderMapper;
+    private final DisputeResolutionMapper disputeResolutionMapper;
     private static final long TASK_TTL_MINUTES = 20;
 
     /**
@@ -754,8 +755,6 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         }
     }
 
-    //TODO 分配争议给客服
-
     /**
      * @description 获取待处理争议列表
      * @author CyberCaelum
@@ -902,6 +901,32 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         }
         
         return builder.build();
+    }
+
+    /**
+     * @description 分配争议给客服
+     * @author CyberCaelum
+     * @date 上午10:21 2026/4/9
+     * @param disputeId 争议id
+     * @param kefuId 客服id
+     **/
+    @Override
+    public void assignDispute(Long disputeId, Long kefuId) {
+        //获取争议群组
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectById(disputeId);
+        Order order = orderMapper.getOrderById(disputeResolution.getOrderId());
+        Long employerId = order.getEmployerId();
+        Long employeeId = order.getEmployerId();
+
+        //将客服加入群组
+        joinCsToGroup(employeeId,kefuId.toString(),"dispute"+"_"+employeeId+"_"+employerId);
+        //系统账号发送争议信息
+        //TODO 发送信息，信息需要特殊格式如json
+        openimFeignClient.sendMag(
+                String.valueOf(System.currentTimeMillis()),
+                openImService.getAdminToken(),
+                new MessageSendDTO()
+        );
     }
 
 }
