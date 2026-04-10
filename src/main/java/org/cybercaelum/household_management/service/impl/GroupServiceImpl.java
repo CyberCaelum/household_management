@@ -198,7 +198,6 @@ public class GroupServiceImpl implements GroupService {
         return groupResult.getData();
     }
 
-    //TODO 只创建一个争议群聊，不分类型，详细信息由系统号发送到群聊中进行标识
     /**
      * @description 创建争议群组
      * @author CyberCaelum
@@ -220,11 +219,17 @@ public class GroupServiceImpl implements GroupService {
             employeeId = order.getEmployeeId();
         }
         //每日确定争议
-        if (disputeSessionDTO.getOrderId() !=null
+        else if (disputeSessionDTO.getOrderId() != null
                 && disputeSessionDTO.getDailyConfirmationId() != null) {
             //查找订单确认聊天双方，
             DailyConfirmation dailyConfirmation = dailyConfirmationMapper.selectById(disputeSessionDTO.getDailyConfirmationId());
+            if (dailyConfirmation == null) {
+                throw new GroupCreateErrorException("每日确认记录不存在");
+            }
             Order order = orderMapper.getOrderById(dailyConfirmation.getOrderId());
+            if (order == null) {
+                throw new GroupCreateErrorException("订单不存在");
+            }
             employerId = order.getEmployerId();
             employeeId = order.getEmployeeId();
         }

@@ -68,7 +68,6 @@ public class CustomerServiceController {
     public Result assignDispute(@PathVariable Long disputeId, 
                                  @RequestParam Long kefuId) {
         log.info("分配争议 {} 给客服 {}", disputeId, kefuId);
-        // TODO: 实现业务逻辑，自动将客服拉入群组，系统发送争议信息
         customerServiceService.assignDispute(disputeId,kefuId);
         return Result.success();
     }

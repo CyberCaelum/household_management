@@ -1,31 +1,31 @@
 package org.cybercaelum.household_management.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cybercaelum.household_management.constant.CustomerServiceConstant;
-import org.cybercaelum.household_management.constant.CustomerServiceRedisKeyConstant;
-import org.cybercaelum.household_management.constant.OpenimCallbackCommandConstant;
-import org.cybercaelum.household_management.constant.RoleConstant;
+import org.cybercaelum.household_management.constant.*;
 import org.cybercaelum.household_management.context.BaseContext;
+import org.cybercaelum.household_management.exception.DisputeResolutionIsNullException;
 import org.cybercaelum.household_management.exception.GroupCreateErrorException;
+import org.cybercaelum.household_management.exception.OrderNotFoundException;
 import org.cybercaelum.household_management.exception.SessionEndErrorException;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.mapper.*;
 import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.*;
-import org.cybercaelum.household_management.constant.CancelApplicationStatusConstant;
-import org.cybercaelum.household_management.constant.DailyConfirmationStatusConstant;
 import org.cybercaelum.household_management.service.CustomerServiceService;
 import org.cybercaelum.household_management.service.OpenImService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,13 +78,21 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         if (RoleConstant.CUSTOMER_SERVICE != user.getRole()){
             return OpenimCallbackDTO.builder().build();
         }
+        
+        // 检查客服是否已在 Redis 中，防止重复初始化
+        String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
+        Boolean isExists = stringRedisTemplate.hasKey(onlineKey);
+        if (Boolean.TRUE.equals(isExists)) {
+            log.info("客服 {} 已在线，跳过重复初始化", csId);
+            return OpenimCallbackDTO.builder().build();
+        }
+        
         //将客服的信息放入redis的所有在线客服合集
         stringRedisTemplate.opsForSet().add(
                 CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
                 String.valueOf(csId)
         );
         //存储客服在线状态
-        String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
         Map<String,String> csInfo = new HashMap<>();
         csInfo.put("csId",String.valueOf(csId));//客服id
         csInfo.put("maxSessions",String.valueOf(CustomerServiceConstant.DEFAULT_MAX_SESSIONS));//最大会话数量限制
@@ -124,6 +132,35 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
             return OpenimCallbackDTO.builder().build();
         }
         
+        // 延迟1秒后查询OpenIM确认用户真实状态，防止网络波动导致误判
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("客服离线处理线程被中断，csId={}", csId);
+        }
+        
+        // 查询OpenIM中的用户在线状态
+        GetUsersOnlineStatusDTO statusDTO = new GetUsersOnlineStatusDTO(
+                Arrays.asList(String.valueOf(csId))
+        );
+        OpenimResult<List<UserOnlineStatusDTO>> statusResult = openimFeignClient.getUsersOnlineStatus(
+                String.valueOf(System.currentTimeMillis()),
+                openImService.getAdminToken(),
+                statusDTO
+        );
+        
+        // 查询失败或用户实际仍在线，则不处理离线逻辑
+        if (statusResult.getErrCode() == 0 
+                && !statusResult.getData().isEmpty() 
+                && statusResult.getData().get(0).getStatus() == 1) {
+            log.info("客服 {} 实际仍在线，跳过离线处理", csId);
+            return OpenimCallbackDTO.builder().build();
+        }
+        
+        // 用户确实离线，继续处理离线逻辑
+        log.info("客服 {} 确认离线，开始处理离线逻辑", csId);
+
         // 1. 先从在线集合中移除客服，防止 processWaitingQueue 将其作为候选
         stringRedisTemplate.opsForSet().remove(
                 CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
@@ -911,21 +948,45 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * @param kefuId 客服id
      **/
     @Override
+    @Transactional
     public void assignDispute(Long disputeId, Long kefuId) {
         //获取争议群组
         DisputeResolution disputeResolution = disputeResolutionMapper.selectById(disputeId);
+        if (disputeResolution == null) {
+            throw new DisputeResolutionIsNullException("争议不存在");
+        }
         Order order = orderMapper.getOrderById(disputeResolution.getOrderId());
+        if (order == null) {
+            throw new OrderNotFoundException("订单不存在");
+        }
         Long employerId = order.getEmployerId();
-        Long employeeId = order.getEmployerId();
-
+        Long employeeId = order.getEmployeeId();
+        String groupId = "dispute"+"_"+employeeId+"_"+employerId;
         //将客服加入群组
-        joinCsToGroup(employeeId,kefuId.toString(),"dispute"+"_"+employeeId+"_"+employerId);
-        //系统账号发送争议信息
-        //TODO 发送信息，信息需要特殊格式如json
+        joinCsToGroup(employeeId,kefuId.toString(),groupId);
+        //创建消息
+        Map<String,String> msg = new HashMap<>();
+        msg.put("sourceType",disputeResolution.getSourceType().toString());
+        msg.put("sourceId",disputeResolution.getSourceId().toString());
+        msg.put("createTime",disputeResolution.getCreatedTime().toString());
+        String jsonMsg = JSON.toJSONString(msg);
+        MessageSendDTO.Content content = MessageSendDTO.Content.builder()
+                                                .data(jsonMsg)
+                                                .description("争议信息")
+                                                .extension("争议信息")
+                                                .build();
+        MessageSendDTO messageSendDTO = MessageSendDTO.builder()
+                        .sendID(RobotConstant.id.toString())
+                        .recvID(groupId)
+                        .content(content)
+                        .contentType(110)
+                        .sessionType(3)
+                        .build();
+        //发送消息
         openimFeignClient.sendMag(
                 String.valueOf(System.currentTimeMillis()),
                 openImService.getAdminToken(),
-                new MessageSendDTO()
+                messageSendDTO
         );
     }
 
