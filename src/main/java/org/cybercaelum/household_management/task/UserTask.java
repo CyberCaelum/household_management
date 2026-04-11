@@ -26,61 +26,104 @@ import java.util.Set;
  * @description: 用户定时任务
  * @date 2026/3/29
  */
-@Component
-@Slf4j
-@RequiredArgsConstructor
-public class UserTask {
-
-    private final StringRedisTemplate stringRedisTemplate;
-    private final OpenimFeignClient openimFeignClient;
-    private final OpenImService openImService;
-    private final CustomerServiceService customerServiceService;
-
-    /**
-     * @description 定时清理不在线的客服
-     * @author CyberCaelum
-     * @date 2026/3/29
-     **/
-    @Scheduled(fixedDelay = 60000)//一分钟
-    public void cleanOfflineCustomerServiceTask(){
-        //从redis中获取在线的客服
-        Set<String> onlineCsIds = stringRedisTemplate.opsForSet().members(
-                CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY);
-        if (onlineCsIds == null || onlineCsIds.isEmpty()) {
-            return; // 没有在线客服，直接返回
-        }
-        //从openim中获取在线状态
-        GetUsersOnlineStatusDTO getUsersOnlineStatusDTO = new GetUsersOnlineStatusDTO(new ArrayList<>(onlineCsIds));
-        OpenimResult<List<UserOnlineStatusDTO>> userOnlineStatusDTOs = openimFeignClient.getUsersOnlineStatus(
-                String.valueOf(System.currentTimeMillis()),
-                openImService.getAdminToken(),
-                getUsersOnlineStatusDTO);
-        //判断请求是否成功
-        if (userOnlineStatusDTOs.getErrCode() != 0){
-            log.error("获取用户在线状态失败: {}", userOnlineStatusDTOs.getErrMsg());
-        }
-        //对比在线状态
-        Set<String> trulyOnlineUserIds = new HashSet<>();
-        for (UserOnlineStatusDTO userStatus : userOnlineStatusDTOs.getData()){
-            if (userStatus.getStatus() == 1){
-                trulyOnlineUserIds.add(userStatus.getUserID());
-            }
-        }
-        //计算离线客服
-        Set<String> offlineUserIds = new HashSet<>(onlineCsIds);
-        offlineUserIds.removeAll(trulyOnlineUserIds);
-
-        //遍历离线客服清除会话信息
-        for (String userId : offlineUserIds){
-            //将客服信息从set中删除
-            stringRedisTemplate.opsForSet().remove(
-                    CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
-                    userId);
-            //删除在线状态
-            String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(userId));
-            //结束客服的会话
-            customerServiceService.endAllSessionsByCs(Long.valueOf(userId));
-            stringRedisTemplate.delete(onlineKey);
-        }
-    }
-}
+//@Component
+//@Slf4j
+//@RequiredArgsConstructor
+//public class UserTask {
+//
+//    private final StringRedisTemplate stringRedisTemplate;
+//    private final OpenimFeignClient openimFeignClient;
+//    private final OpenImService openImService;
+//    private final CustomerServiceService customerServiceService;
+//
+//    /**
+//     * @description 定时清理不在线的客服
+//     * @author CyberCaelum
+//     * @date 2026/3/29
+//     **/
+//    @Scheduled(fixedDelay = 60000)//一分钟
+//    public void cleanOfflineCustomerServiceTask(){
+//        //从redis中获取在线的客服
+//        Set<String> onlineCsIds = stringRedisTemplate.opsForSet().members(
+//                CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY);
+//        if (onlineCsIds == null || onlineCsIds.isEmpty()) {
+//            return; // 没有在线客服，直接返回
+//        }
+//        //从openim中获取在线状态
+//        GetUsersOnlineStatusDTO getUsersOnlineStatusDTO = new GetUsersOnlineStatusDTO(new ArrayList<>(onlineCsIds));
+//        OpenimResult<List<UserOnlineStatusDTO>> userOnlineStatusDTOs = openimFeignClient.getUsersOnlineStatus(
+//                String.valueOf(System.currentTimeMillis()),
+//                openImService.getAdminToken(),
+//                getUsersOnlineStatusDTO);
+//        //判断请求是否成功
+//        if (userOnlineStatusDTOs.getErrCode() != 0){
+//            log.error("获取用户在线状态失败: {}", userOnlineStatusDTOs.getErrMsg());
+//            return;
+//        }
+//
+//        //对比在线状态
+//        Set<String> trulyOnlineUserIds = new HashSet<>();
+//        for (UserOnlineStatusDTO userStatus : userOnlineStatusDTOs.getData()){
+//            if (userStatus.getStatus() == 1){
+//                trulyOnlineUserIds.add(userStatus.getUserID());
+//            }
+//        }
+//        //计算离线客服
+//        Set<String> offlineUserIds = new HashSet<>(onlineCsIds);
+//        offlineUserIds.removeAll(trulyOnlineUserIds);
+//
+//        if (offlineUserIds.isEmpty()) {
+//            return;
+//        }
+//
+//        log.info("检测到疑似离线客服: {}，等待3秒后二次确认", offlineUserIds);
+//
+//        // 延迟3秒后二次确认，避免OpenIM状态延迟导致的误判
+//        try {
+//            Thread.sleep(3000);
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//            return;
+//        }
+//
+//        // 二次确认：重新查询这些疑似离线的客服状态
+//        GetUsersOnlineStatusDTO confirmDTO = new GetUsersOnlineStatusDTO(new ArrayList<>(offlineUserIds));
+//        OpenimResult<List<UserOnlineStatusDTO>> confirmResult = openimFeignClient.getUsersOnlineStatus(
+//                String.valueOf(System.currentTimeMillis()),
+//                openImService.getAdminToken(),
+//                confirmDTO);
+//
+//        if (confirmResult.getErrCode() != 0) {
+//            log.error("二次确认用户在线状态失败: {}", confirmResult.getErrMsg());
+//            return;
+//        }
+//
+//        // 最终确认离线的客服
+//        Set<String> confirmedOfflineIds = new HashSet<>();
+//        for (UserOnlineStatusDTO userStatus : confirmResult.getData()) {
+//            if (userStatus.getStatus() != 1) {
+//                confirmedOfflineIds.add(userStatus.getUserID());
+//            }
+//        }
+//
+//        if (confirmedOfflineIds.isEmpty()) {
+//            log.info("二次确认后无离线客服，跳过清理");
+//            return;
+//        }
+//
+//        log.info("二次确认后离线客服: {}，执行清理", confirmedOfflineIds);
+//
+//        //遍历离线客服清除会话信息
+//        for (String userId : confirmedOfflineIds){
+//            //将客服信息从set中删除
+//            stringRedisTemplate.opsForSet().remove(
+//                    CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
+//                    userId);
+//            //删除在线状态
+//            String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(userId));
+//            //结束客服的会话
+//            customerServiceService.endAllSessionsByCs(Long.valueOf(userId));
+//            stringRedisTemplate.delete(onlineKey);
+//        }
+//    }
+//}

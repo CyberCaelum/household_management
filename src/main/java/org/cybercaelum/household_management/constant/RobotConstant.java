@@ -7,5 +7,5 @@ package org.cybercaelum.household_management.constant;
  * @date 2026/4/8 下午2:42
  */
 public class RobotConstant {
-    public static final Long id = 13L;
+    public static final Long id = 20L;
 }

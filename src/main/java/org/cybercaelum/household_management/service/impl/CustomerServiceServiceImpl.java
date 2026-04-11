@@ -79,6 +79,13 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
             return OpenimCallbackDTO.builder().build();
         }
         
+        // 延迟等待 OpenIM 内部状态同步，避免定时任务误判
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
         // 检查客服是否已在 Redis 中，防止重复初始化
         String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
         Boolean isExists = stringRedisTemplate.hasKey(onlineKey);
@@ -134,7 +141,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         
         // 延迟1秒后查询OpenIM确认用户真实状态，防止网络波动导致误判
         try {
-            Thread.sleep(1000);
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("客服离线处理线程被中断，csId={}", csId);
