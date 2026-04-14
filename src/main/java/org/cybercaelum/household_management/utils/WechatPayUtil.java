@@ -108,6 +108,11 @@ public class WechatPayUtil {
      * @return 支付二维码链接
      */
     public String createNativeOrder(String orderNo, BigDecimal amount, String description) {
+        // Mock模式：不调用微信真实接口，直接返回固定二维码链接
+        if (Boolean.TRUE.equals(wechatPayProperties.getMock())) {
+            log.info("【Mock模式】创建Native支付订单，订单号: {}, 金额: {}", orderNo, amount);
+            return "weixin://wxpay/bizpayurl?pr=MOCK" + orderNo;
+        }
         checkInitialized();
         try {
             // 将元转换为分

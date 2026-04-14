@@ -64,6 +64,22 @@ public class OrderController {
     }
 
     /**
+     * @description 模拟支付成功（仅用于开发测试）
+     * @author CyberCaelum
+     * @date 2026/4/13
+     * @param orderId 订单ID
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "模拟支付成功", description = "开发测试用，直接让订单变为已支付")
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/mockPay/{orderId}")
+    public Result mockPaySuccess(@PathVariable Long orderId) {
+        log.info("模拟支付成功，orderId: {}", orderId);
+        orderService.mockPaySuccess(orderId);
+        return Result.success();
+    }
+
+    /**
      * @description 查询订单支付状态（供前端轮询）
      * @author CyberCaelum
      * @date 2026/3/24

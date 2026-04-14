@@ -76,7 +76,7 @@ public class OrderServiceImpl implements OrderService {
         }
         //控制同一招募不能同时有多个进行中的订单
         List<Order> orders = orderMapper.getOrderByRecruitmentId(recruitmentId);
-        if (orders == null || orders.isEmpty()) {
+        if (!orders.isEmpty()) {
             throw new OrderStatusErrorException("订单已存在，请结束上一个订单");
         }
         //薪水在最大和最小之间
@@ -470,6 +470,23 @@ public class OrderServiceImpl implements OrderService {
         //生成每日确认记录
         generateDailyConfirmations(order);
         log.info("订单支付成功处理完成，订单号: {}，支付方式: {}", orderNumber, payMethod);
+    }
+
+    /**
+     * @description 模拟支付成功（开发测试用）
+     * @author CyberCaelum
+     * @date 2026/4/13
+     * @param orderId 订单ID
+     **/
+    @Override
+    @Transactional
+    public void mockPaySuccess(Long orderId) {
+        Order order = orderMapper.getOrderById(orderId);
+        if (order == null) {
+            throw new OrderNotFoundException("订单不存在");
+        }
+        log.info("模拟支付成功，订单ID: {}，订单号: {}", orderId, order.getOrderNumber());
+        paySuccess(order.getOrderNumber(), PayMethodConstant.WECHAT_PAY);
     }
 
     /**

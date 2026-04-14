@@ -38,4 +38,7 @@ public class WechatPayProperties {
 
     /** 是否沙箱环境 */
     private Boolean sandbox = false;
+
+    /** 是否Mock模式（开发测试用，不调用真实微信接口） */
+    private Boolean mock = false;
 }
