@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -133,14 +134,14 @@ public class OrderServiceImpl implements OrderService {
      * @param message 订单消息
      **/
     public void sendOrderTimeoutMessage(OrderTimeoutMessage message){
-        //计算延迟投递时间
-        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.ORDER_TIMEOUT_DEFAULT;
         try {
             org.springframework.messaging.Message<?> msg = MessageBuilder
                     .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
-                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
                     .build();
-            rocketMQClientTemplate.send(RocketMQConstant.ORDER_TIMEOUT_TOPIC+":"+RocketMQConstant.ORDER_CANCEL_TAG,msg);
+            rocketMQClientTemplate.syncSendDelayMessage(
+                    RocketMQConstant.ORDER_TIMEOUT_TOPIC + ":" + RocketMQConstant.ORDER_CANCEL_TAG,
+                    msg,
+                    Duration.ofMillis(RocketMQConstant.ORDER_TIMEOUT_DEFAULT));
         } catch (Exception e) {
             throw new RuntimeException("消息发送错误", e);
         }
@@ -214,8 +215,6 @@ public class OrderServiceImpl implements OrderService {
      * @param orderNumber 订单号
      **/
     private void sendPayTimeoutMessage(Long orderId, String orderNumber){
-        //计算延迟投递时间（5分钟后）
-        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.PAY_TIMEOUT_DEFAULT;
         try {
             PayTimeoutMessage message = new PayTimeoutMessage();
             message.setOrderId(orderId);
@@ -224,9 +223,11 @@ public class OrderServiceImpl implements OrderService {
             
             org.springframework.messaging.Message<?> msg = MessageBuilder
                     .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
-                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
                     .build();
-            rocketMQClientTemplate.send(RocketMQConstant.PAY_TIMEOUT_TOPIC + ":" + RocketMQConstant.PAY_TIMEOUT_TAG, msg);
+            rocketMQClientTemplate.syncSendDelayMessage(
+                    RocketMQConstant.PAY_TIMEOUT_TOPIC + ":" + RocketMQConstant.PAY_TIMEOUT_TAG,
+                    msg,
+                    Duration.ofMillis(RocketMQConstant.PAY_TIMEOUT_DEFAULT));
             log.info("支付超时消息已发送，订单ID: {}，订单号: {}", orderId, orderNumber);
         } catch (Exception e) {
             log.error("支付超时消息发送失败，订单ID: {}", orderId, e);
@@ -405,8 +406,6 @@ public class OrderServiceImpl implements OrderService {
      * @param refundNumber 退款单号
      **/
     private void sendRefundTimeoutMessage(Long orderId, String refundNumber){
-        //计算延迟投递时间（5分钟后）
-        long deliveryTimestamp = System.currentTimeMillis() + 5 * 60 * 1000;
         try {
             RefundTimeoutMessage message = new RefundTimeoutMessage();
             message.setOrderId(orderId);
@@ -415,9 +414,12 @@ public class OrderServiceImpl implements OrderService {
             
             org.springframework.messaging.Message<?> msg = MessageBuilder
                     .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
-                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
                     .build();
-            rocketMQClientTemplate.send(RocketMQConstant.REFUND_TIMEOUT_TOPIC + ":" + RocketMQConstant.REFUND_TIMEOUT_TAG, msg);
+            rocketMQClientTemplate.syncSendDelayMessage(
+                    RocketMQConstant.REFUND_TIMEOUT_TOPIC + ":" + RocketMQConstant.REFUND_TIMEOUT_TAG,
+                    msg,
+                    Duration.ofMinutes(5));
+            log.info("退款超时消息已发送，订单ID: {}，退款单号: {}", orderId, refundNumber);
         } catch (Exception e) {
             log.error("退款超时消息发送失败，订单ID: {}", orderId, e);
         }
@@ -466,7 +468,13 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         orderMapper.updateOrder(payedOrder);
         // 设置招募信息为隐藏
-        recruitmentService.updateRecruitmentStatus(RecruitmentStatusConstant.HIDDEN,order.getId());
+        Recruitment recruitment = recruitmentMapper.selectRecruitmentById(order.getRecruitmentId());
+        //判断招募是否存在
+        if (recruitment == null) {
+            throw new RequirementStatusException("招募不存在");
+        }
+        recruitment.setStatus(RecruitmentStatusConstant.HIDDEN);
+        recruitmentMapper.updateRecruitment(recruitment);
         //生成每日确认记录
         generateDailyConfirmations(order);
         log.info("订单支付成功处理完成，订单号: {}，支付方式: {}", orderNumber, payMethod);
@@ -506,7 +514,7 @@ public class OrderServiceImpl implements OrderService {
         
         // 2. 校验权限：只有订单相关方（雇主或被雇者）可以查询
         Long currentUserId = BaseContext.getUserId();
-        if (!currentUserId.equals(order.getEmployerId()) && !currentUserId.equals(order.getEmployeeId())) {
+        if (!currentUserId.equals(order.getEmployerId())) {
             throw new PermissionDeniedException("无权查询该订单的支付状态");
         }
         
@@ -641,7 +649,10 @@ public class OrderServiceImpl implements OrderService {
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
         }
-        
+        //不能自己接自己的单
+        if (BaseContext.getUserId().equals(order.getEmployerId())) {
+            throw new RoleErrorException("不能自己接自己的单");
+        }
         // 验证订单状态
         if (!OrderStatusConstant.TO_BE_CONFIRMED.equals(order.getStatus())) {
             throw new OrderStatusErrorException("订单状态错误，无法接单");
@@ -845,8 +856,6 @@ public class OrderServiceImpl implements OrderService {
      * @param workerConfirmTime 家政人员确认时间
      **/
     private void sendDailyConfirmTimeoutMessage(Long confirmationId, Long orderId, LocalDate serviceDate, LocalDateTime workerConfirmTime) {
-        // 计算延迟投递时间（24小时后）
-        long deliveryTimestamp = System.currentTimeMillis() + RocketMQConstant.DAILY_CONFIRM_TIMEOUT_DEFAULT;
         try {
             DailyConfirmTimeoutMessage message = new DailyConfirmTimeoutMessage();
             message.setConfirmationId(confirmationId);
@@ -857,9 +866,11 @@ public class OrderServiceImpl implements OrderService {
             
             org.springframework.messaging.Message<?> msg = MessageBuilder
                     .withPayload(JSON.toJSONString(message).getBytes(StandardCharsets.UTF_8))
-                    .setHeader("DELIVERY_TIMESTAMP", deliveryTimestamp)
                     .build();
-            rocketMQClientTemplate.send(RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TOPIC + ":" + RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TAG, msg);
+            rocketMQClientTemplate.syncSendDelayMessage(
+                    RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TOPIC + ":" + RocketMQConstant.DAILY_CONFIRM_TIMEOUT_TAG,
+                    msg,
+                    Duration.ofMillis(RocketMQConstant.DAILY_CONFIRM_TIMEOUT_DEFAULT));
             log.info("每日服务自动确认延迟消息已发送，确认记录ID: {}，订单ID: {}，服务日期: {}", 
                     confirmationId, orderId, serviceDate);
         } catch (Exception e) {

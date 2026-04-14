@@ -32,17 +32,17 @@ public class RocketMQConstant {
      */
     public static final String PAY_TIMEOUT_TAG = "PAY_TIMEOUT";
     /**
-     * 超时时间30分钟
+     * 超时时间30分钟1800000L（测试1分钟60000L）
      */
-    public static final Long ORDER_TIMEOUT_DEFAULT = 1800000L;
+    public static final Long ORDER_TIMEOUT_DEFAULT = 60000L;//1800000L
     /**
      * 支付回调超时时间5分钟
      */
     public static final Long PAY_TIMEOUT_DEFAULT = 300000L;
     /**
-     * 每日服务自动确认超时时间24小时
+     * 每日服务自动确认超时时间24小时86400000L（测试1分钟60000L）
      */
-    public static final Long DAILY_CONFIRM_TIMEOUT_DEFAULT = 86400000L;
+    public static final Long DAILY_CONFIRM_TIMEOUT_DEFAULT = 60000L;
     /**
      * 消息主题-每日服务自动确认超时
      */
