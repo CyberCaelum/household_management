@@ -30,7 +30,8 @@ spring:
       embedding:
         options:
           model: nomic-embed-text
-
+    model:
+      embedding: ollama
     retry:
       max-attempts: ${spring.ai.retry.max-attempts}
     deepseek:
