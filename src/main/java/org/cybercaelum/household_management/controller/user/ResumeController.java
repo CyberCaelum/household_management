@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.ResumeDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.entity.Resume;
@@ -37,6 +39,7 @@ public class ResumeController {
      * @param resumeDTO 简介信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/add")
     @Operation(summary = "新增简历",description = "新增简历")
@@ -69,6 +72,7 @@ public class ResumeController {
      * @param resumeDTO 简历信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/update")
     @Operation(summary = "修改简历",description = "修改简历信息")
@@ -85,6 +89,7 @@ public class ResumeController {
      * @param visibility 可见性，0为不可见，1为可见
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/visibility/{visibility}")
     @Operation(summary = "修改简历可见性",description = "修改简历可见性状态，0为不可见，1为可见")

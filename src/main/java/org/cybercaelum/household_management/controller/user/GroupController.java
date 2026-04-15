@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.GroupCreateDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.GroupInfo;
@@ -31,17 +33,6 @@ public class GroupController {
 
     private final GroupService groupService;
 
-//    //创建群组聊天
-//    @SecurityRequirement(name = "bearerAuth")
-//    @PostMapping("/create")
-//    @Operation(summary = "新增聊天群组",description = "新增聊天群组")
-//    public Result createGroup(@RequestBody GroupCreateDTO groupCreateDTO) {
-//        log.info("创建群组groupCreateDTO = {}", groupCreateDTO);
-//        //TODO 调用service
-//        GroupInfo groupInfo = groupService.createGroup(groupCreateDTO);
-//        return Result.success(groupInfo);
-//    }
-
     //创建私聊
     /**
      * @description 创建私聊
@@ -50,6 +41,7 @@ public class GroupController {
      * @param groupCreateDTO 私聊信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/create/private_chat")
     @Operation(summary = "创建私聊",description = "创建私聊")
@@ -74,7 +66,5 @@ public class GroupController {
         GroupInfo groupInfo = groupService.createCsChat(groupCreateDTO);
         return Result.success(groupInfo);
     }
-
-    //创建争议群组
 
 }

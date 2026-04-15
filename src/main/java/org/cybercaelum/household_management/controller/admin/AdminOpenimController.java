@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.OpenimBootAddDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.service.OpenimBootService;
@@ -38,6 +40,7 @@ public class AdminOpenimController {
      * @param openimBootAddDTO 机器人账号信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.ADMIN)
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/add_boot")
     @Operation(summary = "新增机器人", description = "新增机器人")

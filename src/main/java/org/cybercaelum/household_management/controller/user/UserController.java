@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.pojo.dto.UserLoginDTO;
 import org.cybercaelum.household_management.pojo.dto.UserRegisterDTO;
@@ -83,6 +85,7 @@ public class UserController {
      * @param userUpdateDTO id,用户名，电话号，密码，头像
      * @return org.cybercaelum.household_management.pojo.entity.Result<org.cybercaelum.household_management.pojo.vo.UserLoginVO>
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "更新用户信息",description = "用户更新信息")
     @PostMapping("update")
@@ -98,6 +101,7 @@ public class UserController {
      * @date 下午8:04 2025/10/23
      * @return org.cybercaelum.household_management.pojo.entity.Result<java.lang.String>
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "注销账号",description = "用户注销")
     @DeleteMapping("/cancel")

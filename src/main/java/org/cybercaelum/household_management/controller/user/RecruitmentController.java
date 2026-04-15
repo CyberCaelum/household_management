@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentDTO;
 import org.cybercaelum.household_management.pojo.dto.RecruitmentPageDTO;
@@ -43,6 +45,7 @@ public class RecruitmentController {
      * @param recruitmentDTO 招募信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "新增招募",description = "新增招募")
     @PostMapping("/add")
@@ -61,6 +64,7 @@ public class RecruitmentController {
      * @param recruitmentId 招募主键
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "修改招募状态",description = "修改招募状态")
     @PostMapping("/status/{status}")
@@ -77,6 +81,7 @@ public class RecruitmentController {
      * @param recruitmentDTO 招募信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "修改招募信息",description = "修改招募信息")
     @PutMapping
@@ -108,6 +113,7 @@ public class RecruitmentController {
      * @param Ids 招募id列表
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "删除招募",description = "删除招募")
     @DeleteMapping("/delete")

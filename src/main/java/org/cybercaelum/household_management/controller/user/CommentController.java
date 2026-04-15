@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.CommentDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.CommentVO;
@@ -38,6 +40,7 @@ public class CommentController {
      * @param commentDTO 评论信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/add")
     @Operation(summary = "新增评论", description = "对订单和用户进行评价")
@@ -54,6 +57,7 @@ public class CommentController {
      * @param id 评论id
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/delete/{id}")
     @Operation(summary = "删除评论", description = "删除自己发表的评论")
@@ -70,6 +74,7 @@ public class CommentController {
      * @param commentDTO 评论信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/update")
     @Operation(summary = "修改评论", description = "修改自己发表的评论")

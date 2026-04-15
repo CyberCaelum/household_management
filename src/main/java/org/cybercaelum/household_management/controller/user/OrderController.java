@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.cybercaelum.household_management.annotation.RequireRole;
+import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Result;
@@ -38,6 +40,7 @@ public class OrderController {
      * @param ordersSubmitDTO 订单信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/submit")
     @Operation(summary = "用户下订单",description = "用户下订单")
@@ -104,6 +107,7 @@ public class OrderController {
      * @param status 状态
      * @return org.cybercaelum.household_management.pojo.entity.Result<org.cybercaelum.household_management.pojo.entity.PageResult>
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "历史订单",description = "历史订单")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/history")
@@ -120,6 +124,7 @@ public class OrderController {
      * @param id 订单id
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "订单详情",description = "订单详情")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/detail/{id}")
@@ -136,6 +141,7 @@ public class OrderController {
      * @param ordersConfirmDTO 接单信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "接单", description = "被雇者确认接单")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/confirm")
@@ -152,6 +158,7 @@ public class OrderController {
      * @param ordersRejectionDTO 拒单信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "拒单", description = "被雇者拒绝接单")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/rejection")
@@ -184,6 +191,7 @@ public class OrderController {
      * @param id 订单id
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "完成订单", description = "标记订单为已完成")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/complete/{id}")
@@ -203,6 +211,7 @@ public class OrderController {
      * @param serviceDate 服务日期
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "每日服务确认", description = "家政人员标记今日服务完成")
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/dailyConfirm/worker")
@@ -220,6 +229,7 @@ public class OrderController {
      * @param confirmationId 确认记录id
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "确认每日服务", description = "雇主确认每日服务完成")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/dailyConfirm/employer/{confirmationId}")
@@ -237,6 +247,7 @@ public class OrderController {
      * @param reason 争议原因
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "服务争议", description = "雇主对每日服务提出争议")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/dailyConfirm/dispute/{confirmationId}")
@@ -255,6 +266,7 @@ public class OrderController {
      * @param ordersCancelDTO 取消信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "发起取消申请", description = "发起协商或强制取消申请")
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/applyCancel")
@@ -272,6 +284,7 @@ public class OrderController {
      * @param agree 是否同意
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.USER)
     @Operation(summary = "响应取消申请", description = "同意或拒绝取消申请")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/respondCancel/{applicationId}")
