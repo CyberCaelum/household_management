@@ -52,7 +52,7 @@ spring:
         index-type: IVF_FLAT
         id-field-name: id
         content-field-name: question
-        metadata-field-name: answer
+        metadata-field-name: metadata
         embedding-field-name: question_vector
         auto-id: false
         client:

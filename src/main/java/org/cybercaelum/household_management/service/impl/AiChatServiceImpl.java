@@ -19,4 +19,5 @@ public class AiChatServiceImpl implements AiChatService {
     //TODO 查找向量数据库中的相关问题的答案
     //TODO 存入向量数据库
     private final VectorStore vectorStore;
+    //查询向量数据库
 }
