@@ -816,7 +816,16 @@ public class OrderServiceImpl implements OrderService {
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
         }
-        
+
+        //检查订单状态，如果未开始，开始，如果是其他，报错
+        if (order.getStatus().equals(OrderStatusConstant.CONFIRMED)) {
+            order.setStatus(OrderStatusConstant.IN_PROGRESS);
+            orderMapper.updateOrder(order);
+        }
+        else if (!order.getStatus().equals(OrderStatusConstant.IN_PROGRESS)) {
+            throw new OrderStatusErrorException("订单状态错误");
+        }
+
         // 验证权限（必须是家政人员）
         Long userId = BaseContext.getUserId();
         if (!userId.equals(order.getEmployeeId())) {
@@ -838,7 +847,7 @@ public class OrderServiceImpl implements OrderService {
                 .updateTime(now)
                 .build();
         dailyConfirmationMapper.update(updateConfirmation);
-        
+
         // 发送延迟消息，24小时后自动确认
         sendDailyConfirmTimeoutMessage(confirmation.getId(), orderId, serviceDate, now);
         
