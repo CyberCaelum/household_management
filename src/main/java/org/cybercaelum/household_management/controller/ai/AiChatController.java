@@ -1,7 +1,10 @@
 package org.cybercaelum.household_management.controller.ai;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.cybercaelum.household_management.ai.tools.MilvusSearchTool;
+import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.service.AiChatService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.prompt.PromptTemplate;
@@ -11,8 +14,10 @@ import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 /**
@@ -28,6 +33,7 @@ public class AiChatController {
     private final DeepSeekChatModel deepSeekChatModel;
     private final VectorStore vectorStore;
     private final MilvusSearchTool milvusSearchTool;
+    private final AiChatService aiChatService;
 
     // 构建系统提示词：告诉AI它的角色和可用工具策略
     String systemPrompt = """
@@ -44,7 +50,6 @@ public class AiChatController {
                 - 遇到闲聊、政治、编程、医疗等无关话题，统一回复：“抱歉，我是平台业务助手，只能解答家政招募相关问题哦～”
             5. **回答风格**：自然、专业、简洁，必要时可使用项目符号列出关键点，让用户一目了然。
             """;
-// TODO 如果用户明确要求人工，请使用 createHumanTicket 工具
 
     /**
      * @description 智能客服，先进行向量数据库查找，然后把相关信息和设定发给ai，如果ai判断信息不正确，
@@ -54,6 +59,7 @@ public class AiChatController {
      * @param message 信息
      * @return reactor.core.publisher.Flux<java.lang.String>
      **/
+    @Operation(summary = "智能客服",description = "智能客服")
     @GetMapping("/ai/generateStream")
     public Flux<String> generateStream(@RequestParam(value = "message", defaultValue = "Tell me a joke") String message) {
         SearchRequest searchRequest = SearchRequest.builder()
@@ -68,7 +74,7 @@ public class AiChatController {
 
         ToolCallback toolCallback = FunctionToolCallback
                 .builder("MilvusSearch",milvusSearchTool)
-                .description("知识库查询工具")
+                .description("知识库查询工具,使用简短的语言查询")
                 .build();
         return ChatClient.builder(deepSeekChatModel)
                 .defaultAdvisors(qaAdvisor)  // 自动RAG增强
@@ -78,5 +84,12 @@ public class AiChatController {
                 .user(message)
                 .stream()
                 .content();
+    }
+
+    @Operation(summary = "客服文档上传",description = "文档上传")
+    @PostMapping("/ai/import")
+    public Result importToMilvus(MultipartFile file){
+        aiChatService.importToMilvus(file);
+        return Result.success();
     }
 }
