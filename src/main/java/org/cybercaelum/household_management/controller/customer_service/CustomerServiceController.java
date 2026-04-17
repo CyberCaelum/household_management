@@ -93,7 +93,6 @@ public class CustomerServiceController {
         return Result.success(position);
     }
 
-    @RequireRole({RoleConstant.CUSTOMER_SERVICE,RoleConstant.USER})
     @Operation(summary = "结束会话", description = "用户或客服主动结束会话")
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/session/end")

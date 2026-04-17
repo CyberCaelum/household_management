@@ -67,4 +67,6 @@ public class GroupController {
         return Result.success(groupInfo);
     }
 
+    //创建争议群组
+
 }

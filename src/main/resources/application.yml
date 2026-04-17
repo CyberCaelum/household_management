@@ -1,5 +1,6 @@
 server:
   port: 90
+
 spring:
   profiles:
     active: dev
@@ -23,7 +24,41 @@ spring:
           max-active: ${spring.data.redis.lettuce.pool.max-active}
           max-idle: ${spring.data.redis.lettuce.pool.max-idle}
           min-idle: ${spring.data.redis.lettuce.pool.min-idle}
-
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        options:
+          model: nomic-embed-text
+    model:
+      embedding: ollama
+    retry:
+      max-attempts: ${spring.ai.retry.max-attempts}
+    deepseek:
+      api-key: ${spring.ai.deepseek.api-key}
+      chat:
+        options:
+          model: ${spring.ai.deepseek.chat.options.model}
+          temperature: ${spring.ai.deepseek.chat.options.temperature}
+          max-tokens: ${spring.ai.deepseek.chat.options.max-tokens}
+          stop: ${spring.ai.deepseek.chat.options.stop}
+    vectorstore:
+      milvus:
+        database-name: customer_service_knowledge
+        collection-name: question_answer
+        initialize-schema: true
+        embedding-dimension: 768
+        metric-type: COSINE
+        index-type: IVF_FLAT
+        id-field-name: id
+        content-field-name: question
+        metadata-field-name: metadata
+        embedding-field-name: question_vector
+        auto-id: false
+        client:
+          host: localhost
+          port: 19530
+          username: root
 
 mybatis:
   #mapper配置文件
