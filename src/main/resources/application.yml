@@ -29,7 +29,7 @@ spring:
       base-url: http://localhost:11434
       embedding:
         options:
-          model: nomic-embed-text
+          model: embeddinggemma:300m
     model:
       embedding: ollama
     retry:

@@ -13,6 +13,7 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -87,8 +88,8 @@ public class AiChatController {
     }
 
     @Operation(summary = "客服文档上传",description = "文档上传")
-    @PostMapping("/ai/import")
-    public Result importToMilvus(MultipartFile file){
+    @PostMapping(value = "/ai/import",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result importToMilvus(@RequestParam("file")MultipartFile file){
         aiChatService.importToMilvus(file);
         return Result.success();
     }
