@@ -19,7 +19,7 @@ public interface OrderMapper {
      * @param orderNumber 订单号
      * @return org.cybercaelum.household_management.pojo.entity.Order
      **/
-    @Select("select * from order where order_number = #{orderNumber}")
+    @Select("select * from `order` where order_number = #{orderNumber}")
     Order getOrderByNumber(String orderNumber);
 
     /**
@@ -65,7 +65,7 @@ public interface OrderMapper {
      * @param id 主键
      * @return org.cybercaelum.household_management.pojo.entity.Order
      **/
-    @Select("select * from order where id = #{id}")
+    @Select("select * from `order` where id = #{id}")
     Order getOrderById(Long id);
 
     /**

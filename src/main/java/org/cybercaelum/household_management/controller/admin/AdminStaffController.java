@@ -39,6 +39,7 @@ public class AdminStaffController {
      **/
     @Operation(summary = "创建员工账号", description = "创建客服或管理员账号")
     @SecurityRequirement(name = "bearerAuth")
+    @RequireRole(RoleConstant.ADMIN)
     @PostMapping("/create")
     public Result createStaff(@RequestBody CreateStaffDTO createStaffDTO) {
         log.info("创建员工账号：{}",createStaffDTO);
@@ -53,6 +54,7 @@ public class AdminStaffController {
      * @param staffPageDTO 筛选信息
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.ADMIN)
     @Operation(summary = "员工分页查询", description = "员工分页查询")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/list")
@@ -70,6 +72,7 @@ public class AdminStaffController {
      * @param newPassword 新密码
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.ADMIN)
     @Operation(summary = "重置员工密码", description = "重置指定员工的登录密码")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/resetPassword/{staffId}")
@@ -88,6 +91,7 @@ public class AdminStaffController {
      * @param status 账号状态
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
+    @RequireRole(RoleConstant.ADMIN)
     @Operation(summary = "修改账号状态", description = "启用或禁用员工账号")
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/status/{staffId}")

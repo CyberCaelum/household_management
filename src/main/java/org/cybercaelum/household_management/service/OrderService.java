@@ -16,6 +16,12 @@ public interface OrderService {
     void paySuccess(String outTradeNo,Integer payMethod);
 
     /**
+     * 模拟支付成功（开发测试用）
+     * @param orderId 订单ID
+     */
+    void mockPaySuccess(Long orderId);
+
+    /**
      * @description 查询订单支付状态（供前端轮询）
      * @author CyberCaelum
      * @date 2026/3/24

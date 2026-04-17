@@ -105,6 +105,7 @@ public class CustomerServiceController {
     @Operation(summary = "获取当前会话", description = "获取用户当前的客服会话信息")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/session/current")
+    @RequireRole({RoleConstant.CUSTOMER_SERVICE,RoleConstant.USER})
     public Result getCurrentSession() {
         Long userId = BaseContext.getUserId();
         Map<String, String> session = customerServiceService.getUserSession(userId);

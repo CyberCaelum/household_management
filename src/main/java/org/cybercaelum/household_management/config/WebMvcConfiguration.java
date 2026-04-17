@@ -39,6 +39,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 .addPathPatterns("/comment/my")
                 .addPathPatterns("/admin/**")  // 管理端也需要 JWT 认证
                 .addPathPatterns("/kefu/**")   // 客服端也需要 JWT 认证
+                .addPathPatterns("/order/**")  // 订单接口也需要 JWT 认证
                 .excludePathPatterns(
                         "/user/login",
                         "/user/register",
