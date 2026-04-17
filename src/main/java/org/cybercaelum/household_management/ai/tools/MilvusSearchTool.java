@@ -2,6 +2,9 @@ package org.cybercaelum.household_management.ai.tools;
 
 import io.lettuce.core.dynamic.annotation.CommandNaming;
 import lombok.RequiredArgsConstructor;
+import org.cybercaelum.household_management.pojo.dto.MilvusSearchRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -19,8 +22,9 @@ import java.util.function.BiFunction;
  */
 @RequiredArgsConstructor
 @Component
-public class MilvusSearchTool implements BiFunction<String, ToolContext, String> {
+public class MilvusSearchTool implements BiFunction<MilvusSearchRequest, ToolContext, String> {
 
+    private static final Logger log = LoggerFactory.getLogger(MilvusSearchTool.class);
     private final VectorStore vectorStore;
 
     /**
@@ -32,10 +36,11 @@ public class MilvusSearchTool implements BiFunction<String, ToolContext, String>
      * @return java.lang.String
      **/
     @Override
-    public String apply(String s, ToolContext toolContext) {
+    public String apply(MilvusSearchRequest s, ToolContext toolContext) {
+        log.info("工具被调用了");
         List<Document> results = vectorStore.similaritySearch(
                 SearchRequest.builder()
-                        .query(s)
+                        .query(s.getQuery())
                         .topK(3)
                         .build()
         );

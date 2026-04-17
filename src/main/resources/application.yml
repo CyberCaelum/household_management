@@ -37,6 +37,7 @@ spring:
     deepseek:
       api-key: ${spring.ai.deepseek.api-key}
       chat:
+        enabled: true
         options:
           model: ${spring.ai.deepseek.chat.options.model}
           temperature: ${spring.ai.deepseek.chat.options.temperature}
@@ -127,6 +128,32 @@ rocketmq:
     endpoints: 127.0.0.1:8081
     ssl-enabled: false
 
+logging:
+  level:
+    # DeepSeek / OpenAI HTTP 调用（最可能生效的）
+    org.springframework.ai.openai: DEBUG
+    # 如果你用的是独立 DeepSeek 实现（非 OpenAI 兼容模式）
+    org.springframework.ai.deepseek: DEBUG
+    # ChatClient 核心流程（工具调用决策、Advisor 链）
+    org.springframework.ai.chat.client: DEBUG
+    # 底层模型调用接口
+    org.springframework.ai.chat.model: DEBUG
+    # Spring Web 的 HTTP 客户端日志（RestClient）
+    org.springframework.web.client.RestClient: DEBUG
+    org.springframework.web.client: DEBUG
+    # HTTP 层：看原始 JSON 请求/响应
+    reactor.netty.http.client: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    # Spring AI 层：看结构化日志
+    org.springframework.ai.chat.prompt: DEBUG
+    org.springframework.ai.model.function: DEBUG
+    org.springframework.ai.tool.execution: DEBUG
+    # 查看完整的Prompt发送给模型
+    org.springframework.ai.chat.client.advisor: DEBUG
+    # 查看工具调用决策过程
+    org.springframework.ai.model.tool: DEBUG
+    # 查看消息转换器
+    org.springframework.ai.converter: DEBUG
 
 
 
