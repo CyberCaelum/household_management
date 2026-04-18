@@ -954,15 +954,6 @@ public class OrderServiceImpl implements OrderService {
                 .disputeReason(reason)
                 .build();
         dailyConfirmationMapper.update(updateConfirmation);
-        //TODO 确认为争议后怎么处理？
-        //获取雇员
-        Long employeeId = order.getEmployeeId();
-        //分配客服
-
-
-        //自动通知平台介入，创建客服雇员雇主的群组，把订单，争议都发送到群组里
-        //TODO 管理员手动分配客服，让客服加入群组
-
     }
 
     /**
@@ -1082,6 +1073,7 @@ public class OrderServiceImpl implements OrderService {
         } else {
             // 拒绝取消
             //TODO 平台介入
+            //TODO 设置为争议，并给管理员分配
             application.setStatus(CancelApplicationStatusConstant.CONFIRMED_REJECT);
             application.setConfirmUserId(userId);
             application.setConfirmTime(LocalDateTime.now());
@@ -1319,10 +1311,9 @@ public class OrderServiceImpl implements OrderService {
             // 更新状态为平台介入处理中
             application.setStatus(CancelApplicationStatusConstant.PLATFORM_PROCESSING);
             cancelApplicationMapper.update(application);
-            
-            // TODO 通知平台客服（简化处理，实际应发送通知）
             log.info("取消申请超时转平台介入，申请ID: {}，订单ID: {}", 
                     application.getId(), application.getOrderId());
+
         }
         
         log.info("处理超时取消申请完成，共处理 {} 条记录", timeoutApps.size());

@@ -1,6 +1,7 @@
 # 家政服务交易平台缺陷报告
 
 > 生成日期：2026-04-16  
+> 更新日期：2026-04-18  
 > 分析范围：`src/main/java`、`src/main/resources`、`src/test`、`pom.xml`
 
 ---
@@ -41,71 +42,63 @@
 
 ### 🔴 P0 严重缺陷
 
-#### P0-001：项目缺少 `application-dev.yml`，无法直接启动
-- **文件**：`src/main/resources/application.yml`
-- **问题**：`spring.profiles.active: dev` 激活了 `dev` profile，但项目中不存在 `application-dev.yml` 或 `application-dev.properties`。
-- **影响**：本地开发环境无法直接启动，必须依赖外部注入大量环境变量。
-- **建议**：新增 `application-dev.yml` 模板，提供本地开发所需的默认配置（数据库、Redis 等）。
-
-#### P0-002：MyBatis `type-aliases-package` 拼写错误
-- **文件**：`src/main/resources/application.yml`
-- **问题**：配置值为 `org.cybercaelum.household-management.pojo.entity`，包名中使用了连字符 `-`。
-- **影响**：MyBatis 解析别名包时可能失败，导致 XML Mapper 中全限定名无法正确解析。
-- **建议**：修正为 `org.cybercaelum.household_management.pojo.entity`。
-
 #### P0-003：订单结算未真正实现资金打款给雇员
 - **文件**：`src/main/java/org/cybercaelum/household_management/service/impl/OrderServiceImpl.java`
-- **位置**：第 426 行、第 1165 行、第 1547 行
+- **位置**：第 426 行、第 1194 行、第 1576 行
 - **问题**：多处标记 `//TODO 给雇员打款`、`// TODO: 调用支付系统，将托管金额打给被雇人员`，但实际未调用微信企业付款或支付宝转账接口。
 - **影响**：**核心交易闭环断裂**，订单完成后平台无法将资金结算给家政人员，项目不能用于真实交易。
 - **建议**：接入微信支付「企业付款到零钱」或支付宝「单笔转账」接口，完成结算逻辑。
 
 #### P0-004：管理员取消订单后未执行退款
 - **文件**：`OrderServiceImpl.java`
-- **位置**：第 717 行
+- **位置**：第 745 行
 - **问题**：`//TODO 判断是否付款然后进行退款处理` — 管理员取消订单后，仅更新了订单状态，未触发实际退款。
 - **影响**：用户已支付的资金被悬空，造成资金占用和用户投诉风险。
 - **建议**：根据支付渠道（微信/支付宝）调用对应的退款接口，并处理退款回调。
 
-#### P0-005：争议处理流程完全未闭环
-- **文件**：`OrderServiceImpl.java`
-- **位置**：第 920 行、第 927 行
-- **问题**：
-  - 雇主拒绝每日确认后，`//TODO 确认为争议后怎么处理？` 无后续处理。
-  - `//TODO 管理员手动分配客服，让客服加入群组` 未实现自动分配客服和创建争议 IM 群。
-- **影响**：争议发生后没有自动进入客服/仲裁流程，用户体验极差，纠纷无法处理。
-- **建议**：争议自动触发平台客服分配，创建争议处理 IM 群组，并记录争议状态流转。
+#### P0-005：争议处理流程未闭环（手动分配能力已具备，但缺乏自动触发）
+- **文件**：`OrderServiceImpl.java`、`CustomerServiceServiceImpl.java`、`GroupController.java`
+- **位置**：
+  - `OrderServiceImpl` 第 1075 行、第 1076 行：`respondCancelApplication` 中一方拒绝取消后，`//TODO 平台介入`、`//TODO 设置为争议，并给管理员分配`
+  - `OrderServiceImpl` 第 1315 行：`processTimeoutCancelApplications` 中 `// TODO 通知平台客服`
+  - `GroupController` 第 70 行：`//创建争议群组` 仅有注释，无实际接口暴露
+- **当前已具备的能力**：
+  - `CustomerServiceController.assignDispute()`：管理员可手动将争议分配给指定客服
+  - `CustomerServiceServiceImpl.assignDispute()`：可将客服加入争议群组并发送争议信息
+  - `GroupServiceImpl.createDisputeChat()`：可创建争议 IM 群组（雇主+雇员+机器人）
+  - `CustomerServiceServiceImpl.getPendingDisputes()`：可查询待处理争议列表（取消申请争议 + 每日确认争议）
+- **缺失的闭环环节**：
+  1. **取消申请被驳回后未自动进入争议流程**：`respondCancelApplication` 拒绝取消后，仅将申请状态设为 `CONFIRMED_REJECT`，未自动创建 `DisputeResolution` 记录，未自动将状态流转为 `PLATFORM_PROCESSING`，未自动创建争议群组，未自动分配客服。
+  2. **每日确认争议未自动进入客服流程**：`employerDisputeDaily` 仅更新 `DailyConfirmation` 状态为 `EMPLOYER_REJECTED`，未创建争议记录，未创建群组，未分配客服。
+  3. **争议群组创建接口未暴露**：`GroupServiceImpl.createDisputeChat()` 已实现，但 `GroupController` 中仅留注释，前端/上游无法调用。
+  4. **无自动客服分配触发机制**：当前所有分配依赖管理员手动调用 `POST /kefu/disputes/assign/{disputeId}`，系统没有在争议发生时自动执行分配。
+- **影响**：争议发生后不能自动进入客服/仲裁流程，用户体验差，纠纷依赖人工发现和处理。
+- **建议**：
+  1. 在 `respondCancelApplication` 拒绝分支中，自动创建 `DisputeResolution` 记录、创建争议群组、将取消申请状态改为 `PLATFORM_PROCESSING`、并尝试自动分配客服（或至少加入待分配池）。
+  2. 在 `employerDisputeDaily` 中补充同样的自动争议创建和分配逻辑。
+  3. 在 `GroupController` 中暴露 `POST /group/create/dispute_chat` 接口（或确保争议流程内部直接调用 Service）。
 
 ---
 
 ### 🟠 P1 高优先级缺陷
 
-#### P1-001：客服离线清理定时任务被完全注释，导致会话分配异常
-- **文件**：`src/main/java/org/cybercaelum/household_management/task/UserTask.java`
-- **问题**：整个类（约 129 行）被 `//` 完全注释掉，已离线的客服不会被从 Redis 在线集合中移除。
-- **影响**：
-  - 已离线客服仍被系统认为在线；
-  - 新用户的咨询可能分配给已离线的客服；
-  - 会话无法正确释放，造成客服资源泄漏。
-- **建议**：立即恢复 `UserTask` 中的定时任务代码。
-
 #### P1-002：取消申请被驳回后未触发平台介入
 - **文件**：`OrderServiceImpl.java`
-- **位置**：第 1047 行
-- **问题**：`//TODO 平台介入` — 当一方申请取消订单被另一方拒绝后，没有自动转交平台客服仲裁。
-- **影响**：用户纠纷没有升级通道，可能导致订单长期僵持。
-- **建议**：驳回后自动生成平台介入工单，通知客服介入处理。
+- **位置**：第 1047 行（上下文在第 1075 行附近）
+- **问题**：当一方申请取消订单被另一方拒绝后，没有自动转交平台客服仲裁，与 P0-005 属于同一根因。
+- **影响**：用户纠纷没有自动升级通道，可能导致订单长期僵持。
+- **建议**：驳回后自动生成争议记录并触发平台介入流程（详见 P0-005）。
 
 #### P1-003：平台裁决取消时缺少违约方判定
 - **文件**：`OrderServiceImpl.java`
-- **位置**：第 1071 行
+- **位置**：第 1100 行
 - **问题**：`//TODO 平台取消需要判断是哪一方违约` — 平台强制取消订单时未判定责任归属。
 - **影响**：无法正确执行违约金扣除或信用分扣减。
 - **建议**：根据订单履约记录和双方举证，判定违约方并执行相应处罚逻辑。
 
 #### P1-004：退款异常时未通知管理员人工兜底
 - **文件**：`OrderServiceImpl.java`
-- **位置**：第 1633 行
+- **位置**：第 1662 行
 - **问题**：`// TODO: 发送通知给管理员，人工处理` — 退款失败/异常时没有告警通知。
 - **影响**：资金异常可能长时间无人发现，造成财务风险。
 - **建议**：退款异常时发送企业微信/钉钉/邮件告警给运营或财务人员。
@@ -120,13 +113,6 @@
 - **问题**：`//TODO 需要增加机器人` — 创建客服群组时未将 AI 客服机器人加入群聊。
 - **影响**：机器人无法自动回复群内消息，增加人工客服压力。
 - **建议**：在创建群组时调用 OpenIM 接口将机器人账号加入群组。
-
-#### P2-002：`GroupController` 中创建群组的 Service 调用未实现
-- **文件**：`src/main/java/org/cybercaelum/household_management/controller/GroupController.java`
-- **位置**：第 40 行
-- **问题**：`//TODO 调用service` — Controller 层未真正调用 Service 方法创建群组。
-- **影响**：该接口当前为无效接口。
-- **建议**：补全 Service 调用逻辑。
 
 #### P2-003：支付回调地址依赖环境变量，本地调试困难
 - **文件**：`src/main/resources/application.yml`
@@ -157,7 +143,6 @@
 #### P3-003：多处已实现但残留的 TODO 注释未清理
 - **涉及文件**：
   - `AiChatServiceImpl.java` 第 28 行：`//TODO 存入向量数据库`（已实现）
-  - `OpenimBootServiceImpl.java` 第 50 行：`//请求openim TODO`（已实现）
 - **建议**：清理过时的 TODO 注释，避免误导后续维护人员。
 
 #### P3-004：测试覆盖率几乎为零
@@ -167,7 +152,7 @@
 
 #### P3-005：`OrderServiceImpl` 代码量过大，职责过重
 - **文件**：`OrderServiceImpl.java`
-- **问题**：单文件长达 **1710 行**，包含了下单、取消、争议、结算、退款等多个职责。
+- **问题**：单文件长达 **1739 行**，包含了下单、取消、争议、结算、退款等多个职责。
 - **建议**：按业务子域拆分为 `OrderCreateService`、`OrderCancelService`、`OrderSettlementService`、`OrderDisputeService` 等。
 
 ---
@@ -175,9 +160,9 @@
 ## 四、改进建议汇总
 
 ### 短期（1 ~ 2 周）
-1. **修复配置问题**：新增 `application-dev.yml`、修正 `type-aliases-package` 拼写。
-2. **恢复定时任务**：取消 `UserTask.java` 的注释，确保客服在线状态正常维护。
-3. **清理规范性问题**：删除 `WechatPayUtil.md`、修正 `sendMag` 拼写、清理已实现但未删除的 TODO。
+1. **修复争议处理自动触发**：在 `respondCancelApplication` 和 `employerDisputeDaily` 中自动创建争议记录、创建 IM 群组、流转状态。
+2. **暴露争议群组创建接口**：补全 `GroupController` 中创建争议群组的 REST 接口。
+3. **清理规范性问题**：删除 `WechatPayUtil.md`、修正 `sendMag` 拼写、清理 `AiChatServiceImpl` 中已实现的 TODO。
 
 ### 中期（2 ~ 4 周）
 4. **完成支付闭环**：
@@ -186,7 +171,7 @@
    - 退款异常时增加告警通知。
 5. **完善争议处理**：
    - 争议自动分配客服并创建 IM 争议群；
-   - 取消申请被驳回后支持平台介入仲裁。
+   - 平台裁决时补充违约方判定逻辑。
 
 ### 长期（1 ~ 2 月）
 6. **代码重构**：将 `OrderServiceImpl` 按职责拆分为多个 Service。
@@ -199,11 +184,10 @@
 
 | 文件路径 | 备注 |
 |---------|------|
-| `src/main/resources/application.yml` | 配置错误（P0-001、P0-002） |
-| `src/main/resources/application-dev.yml` | **缺失**（P0-001） |
 | `src/main/java/.../service/impl/OrderServiceImpl.java` | 核心交易 TODO 集中地（P0-003~005、P1-002~004） |
-| `src/main/java/.../task/UserTask.java` | 全部代码被注释（P1-001） |
+| `src/main/java/.../service/impl/CustomerServiceServiceImpl.java` | 客服分配、争议查询、群组管理 |
+| `src/main/java/.../controller/customer_service/CustomerServiceController.java` | 争议手动分配接口 |
+| `src/main/java/.../controller/user/GroupController.java` | 争议群组接口未暴露（P0-005） |
 | `src/main/java/.../service/impl/GroupServiceImpl.java` | 未加入机器人（P2-001） |
-| `src/main/java/.../controller/GroupController.java` | 未调用 Service（P2-002） |
 | `src/main/java/.../feign/OpenimFeignClient.java` | `sendMag` 拼写错误（P3-002） |
 | `src/main/java/.../utils/WechatPayUtil.md` | 文件位置错误（P3-001） |

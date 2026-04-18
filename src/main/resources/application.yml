@@ -64,7 +64,7 @@ spring:
 mybatis:
   #mapper配置文件
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: org.cybercaelum.household-management.pojo.entity
+  type-aliases-package: org.cybercaelum.household_management.pojo.entity
   configuration:
     #开启驼峰命名
     map-underscore-to-camel-case: true
