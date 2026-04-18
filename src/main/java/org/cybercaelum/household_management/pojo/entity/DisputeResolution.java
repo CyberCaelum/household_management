@@ -2,6 +2,7 @@ package org.cybercaelum.household_management.pojo.entity;
 
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.checkerframework.checker.units.qual.A;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class DisputeResolution {
     private Long id;//主键
     private Long orderId;//订单id

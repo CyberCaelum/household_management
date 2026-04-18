@@ -802,72 +802,77 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     public List<PendingDisputeVO> getPendingDisputes() {
         List<PendingDisputeVO> result = new ArrayList<>();
         
-        // 1. 查询平台介入中的取消申请（status = 4）
-        List<CancelApplication> cancelApplications = cancelApplicationMapper.selectPendingCancelApplications();
-        for (CancelApplication app : cancelApplications) {
-            // 查询订单信息
-            Order order = orderMapper.getOrderById(app.getOrderId());
-            String orderNumber = order != null ? order.getOrderNumber() : "";
-            
-            // 查询申请人信息
-            User applicant = userMapper.getById(app.getApplicantId());
-            String applicantName = applicant != null ? applicant.getUsername() : "";
-            
-            PendingDisputeVO vo = PendingDisputeVO.builder()
-                    .id(app.getId())
-                    .disputeType(1)
-                    .disputeTypeName("取消申请争议")
-                    .orderId(app.getOrderId())
-                    .orderNumber(orderNumber)
-                    .sourceId(app.getId())
-                    .reason(app.getReason())
-                    .status(app.getStatus())
-                    .statusName("平台介入处理中")
-                    .applicantId(app.getApplicantId())
-                    .applicantName(applicantName)
-                    .applicantRole(app.getApplicantRole())
-                    .applicantRoleName(app.getApplicantRole() == 1 ? "雇主" : "家政人员")
-                    .serviceDate(null)
-                    .createTime(app.getCreateTime())
-                    .build();
-            result.add(vo);
-        }
+        // 查询所有未裁决的争议记录
+        List<DisputeResolution> disputeResolutions = disputeResolutionMapper.selectPendingDisputes();
         
-        // 2. 查询每日确认争议（status = 2 雇主拒绝/争议）
-        List<DailyConfirmation> dailyConfirmations = dailyConfirmationMapper.selectPendingDisputes();
-        for (DailyConfirmation confirmation : dailyConfirmations) {
-            // 查询订单信息
-            Order order = orderMapper.getOrderById(confirmation.getOrderId());
-            String orderNumber = order != null ? order.getOrderNumber() : "";
-            
-            PendingDisputeVO vo = PendingDisputeVO.builder()
-                    .id(confirmation.getId())
-                    .disputeType(2)
-                    .disputeTypeName("每日确认争议")
-                    .orderId(confirmation.getOrderId())
-                    .orderNumber(orderNumber)
-                    .sourceId(confirmation.getId())
-                    .reason(confirmation.getDisputeReason())
-                    .status(confirmation.getStatus())
-                    .statusName("雇主争议")
-                    .applicantId(null) // 每日确认争议是雇主发起的，但表中没记录，可以从订单中获取雇主ID
-                    .applicantName("")
-                    .applicantRole(1)
-                    .applicantRoleName("雇主")
-                    .serviceDate(confirmation.getServiceDate())
-                    .createTime(confirmation.getCreateTime())
-                    .build();
-            
-            // 补充申请人信息
-            if (order != null) {
-                vo.setApplicantId(order.getEmployerId());
-                User employer = userMapper.getById(order.getEmployerId());
-                if (employer != null) {
-                    vo.setApplicantName(employer.getUsername());
+        for (DisputeResolution dispute : disputeResolutions) {
+            if (DisputeResolutionConstant.CANCEL_APPLY.equals(dispute.getSourceType())) {
+                // 取消申请争议
+                CancelApplication app = cancelApplicationMapper.selectById(dispute.getSourceId());
+                if (app == null) continue;
+                
+                Order order = orderMapper.getOrderById(app.getOrderId());
+                String orderNumber = order != null ? order.getOrderNumber() : "";
+                
+                User applicant = userMapper.getById(app.getApplicantId());
+                String applicantName = applicant != null ? applicant.getUsername() : "";
+                
+                PendingDisputeVO vo = PendingDisputeVO.builder()
+                        .id(dispute.getId())          // 返回 DisputeResolution.id，与 assignDispute 对应
+                        .disputeType(1)
+                        .disputeTypeName("取消申请争议")
+                        .orderId(app.getOrderId())
+                        .orderNumber(orderNumber)
+                        .sourceId(app.getId())
+                        .reason(app.getReason())
+                        .status(app.getStatus())
+                        .statusName("平台介入处理中")
+                        .applicantId(app.getApplicantId())
+                        .applicantName(applicantName)
+                        .applicantRole(app.getApplicantRole())
+                        .applicantRoleName(app.getApplicantRole() == 1 ? "雇主" : "家政人员")
+                        .serviceDate(null)
+                        .createTime(dispute.getCreatedTime())
+                        .build();
+                result.add(vo);
+                
+            } else if (DisputeResolutionConstant.DAILY_CONFIRMATION.equals(dispute.getSourceType())) {
+                // 每日确认争议
+                DailyConfirmation confirmation = dailyConfirmationMapper.selectById(dispute.getSourceId());
+                if (confirmation == null) continue;
+                
+                Order order = orderMapper.getOrderById(confirmation.getOrderId());
+                String orderNumber = order != null ? order.getOrderNumber() : "";
+                
+                PendingDisputeVO vo = PendingDisputeVO.builder()
+                        .id(dispute.getId())          // 返回 DisputeResolution.id，与 assignDispute 对应
+                        .disputeType(2)
+                        .disputeTypeName("每日确认争议")
+                        .orderId(confirmation.getOrderId())
+                        .orderNumber(orderNumber)
+                        .sourceId(confirmation.getId())
+                        .reason(confirmation.getDisputeReason())
+                        .status(confirmation.getStatus())
+                        .statusName("雇主争议")
+                        .applicantId(null)
+                        .applicantName("")
+                        .applicantRole(1)
+                        .applicantRoleName("雇主")
+                        .serviceDate(confirmation.getServiceDate())
+                        .createTime(dispute.getCreatedTime())
+                        .build();
+                
+                // 补充申请人信息
+                if (order != null) {
+                    vo.setApplicantId(order.getEmployerId());
+                    User employer = userMapper.getById(order.getEmployerId());
+                    if (employer != null) {
+                        vo.setApplicantName(employer.getUsername());
+                    }
                 }
+                
+                result.add(vo);
             }
-            
-            result.add(vo);
         }
         
         // 按创建时间倒序排列

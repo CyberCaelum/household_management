@@ -56,42 +56,31 @@
 - **影响**：用户已支付的资金被悬空，造成资金占用和用户投诉风险。
 - **建议**：根据支付渠道（微信/支付宝）调用对应的退款接口，并处理退款回调。
 
-#### P0-005：争议处理流程未闭环（手动分配能力已具备，但缺乏自动触发）
-- **文件**：`OrderServiceImpl.java`、`CustomerServiceServiceImpl.java`、`GroupController.java`
-- **位置**：
-  - `OrderServiceImpl` 第 1075 行、第 1076 行：`respondCancelApplication` 中一方拒绝取消后，`//TODO 平台介入`、`//TODO 设置为争议，并给管理员分配`
-  - `OrderServiceImpl` 第 1315 行：`processTimeoutCancelApplications` 中 `// TODO 通知平台客服`
-  - `GroupController` 第 70 行：`//创建争议群组` 仅有注释，无实际接口暴露
-- **当前已具备的能力**：
-  - `CustomerServiceController.assignDispute()`：管理员可手动将争议分配给指定客服
-  - `CustomerServiceServiceImpl.assignDispute()`：可将客服加入争议群组并发送争议信息
-  - `GroupServiceImpl.createDisputeChat()`：可创建争议 IM 群组（雇主+雇员+机器人）
-  - `CustomerServiceServiceImpl.getPendingDisputes()`：可查询待处理争议列表（取消申请争议 + 每日确认争议）
-- **缺失的闭环环节**：
-  1. **取消申请被驳回后未自动进入争议流程**：`respondCancelApplication` 拒绝取消后，仅将申请状态设为 `CONFIRMED_REJECT`，未自动创建 `DisputeResolution` 记录，未自动将状态流转为 `PLATFORM_PROCESSING`，未自动创建争议群组，未自动分配客服。
-  2. **每日确认争议未自动进入客服流程**：`employerDisputeDaily` 仅更新 `DailyConfirmation` 状态为 `EMPLOYER_REJECTED`，未创建争议记录，未创建群组，未分配客服。
-  3. **争议群组创建接口未暴露**：`GroupServiceImpl.createDisputeChat()` 已实现，但 `GroupController` 中仅留注释，前端/上游无法调用。
-  4. **无自动客服分配触发机制**：当前所有分配依赖管理员手动调用 `POST /kefu/disputes/assign/{disputeId}`，系统没有在争议发生时自动执行分配。
-- **影响**：争议发生后不能自动进入客服/仲裁流程，用户体验差，纠纷依赖人工发现和处理。
-- **建议**：
-  1. 在 `respondCancelApplication` 拒绝分支中，自动创建 `DisputeResolution` 记录、创建争议群组、将取消申请状态改为 `PLATFORM_PROCESSING`、并尝试自动分配客服（或至少加入待分配池）。
-  2. 在 `employerDisputeDaily` 中补充同样的自动争议创建和分配逻辑。
-  3. 在 `GroupController` 中暴露 `POST /group/create/dispute_chat` 接口（或确保争议流程内部直接调用 Service）。
+#### ~~P0-005：争议处理流程未闭环~~ ✅ **已修复（手动分配）**
+- **修复内容**：
+  - `respondCancelApplication` 拒绝分支：自动将状态改为 `PLATFORM_PROCESSING`，并创建 `DisputeResolution` 记录
+  - `processTimeoutCancelApplications`：自动创建 `DisputeResolution` 记录
+  - `employerDisputeDaily`：自动创建 `DisputeResolution` 记录
+  - `getPendingDisputes`：改为查询 `DisputeResolution` 表，返回 `DisputeResolution.id`，与 `assignDispute` 对应
+  - `platformDecideCancelApplication`：裁决后同步更新 `DisputeResolution` 记录
+  - 新增 `platformDecideDailyDispute` 接口：支持每日确认争议的平台裁决
+- **当前手动分配闭环**：
+  1. 争议发生 → 自动创建 `DisputeResolution` 记录
+  2. 管理员查询待处理列表 → `GET /kefu/disputes/pending`（返回 `DisputeResolution.id`）
+  3. 管理员分配争议给客服 → `POST /kefu/disputes/assign/{disputeId}?kefuId=xxx`
+  4. 客服处理/裁决 → `PUT /admin/platformDecide/{applicationId}` 或 `PUT /admin/platformDecideDaily/{confirmationId}`
+  5. 执行退款 → `refund(orderId)` → 微信回调 `refundSuccess`
 
 ---
 
 ### 🟠 P1 高优先级缺陷
 
-#### P1-002：取消申请被驳回后未触发平台介入
-- **文件**：`OrderServiceImpl.java`
-- **位置**：第 1047 行（上下文在第 1075 行附近）
-- **问题**：当一方申请取消订单被另一方拒绝后，没有自动转交平台客服仲裁，与 P0-005 属于同一根因。
-- **影响**：用户纠纷没有自动升级通道，可能导致订单长期僵持。
-- **建议**：驳回后自动生成争议记录并触发平台介入流程（详见 P0-005）。
+#### ~~P1-002：取消申请被驳回后未触发平台介入~~ ✅ **已修复**
+- `respondCancelApplication` 拒绝分支已改为 `PLATFORM_PROCESSING` 状态，并自动创建争议记录。
 
 #### P1-003：平台裁决取消时缺少违约方判定
 - **文件**：`OrderServiceImpl.java`
-- **位置**：第 1100 行
+- **位置**：第 1162 行
 - **问题**：`//TODO 平台取消需要判断是哪一方违约` — 平台强制取消订单时未判定责任归属。
 - **影响**：无法正确执行违约金扣除或信用分扣减。
 - **建议**：根据订单履约记录和双方举证，判定违约方并执行相应处罚逻辑。
@@ -152,7 +141,7 @@
 
 #### P3-005：`OrderServiceImpl` 代码量过大，职责过重
 - **文件**：`OrderServiceImpl.java`
-- **问题**：单文件长达 **1739 行**，包含了下单、取消、争议、结算、退款等多个职责。
+- **问题**：单文件长达 **1820 行**，包含了下单、取消、争议、结算、退款等多个职责。
 - **建议**：按业务子域拆分为 `OrderCreateService`、`OrderCancelService`、`OrderSettlementService`、`OrderDisputeService` 等。
 
 ---
@@ -160,23 +149,20 @@
 ## 四、改进建议汇总
 
 ### 短期（1 ~ 2 周）
-1. **修复争议处理自动触发**：在 `respondCancelApplication` 和 `employerDisputeDaily` 中自动创建争议记录、创建 IM 群组、流转状态。
-2. **暴露争议群组创建接口**：补全 `GroupController` 中创建争议群组的 REST 接口。
-3. **清理规范性问题**：删除 `WechatPayUtil.md`、修正 `sendMag` 拼写、清理 `AiChatServiceImpl` 中已实现的 TODO。
+1. **清理规范性问题**：删除 `WechatPayUtil.md`、修正 `sendMag` 拼写、清理 `AiChatServiceImpl` 中已实现的 TODO。
+2. **完善争议处理**：`GroupController` 暴露创建争议群组的 REST 接口（当前第 70 行只有注释）。
 
 ### 中期（2 ~ 4 周）
-4. **完成支付闭环**：
+3. **完成支付闭环**：
    - 订单结算时调用微信/支付宝转账接口给雇员打款；
    - 管理员取消订单时触发退款；
    - 退款异常时增加告警通知。
-5. **完善争议处理**：
-   - 争议自动分配客服并创建 IM 争议群；
-   - 平台裁决时补充违约方判定逻辑。
+4. **平台裁决违约方判定**：在 `platformDecideCancelApplication` 和 `platformDecideDailyDispute` 中补充违约方判定逻辑。
 
 ### 长期（1 ~ 2 月）
-6. **代码重构**：将 `OrderServiceImpl` 按职责拆分为多个 Service。
-7. **补全测试**：为核心业务编写单元测试和集成测试，提升代码稳定性。
-8. **补充数据库脚本**：提供 `schema.sql` 和基础数据脚本，降低部署成本。
+5. **代码重构**：将 `OrderServiceImpl` 按职责拆分为多个 Service。
+6. **补全测试**：为核心业务编写单元测试和集成测试，提升代码稳定性。
+7. **补充数据库脚本**：提供 `schema.sql` 和基础数据脚本，降低部署成本。
 
 ---
 
@@ -184,10 +170,11 @@
 
 | 文件路径 | 备注 |
 |---------|------|
-| `src/main/java/.../service/impl/OrderServiceImpl.java` | 核心交易 TODO 集中地（P0-003~005、P1-002~004） |
+| `src/main/java/.../service/impl/OrderServiceImpl.java` | 核心交易 TODO 集中地（P0-003~004、P1-003~004） |
 | `src/main/java/.../service/impl/CustomerServiceServiceImpl.java` | 客服分配、争议查询、群组管理 |
 | `src/main/java/.../controller/customer_service/CustomerServiceController.java` | 争议手动分配接口 |
-| `src/main/java/.../controller/user/GroupController.java` | 争议群组接口未暴露（P0-005） |
+| `src/main/java/.../controller/admin/AdminOrderController.java` | 平台裁决接口（取消申请 + 每日确认争议） |
+| `src/main/java/.../controller/user/GroupController.java` | 争议群组接口未暴露（P2-001 相关） |
 | `src/main/java/.../service/impl/GroupServiceImpl.java` | 未加入机器人（P2-001） |
 | `src/main/java/.../feign/OpenimFeignClient.java` | `sendMag` 拼写错误（P3-002） |
 | `src/main/java/.../utils/WechatPayUtil.md` | 文件位置错误（P3-001） |

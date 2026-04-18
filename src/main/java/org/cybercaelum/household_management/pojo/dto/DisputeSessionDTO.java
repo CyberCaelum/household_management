@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 /**
  * @author CyberCaelum
  * @version 1.0
- * @description: TODO
+ * @description: 发起争议类
  * @date 2026/4/8 上午8:57
  */
 @Data

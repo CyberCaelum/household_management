@@ -165,7 +165,8 @@ public class GroupServiceImpl implements GroupService {
         //设置拓展字段
         groupInfo.setEx("客服");
         memberUserIDs.add(initiatorId.toString());
-        //TODO 需要增加机器人
+        //加入机器人
+        memberUserIDs.add(RobotConstant.id2.toString());
 
         //设置群组
         OpenimGroupCreateDTO openimGroupCreateDTO = OpenimGroupCreateDTO.builder()

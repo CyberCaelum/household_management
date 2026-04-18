@@ -100,6 +100,14 @@ public interface OrderService {
      */
     void platformDecideCancelApplication(Long applicationId, Integer decision, String note);
 
+    /**
+     * 平台裁决每日确认争议
+     * @param confirmationId 确认记录ID
+     * @param decision 裁决结果：1-同意争议，2-拒绝争议
+     * @param note 平台备注
+     */
+    void platformDecideDailyDispute(Long confirmationId, Integer decision, String note);
+
     // ==================== 结算相关 ====================
 
     /**

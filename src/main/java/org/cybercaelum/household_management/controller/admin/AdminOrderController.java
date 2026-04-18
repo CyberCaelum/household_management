@@ -55,7 +55,7 @@ public class AdminOrderController {
      * @param note 平台备注
      * @return org.cybercaelum.household_management.pojo.entity.Result
      **/
-    @Operation(summary = "平台裁决", description = "平台对取消申请进行裁决")
+    @Operation(summary = "平台裁决取消申请", description = "平台对取消申请进行裁决")
     @SecurityRequirement(name = "bearerAuth")
     @RequireRole({RoleConstant.ADMIN, RoleConstant.CUSTOMER_SERVICE})  // 管理员或客服都可操作
     @PutMapping("/platformDecide/{applicationId}")
@@ -64,6 +64,27 @@ public class AdminOrderController {
                                   @RequestParam(required = false) String note) {
         log.info("平台裁决取消申请，applicationId: {}，decision: {}，note: {}", applicationId, decision, note);
         orderService.platformDecideCancelApplication(applicationId, decision, note);
+        return Result.success();
+    }
+
+    /**
+     * @description 平台裁决每日确认争议
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @param confirmationId 确认记录ID
+     * @param decision 裁决结果：1-同意争议，2-拒绝争议
+     * @param note 平台备注
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "平台裁决每日确认争议", description = "平台对每日服务争议进行裁决")
+    @SecurityRequirement(name = "bearerAuth")
+    @RequireRole({RoleConstant.ADMIN, RoleConstant.CUSTOMER_SERVICE})
+    @PutMapping("/platformDecideDaily/{confirmationId}")
+    public Result platformDecideDaily(@PathVariable Long confirmationId,
+                                       @RequestParam Integer decision,
+                                       @RequestParam(required = false) String note) {
+        log.info("平台裁决每日确认争议，confirmationId: {}，decision: {}，note: {}", confirmationId, decision, note);
+        orderService.platformDecideDailyDispute(confirmationId, decision, note);
         return Result.success();
     }
 }

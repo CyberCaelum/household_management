@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 /**
  * @author CyberCaelum
  * @version 1.0
- * @description: TODO
+ * @description: 客服分配类
  * @date 2026/3/31
  */
 @Data

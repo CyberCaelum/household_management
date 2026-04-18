@@ -47,7 +47,7 @@ public class OpenimBootServiceImpl implements OpenimBootService {
         if (openimBootAddDTO.getFaceUrl() != null && !openimBootAddDTO.getFaceUrl().isEmpty()) {
             openimBoot.setFaceUrl(openimBootAddDTO.getFaceUrl());
         }
-        //请求openim TODO
+        //请求openim
         OpenimResult<NotificationAccountInfo> openimResult =
                 openimFeignClient.addNotificationAccount(String.valueOf(System.currentTimeMillis())
                         , openImService.getAdminToken(),openimBoot);

@@ -25,9 +25,15 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class AiChatServiceImpl implements AiChatService {
-    //TODO 存入向量数据库
+
     private final VectorStore vectorStore;
 
+    /**
+     * @description 将问题存入向量数据库
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @param file 问题表格文件
+     **/
     @Override
     public void importToMilvus(MultipartFile file) {
         if (file.isEmpty()) {

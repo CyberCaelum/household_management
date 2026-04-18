@@ -8,4 +8,5 @@ package org.cybercaelum.household_management.constant;
  */
 public class RobotConstant {
     public static final Long id = 24L;
+    public static final Long id2 = 25L;
 }

@@ -18,6 +18,7 @@ import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.*;
 import org.cybercaelum.household_management.service.CustomerServiceService;
+import org.cybercaelum.household_management.service.GroupService;
 import org.cybercaelum.household_management.service.OrderService;
 import org.cybercaelum.household_management.service.RecruitmentService;
 import org.cybercaelum.household_management.utils.WechatPayUtil;
@@ -56,6 +57,7 @@ public class OrderServiceImpl implements OrderService {
     private final RocketMQClientTemplate rocketMQClientTemplate;
     private final DisputeResolutionMapper disputeResolutionMapper;
     private final CustomerServiceService customerServiceService;
+    private final GroupService groupService;
 
     /**
      * @description 提交订单
@@ -954,6 +956,29 @@ public class OrderServiceImpl implements OrderService {
                 .disputeReason(reason)
                 .build();
         dailyConfirmationMapper.update(updateConfirmation);
+        
+        // 创建争议记录
+        DisputeResolution disputeResolution = DisputeResolution.builder()
+                .orderId(order.getId())
+                .sourceType(DisputeResolutionConstant.DAILY_CONFIRMATION)
+                .sourceId(confirmationId)
+                .createdTime(LocalDateTime.now())
+                .build();
+        disputeResolutionMapper.insertDisputeResolution(disputeResolution);
+        
+        // 自动创建争议群组
+        DisputeSessionDTO disputeSessionDTO = new DisputeSessionDTO();
+        disputeSessionDTO.setOrderId(order.getId());
+        disputeSessionDTO.setDailyConfirmationId(confirmationId);
+        disputeSessionDTO.setUserId(BaseContext.getUserId());
+        try {
+            groupService.createDisputeChat(disputeSessionDTO);
+            log.info("每日确认争议群组创建成功，确认记录ID: {}", confirmationId);
+        } catch (Exception e) {
+            log.error("每日确认争议群组创建失败，确认记录ID: {}", confirmationId, e);
+        }
+        
+        log.info("雇主提出每日服务争议，确认记录ID: {}，争议记录ID: {}", confirmationId, disputeResolution.getId());
     }
 
     /**
@@ -1071,13 +1096,34 @@ public class OrderServiceImpl implements OrderService {
                     .build();
             orderMapper.updateOrder(updateOrder);
         } else {
-            // 拒绝取消
-            //TODO 平台介入
-            //TODO 设置为争议，并给管理员分配
-            application.setStatus(CancelApplicationStatusConstant.CONFIRMED_REJECT);
+            // 拒绝取消，转平台介入
+            application.setStatus(CancelApplicationStatusConstant.PLATFORM_PROCESSING);
             application.setConfirmUserId(userId);
             application.setConfirmTime(LocalDateTime.now());
             cancelApplicationMapper.update(application);
+            
+            // 创建争议记录
+            DisputeResolution disputeResolution = DisputeResolution.builder()
+                    .orderId(order.getId())
+                    .sourceType(DisputeResolutionConstant.CANCEL_APPLY)
+                    .sourceId(application.getId())
+                    .createdTime(LocalDateTime.now())
+                    .build();
+            disputeResolutionMapper.insertDisputeResolution(disputeResolution);
+            
+            // 自动创建争议群组
+            DisputeSessionDTO disputeSessionDTO = new DisputeSessionDTO();
+            disputeSessionDTO.setOrderId(order.getId());
+            disputeSessionDTO.setDailyConfirmationId(null);
+            disputeSessionDTO.setUserId(application.getApplicantId());
+            try {
+                groupService.createDisputeChat(disputeSessionDTO);
+                log.info("取消申请争议群组创建成功，订单ID: {}", order.getId());
+            } catch (Exception e) {
+                log.error("取消申请争议群组创建失败，订单ID: {}", order.getId(), e);
+            }
+            
+            log.info("取消申请被拒绝，已转平台介入，申请ID: {}，争议记录ID: {}", application.getId(), disputeResolution.getId());
         }
     }
 
@@ -1097,7 +1143,48 @@ public class OrderServiceImpl implements OrderService {
         };
     }
 
-    //TODO 平台取消需要判断是哪一方违约
+    /**
+     * @description 平台裁决每日确认争议
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @param confirmationId 确认记录id
+     * @param decision 裁决结果：1同意争议，2拒绝争议
+     * @param note 平台备注
+     **/
+    @Override
+    @Transactional
+    public void platformDecideDailyDispute(Long confirmationId, Integer decision, String note) {
+        DailyConfirmation confirmation = dailyConfirmationMapper.selectById(confirmationId);
+        if (confirmation == null) {
+            throw new OrderNotFoundException("确认记录不存在");
+        }
+        
+        // 验证状态（必须是争议状态）
+        if (!DailyConfirmationStatusConstant.EMPLOYER_REJECTED.equals(confirmation.getStatus())) {
+            throw new OrderStatusErrorException("该确认记录不在争议状态");
+        }
+        
+        Order order = orderMapper.getOrderById(confirmation.getOrderId());
+        if (order == null) {
+            throw new OrderNotFoundException("订单不存在");
+        }
+        
+        // 更新争议记录
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectBySourceId(
+                confirmationId, DisputeResolutionConstant.DAILY_CONFIRMATION);
+        if (disputeResolution == null) {
+            throw new DisputeResolutionIsNullException("争议记录不存在");
+        }
+        
+        disputeResolution.setDecision(decision);
+        disputeResolution.setOperatorId(BaseContext.getUserId());
+        disputeResolution.setNote(note);
+        disputeResolutionMapper.updateDisputeResolution(disputeResolution);
+        
+        log.info("平台裁决每日确认争议，确认记录ID: {}，争议ID: {}，裁决结果: {}", 
+                confirmationId, disputeResolution.getId(), decision);
+    }
+
     /**
      * @description 平台裁决取消申请
      * @author CyberCaelum
@@ -1131,6 +1218,17 @@ public class OrderServiceImpl implements OrderService {
         application.setPlatformOperator(BaseContext.getUserId());
         application.setPlatformNote(note);
         cancelApplicationMapper.update(application);
+        
+        // 更新争议记录
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectBySourceId(
+                application.getId(), DisputeResolutionConstant.CANCEL_APPLY);
+        if (disputeResolution != null) {
+            disputeResolution.setDecision(decision);
+            disputeResolution.setOperatorId(BaseContext.getUserId());
+            disputeResolution.setNote(note);
+            disputeResolutionMapper.updateDisputeResolution(disputeResolution);
+            log.info("更新争议裁决记录，争议ID: {}，裁决结果: {}", disputeResolution.getId(), decision);
+        }
         
         if (CancelApplicationStatusConstant.DECISION_AGREE.equals(decision) || 
             CancelApplicationStatusConstant.DECISION_PARTIAL.equals(decision)) {
@@ -1311,9 +1409,30 @@ public class OrderServiceImpl implements OrderService {
             // 更新状态为平台介入处理中
             application.setStatus(CancelApplicationStatusConstant.PLATFORM_PROCESSING);
             cancelApplicationMapper.update(application);
-            log.info("取消申请超时转平台介入，申请ID: {}，订单ID: {}", 
-                    application.getId(), application.getOrderId());
-
+            
+            // 创建争议记录
+            DisputeResolution disputeResolution = DisputeResolution.builder()
+                    .orderId(application.getOrderId())
+                    .sourceType(DisputeResolutionConstant.CANCEL_APPLY)
+                    .sourceId(application.getId())
+                    .createdTime(LocalDateTime.now())
+                    .build();
+            disputeResolutionMapper.insertDisputeResolution(disputeResolution);
+            
+            // 自动创建争议群组
+            DisputeSessionDTO disputeSessionDTO = new DisputeSessionDTO();
+            disputeSessionDTO.setOrderId(application.getOrderId());
+            disputeSessionDTO.setDailyConfirmationId(null);
+            disputeSessionDTO.setUserId(application.getApplicantId());
+            try {
+                groupService.createDisputeChat(disputeSessionDTO);
+                log.info("超时争议群组创建成功，订单ID: {}", application.getOrderId());
+            } catch (Exception e) {
+                log.error("超时争议群组创建失败，订单ID: {}", application.getOrderId(), e);
+            }
+            
+            log.info("取消申请超时转平台介入，申请ID: {}，订单ID: {}，争议记录ID: {}", 
+                    application.getId(), application.getOrderId(), disputeResolution.getId());
         }
         
         log.info("处理超时取消申请完成，共处理 {} 条记录", timeoutApps.size());

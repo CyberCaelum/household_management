@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 /**
  * @author CyberCaelum
  * @version 1.0
- * @description: TODO
+ * @description: 发送信息
  * @date 2026/4/9 上午9:15
  */
 @Data
