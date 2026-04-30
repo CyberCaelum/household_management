@@ -24,21 +24,25 @@ public class CommonServiceImpl implements CommonService {
     private final AliOssUtil aliOssUtil;
 
     /**
-     * @description 文件上传
+     * @description 文件上传，返回后端代理访问路径
      * @author CyberCaelum
      * @date 下午7:32 2025/10/30
      * @param file 目标文件
-     * @return java.lang.String
+     * @return java.lang.String 图片代理访问路径，如 /image/xxx.jpg
      **/
     public String upload(MultipartFile file) {
         try {
             String originalFilename = file.getOriginalFilename();
             String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             String objectName = UUID.randomUUID().toString() + extension;
-            String filePath = aliOssUtil.upload(file.getBytes(), objectName);
-            return filePath;
+            String result = aliOssUtil.upload(file.getBytes(), objectName);
+            if (result == null) {
+                return MessageConstant.UPLOAD_FAILED;
+            }
+            // 返回代理访问路径，前端通过此路径访问图片
+            return "/image/" + objectName;
         } catch (IOException e) {
-            log.error(e.getMessage());
+            log.error("文件上传失败: {}", e.getMessage());
         }
         return MessageConstant.UPLOAD_FAILED;
     }

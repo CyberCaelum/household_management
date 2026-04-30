@@ -1,14 +1,11 @@
 package org.cybercaelum.household_management.utils;
 
-import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
-import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.OSSException;
+import com.aliyun.oss.model.OSSObject;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 
@@ -22,9 +19,7 @@ import java.io.ByteArrayInputStream;
 @AllArgsConstructor
 @Slf4j
 public class AliOssUtil {
-    private String endpoint;
-    private String accessKeyId;
-    private String accessKeySecret;
+    private OSS ossClient;
     private String bucketName;
 
     /**
@@ -33,42 +28,33 @@ public class AliOssUtil {
      * @date 下午8:58 2025/10/23
      * @param bytes 文件
      * @param objectName 文件名
-     * @return java.lang.String
+     * @return java.lang.String 上传成功的objectName，失败返回null
      **/
-    public String upload(byte[] bytes,String objectName){
-        // 创建OSSClient实例。
-        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
-
+    public String upload(byte[] bytes, String objectName) {
         try {
             // 创建PutObject请求。
             ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
         } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
-        } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
-        } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
-            }
+            log.error("OSS上传异常, Error Message:{}, Error Code:{}, Request ID:{}, Host ID:{}",
+                    oe.getErrorMessage(), oe.getErrorCode(), oe.getRequestId(), oe.getHostId());
+            return null;
+        } catch (Exception ce) {
+            log.error("OSS客户端异常, Error Message:{}", ce.getMessage());
+            return null;
         }
 
-        //文件访问路径规则 https://BucketName.Endpoint/ObjectName
-        StringBuilder stringBuilder = new StringBuilder("https://");
-        stringBuilder
-                .append(bucketName)
-                .append(".")
-                .append(endpoint)
-                .append("/")
-                .append(objectName);
-        log.info("文件上传到:{}", stringBuilder.toString());
-        return stringBuilder.toString();
+        return objectName;
     }
+
+    /**
+     * @description 获取OSS对象
+     * @author CyberCaelum
+     * @date 下午9:15 2025/10/23
+     * @param objectName 文件名
+     * @return com.aliyun.oss.model.OSSObject
+     **/
+    public OSSObject getObject(String objectName) {
+        return ossClient.getObject(bucketName, objectName);
+    }
+
 }
