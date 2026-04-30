@@ -65,7 +65,7 @@ public class BaseContext {
      * @param role 用户角色
      **/
     public static void setRole(Integer role){
-        set("role", role);
+        set(JwtClaimsConstant.USER_ROLE, role);
     }
     /**
      * @description 获得用户的角色
@@ -74,7 +74,7 @@ public class BaseContext {
      * @return java.lang.Integer
      **/
     public static Integer getRole(){
-        return (Integer) get("role");
+        return (Integer) get(JwtClaimsConstant.USER_ROLE);
     }
     /**
      * @description 移除信息
