@@ -67,4 +67,14 @@ public interface CancelApplicationMapper {
      **/
     @Select("SELECT COUNT(*) FROM cancel_application WHERE status = 4")
     Integer countPendingCancelApplications();
+
+    /**
+     * @description 查询订单最新已裁决的取消申请
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @param orderId 订单id
+     * @return org.cybercaelum.household_management.pojo.entity.CancelApplication
+     **/
+    @Select("SELECT * FROM cancel_application WHERE order_id = #{orderId} AND status = 5 ORDER BY create_time DESC LIMIT 1")
+    CancelApplication selectLatestDecidedByOrderId(Long orderId);
 }

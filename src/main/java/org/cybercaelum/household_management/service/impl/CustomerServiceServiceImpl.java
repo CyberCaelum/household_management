@@ -802,8 +802,8 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     public List<PendingDisputeVO> getPendingDisputes() {
         List<PendingDisputeVO> result = new ArrayList<>();
         
-        // 查询所有未裁决的争议记录
-        List<DisputeResolution> disputeResolutions = disputeResolutionMapper.selectPendingDisputes();
+        // 查询所有未裁决且未分配的争议记录
+        List<DisputeResolution> disputeResolutions = disputeResolutionMapper.selectUnassignedPendingDisputes();
         
         for (DisputeResolution dispute : disputeResolutions) {
             if (DisputeResolutionConstant.CANCEL_APPLY.equals(dispute.getSourceType())) {
@@ -922,11 +922,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         );
         builder.waitingQueueCount(waitingCount != null ? waitingCount.intValue() : 0);
         
-        // 4. 待处理争议数量（取消申请 + 每日确认争议）
-        Integer cancelDisputeCount = cancelApplicationMapper.countPendingCancelApplications();
-        Integer dailyDisputeCount = dailyConfirmationMapper.countPendingDisputes();
-        builder.pendingDisputeCount((cancelDisputeCount != null ? cancelDisputeCount : 0) 
-                + (dailyDisputeCount != null ? dailyDisputeCount : 0));
+        // 4. 待处理争议数量（统一从争议表统计）
+        Integer pendingDisputeCount = disputeResolutionMapper.countPendingDisputes();
+        builder.pendingDisputeCount(pendingDisputeCount != null ? pendingDisputeCount : 0);
         
         // 5. 当前客服的会话数量和最大限制（如果提供了csId）
         if (csId != null) {
@@ -960,6 +958,10 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         if (disputeResolution == null) {
             throw new DisputeResolutionIsNullException("争议不存在");
         }
+        // 检查争议是否已被分配
+        if (disputeResolution.getKefuId() != null) {
+            throw new DisputeResolutionIsNullException("争议已被分配给其他客服");
+        }
         Order order = orderMapper.getOrderById(disputeResolution.getOrderId());
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
@@ -967,6 +969,8 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         Long employerId = order.getEmployerId();
         Long employeeId = order.getEmployeeId();
         String groupId = "dispute"+"_"+employeeId+"_"+employerId;
+        // 记录客服分配关系
+        disputeResolutionMapper.assignKefu(disputeId, kefuId);
         //将客服加入群组
         joinCsToGroup(employeeId,kefuId.toString(),groupId);
         //创建消息

@@ -96,9 +96,10 @@ public interface OrderService {
      * 平台裁决取消申请
      * @param applicationId 申请ID
      * @param decision 裁决结果：1-同意取消，2-拒绝取消，3-部分结算
+     * @param defaultingParty 违约方：1-雇主，2-雇员（部分结算时必填）
      * @param note 平台备注
      */
-    void platformDecideCancelApplication(Long applicationId, Integer decision, String note);
+    void platformDecideCancelApplication(Long applicationId, Integer decision, Integer defaultingParty, String note);
 
     /**
      * 平台裁决每日确认争议
@@ -147,8 +148,9 @@ public interface OrderService {
     /**
      * 执行订单退款（根据平台裁决结果）
      * @param orderId 订单ID
+     * @param cancelApplicationId 关联的取消申请ID（用于精确定位争议记录）
      */
-    void refund(Long orderId);
+    void refund(Long orderId, Long cancelApplicationId);
 
     /**
      * 退款成功回调处理

@@ -61,9 +61,10 @@ public class AdminOrderController {
     @PutMapping("/platformDecide/{applicationId}")
     public Result platformDecide(@PathVariable Long applicationId,
                                   @RequestParam Integer decision,
+                                  @RequestParam(required = false) Integer defaultingParty,
                                   @RequestParam(required = false) String note) {
-        log.info("平台裁决取消申请，applicationId: {}，decision: {}，note: {}", applicationId, decision, note);
-        orderService.platformDecideCancelApplication(applicationId, decision, note);
+        log.info("平台裁决取消申请，applicationId: {}，decision: {}，defaultingParty: {}，note: {}", applicationId, decision, defaultingParty, note);
+        orderService.platformDecideCancelApplication(applicationId, decision, defaultingParty, note);
         return Result.success();
     }
 

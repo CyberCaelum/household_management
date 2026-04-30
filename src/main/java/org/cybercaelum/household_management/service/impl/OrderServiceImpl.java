@@ -244,7 +244,7 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     @Transactional
-    public void refund(Long orderId){
+    public void refund(Long orderId, Long cancelApplicationId){
         //查找订单是否存在
         Order order = orderMapper.getOrderById(orderId);
         if (order == null || order.getOrderNumber() == null){
@@ -269,8 +269,9 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderStatusErrorException("订单未支付");
         }
         
-        //查询争议处理结果
-        DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(orderId, DisputeResolutionConstant.CANCEL_APPLY);
+        //查询争议处理结果（通过取消申请ID精确查询）
+        DisputeResolution disputeResolution = disputeResolutionMapper.selectBySourceId(
+                cancelApplicationId, DisputeResolutionConstant.CANCEL_APPLY);
         //判断裁决结果是否存在
         if (disputeResolution == null){
             throw new DisputeResolutionIsNullException("没有裁决结果");
@@ -1181,7 +1182,24 @@ public class OrderServiceImpl implements OrderService {
         disputeResolution.setNote(note);
         disputeResolutionMapper.updateDisputeResolution(disputeResolution);
         
-        log.info("平台裁决每日确认争议，确认记录ID: {}，争议ID: {}，裁决结果: {}", 
+        // 更新每日确认记录状态
+        DailyConfirmation updateConfirmation = DailyConfirmation.builder()
+                .id(confirmationId)
+                .updateTime(LocalDateTime.now())
+                .build();
+        if (DisputeResolutionConstant.AGREE.equals(decision)) {
+            // 同意争议：争议成立
+            updateConfirmation.setStatus(DailyConfirmationStatusConstant.DISPUTE_UPHELD);
+            log.info("平台同意每日确认争议，确认记录ID: {}，争议成立", confirmationId);
+        } else if (DisputeResolutionConstant.REJECT.equals(decision)) {
+            // 拒绝争议：恢复为雇主已确认
+            updateConfirmation.setStatus(DailyConfirmationStatusConstant.EMPLOYER_CONFIRMED);
+            updateConfirmation.setEmployerConfirmTime(LocalDateTime.now());
+            log.info("平台拒绝每日确认争议，确认记录ID: {}，恢复为已确认", confirmationId);
+        }
+        dailyConfirmationMapper.update(updateConfirmation);
+        
+        log.info("平台裁决每日确认争议完成，确认记录ID: {}，争议ID: {}，裁决结果: {}", 
                 confirmationId, disputeResolution.getId(), decision);
     }
 
@@ -1195,7 +1213,7 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     @Transactional
-    public void platformDecideCancelApplication(Long applicationId, Integer decision, String note) {
+    public void platformDecideCancelApplication(Long applicationId, Integer decision, Integer defaultingParty, String note) {
         //获取申请信息
         CancelApplication application = cancelApplicationMapper.selectById(applicationId);
         if (application == null) {
@@ -1222,13 +1240,18 @@ public class OrderServiceImpl implements OrderService {
         // 更新争议记录
         DisputeResolution disputeResolution = disputeResolutionMapper.selectBySourceId(
                 application.getId(), DisputeResolutionConstant.CANCEL_APPLY);
-        if (disputeResolution != null) {
-            disputeResolution.setDecision(decision);
-            disputeResolution.setOperatorId(BaseContext.getUserId());
-            disputeResolution.setNote(note);
-            disputeResolutionMapper.updateDisputeResolution(disputeResolution);
-            log.info("更新争议裁决记录，争议ID: {}，裁决结果: {}", disputeResolution.getId(), decision);
+        if (disputeResolution == null) {
+            throw new DisputeResolutionIsNullException("争议记录不存在");
         }
+        
+        disputeResolution.setDecision(decision);
+        disputeResolution.setOperatorId(BaseContext.getUserId());
+        disputeResolution.setNote(note);
+        if (defaultingParty != null) {
+            disputeResolution.setDefaultingParty(defaultingParty);
+        }
+        disputeResolutionMapper.updateDisputeResolution(disputeResolution);
+        log.info("更新争议裁决记录，争议ID: {}，裁决结果: {}，违约方: {}", disputeResolution.getId(), decision, defaultingParty);
         
         if (CancelApplicationStatusConstant.DECISION_AGREE.equals(decision) || 
             CancelApplicationStatusConstant.DECISION_PARTIAL.equals(decision)) {
@@ -1243,6 +1266,9 @@ public class OrderServiceImpl implements OrderService {
                     .cancelTime(LocalDateTime.now())
                     .build();
             orderMapper.updateOrder(updateOrder);
+            
+            // 执行实际退款
+            refund(order.getId(), application.getId());
         }
         // 如果拒绝取消，订单继续
     }
@@ -1406,8 +1432,10 @@ public class OrderServiceImpl implements OrderService {
         List<CancelApplication> timeoutApps = cancelApplicationMapper.selectTimeoutApplications(now);
         
         for (CancelApplication application : timeoutApps) {
-            // 更新状态为平台介入处理中
+            // 更新状态为平台介入处理中（系统超时自动转介入）
             application.setStatus(CancelApplicationStatusConstant.PLATFORM_PROCESSING);
+            application.setConfirmUserId(-1L); // -1 表示系统超时自动处理
+            application.setConfirmTime(LocalDateTime.now());
             cancelApplicationMapper.update(application);
             
             // 创建争议记录
@@ -1573,9 +1601,18 @@ public class OrderServiceImpl implements OrderService {
         
         Long orderId = order.getId();
         
-        // 查询争议处理结果
-        DisputeResolution disputeResolution = disputeResolutionMapper.selectDisputeResolutionByOrderId(
-                orderId, DisputeResolutionConstant.CANCEL_APPLY);
+        // 查询争议处理结果（先尝试通过最新已裁决的取消申请精确定位）
+        DisputeResolution disputeResolution = null;
+        CancelApplication latestDecidedApp = cancelApplicationMapper.selectLatestDecidedByOrderId(orderId);
+        if (latestDecidedApp != null) {
+            disputeResolution = disputeResolutionMapper.selectBySourceId(
+                    latestDecidedApp.getId(), DisputeResolutionConstant.CANCEL_APPLY);
+        }
+        // 如果精确查询失败，兜底按订单ID查询最新的争议记录
+        if (disputeResolution == null) {
+            disputeResolution = disputeResolutionMapper.selectLatestByOrderId(
+                    orderId, DisputeResolutionConstant.CANCEL_APPLY);
+        }
         if (disputeResolution == null) {
             log.error("退款回调处理失败：没有裁决结果，订单号: {}", orderNo);
             throw new DisputeResolutionIsNullException("没有裁决结果");

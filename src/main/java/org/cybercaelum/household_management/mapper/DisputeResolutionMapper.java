@@ -2,6 +2,7 @@ package org.cybercaelum.household_management.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import org.cybercaelum.household_management.pojo.entity.DisputeResolution;
 
 import java.util.List;
@@ -24,6 +25,16 @@ public interface DisputeResolutionMapper {
      * @param disputeResolution 争议处理信息
      **/
     void updateDisputeResolution(DisputeResolution disputeResolution);
+
+    /**
+     * @description 分配客服到争议
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @param disputeId 争议id
+     * @param kefuId 客服id
+     **/
+    @Update("update dispute_resolution set kefu_id = #{kefuId} where id = #{disputeId}")
+    void assignKefu(Long disputeId, Long kefuId);
 
     /**
      * @description 通过订单id查找处理结果
@@ -58,4 +69,33 @@ public interface DisputeResolutionMapper {
      **/
     @Select("select * from dispute_resolution where decision is null order by created_time desc")
     List<DisputeResolution> selectPendingDisputes();
+
+    /**
+     * @description 查询所有未裁决且未分配的争议记录
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @return java.util.List<org.cybercaelum.household_management.pojo.entity.DisputeResolution>
+     **/
+    @Select("select * from dispute_resolution where decision is null and kefu_id is null order by created_time desc")
+    List<DisputeResolution> selectUnassignedPendingDisputes();
+
+    /**
+     * @description 统计未裁决的争议数量
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @return java.lang.Integer
+     **/
+    @Select("select count(*) from dispute_resolution where decision is null")
+    Integer countPendingDisputes();
+
+    /**
+     * @description 通过订单id查询最新的争议记录
+     * @author CyberCaelum
+     * @date 2026/4/18
+     * @param id 订单id
+     * @param sourceType 争议来源
+     * @return org.cybercaelum.household_management.pojo.entity.DisputeResolution
+     **/
+    @Select("select * from dispute_resolution where order_id = #{id} and source_type = #{sourceType} order by created_time desc limit 1")
+    DisputeResolution selectLatestByOrderId(Long id, Integer sourceType);
 }
