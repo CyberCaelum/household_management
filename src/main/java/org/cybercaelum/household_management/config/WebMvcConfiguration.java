@@ -32,6 +32,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 .addPathPatterns("/recruitment/**")
                 .addPathPatterns("/resume/add")
                 .addPathPatterns("/resume/update")
+                .addPathPatterns("/resume/**")
                 .addPathPatterns("/resume/visibility/**")
                 .addPathPatterns("/comment/add")
                 .addPathPatterns("/comment/update")

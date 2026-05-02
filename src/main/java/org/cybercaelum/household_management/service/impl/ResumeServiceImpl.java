@@ -50,11 +50,6 @@ public class ResumeServiceImpl implements ResumeService {
         if (resumeVO != null) {//用户有简历，不可新增
             throw new IsResumeExistException("个人简历已存在");
         }
-        //检查图片数量限制（最多5张）
-        List<String> pictures = resumeDTO.getPictures();
-        if (pictures != null && pictures.size() > 5) {
-            throw new PictureCountLimitException("简历图片最多只能上传5张");
-        }
 
         Resume resume = new Resume();
         //复制属性
@@ -63,24 +58,7 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setUserId(userId);
         log.info("简介{}", resume);
         //存入数据库
-        Long resumeId = resumeMapper.addResume(resume);
-        //编辑图片数据
-        List<ResumePicture> resumePictureList = new ArrayList<>();
-        if (pictures != null) {
-            for (String picture : pictures) {
-                ResumePicture resumePicture = ResumePicture.builder()
-                        .url(picture)
-                        .resumeId(resumeId)
-                        .userId(userId)
-                        .status(1)
-                        .build();
-                resumePictureList.add(resumePicture);
-            }
-            //存入图片数据
-            if (!resumePictureList.isEmpty()) {
-                resumePictureMapper.addResumePicture(resumePictureList);
-            }
-        }
+        resumeMapper.addResume(resume);
     }
 
     /**
@@ -99,9 +77,10 @@ public class ResumeServiceImpl implements ResumeService {
             return null;
         }
         //不是本人
-        if (userId == null || !userId.equals(resumeVO.getUserId())) {
+        if (userId == null && !userId.equals(resumeVO.getUserId())) {
             //判断可见性
             if (resumeVO.getVisibility() == 0) {
+                log.info("简历不可见");
                 return null;
             }
         }
@@ -126,28 +105,6 @@ public class ResumeServiceImpl implements ResumeService {
         //更新简历信息
         resume.setResumeData(resumeDTO.getResumeData());
         resumeMapper.updateResume(resume);
-
-        //处理图片更新：先删除旧图片，再添加新图片
-        if (resumeDTO.getPictures() != null) {
-            //检查图片数量限制（最多5张）
-            if (resumeDTO.getPictures().size() > 5) {
-                throw new PictureCountLimitException("简历图片最多只能上传5张");
-            }
-            //删除旧图片
-            resumePictureMapper.deleteByResumeId(resume.getId());
-            //添加新图片
-            List<ResumePicture> resumePictureList = new ArrayList<>();
-            for (String picture : resumeDTO.getPictures()) {
-                ResumePicture resumePicture = ResumePicture.builder()
-                        .url(picture)
-                        .resumeId(resume.getId())
-                        .status(1)
-                        .userId(userId)
-                        .build();
-                resumePictureList.add(resumePicture);
-            }
-            resumePictureMapper.addResumePicture(resumePictureList);
-        }
     }
 
     /**

@@ -40,7 +40,7 @@ public class CommonServiceImpl implements CommonService {
                 return MessageConstant.UPLOAD_FAILED;
             }
             // 返回代理访问路径，前端通过此路径访问图片
-            return "/image/" + objectName;
+            return "api/image/" + objectName;
         } catch (IOException e) {
             log.error("文件上传失败: {}", e.getMessage());
         }
