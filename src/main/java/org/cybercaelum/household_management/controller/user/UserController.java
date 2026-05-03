@@ -13,6 +13,7 @@ import org.cybercaelum.household_management.pojo.dto.UserLoginDTO;
 import org.cybercaelum.household_management.pojo.dto.UserRegisterDTO;
 import org.cybercaelum.household_management.pojo.dto.UserUpdateDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.pojo.vo.UserInfoVO;
 import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.cybercaelum.household_management.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,5 +110,21 @@ public class UserController {
         log.info("用户注销");
         userService.cancel();
         return Result.success();
+    }
+
+    /**
+     * @description 查询当前登录用户信息
+     * @author CyberCaelum
+     * @date 2025/10/23
+     * @return org.cybercaelum.household_management.pojo.entity.Result<org.cybercaelum.household_management.pojo.vo.UserInfoVO>
+     **/
+    @RequireRole(RoleConstant.USER)
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "查询用户信息",description = "查询当前登录用户的所有信息，用于修改个人信息")
+    @GetMapping("/info")
+    public Result<UserInfoVO> getUserInfo(){
+        log.info("查询用户信息");
+        UserInfoVO userInfoVO = userService.getUserInfo();
+        return Result.success(userInfoVO);
     }
 }

@@ -21,6 +21,7 @@ import org.cybercaelum.household_management.pojo.dto.UserRegisterDTO;
 import org.cybercaelum.household_management.pojo.dto.UserUpdateDTO;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.User;
+import org.cybercaelum.household_management.pojo.vo.UserInfoVO;
 import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.cybercaelum.household_management.properties.JwtProperties;
 import org.cybercaelum.household_management.service.OpenImService;
@@ -296,5 +297,29 @@ public class UserServiceImpl implements UserService {
         // 2. 更新状态
         userMapper.updateStatus(staffId, status);
         log.info("修改员工 {} 的状态为 {} 成功", staffId, status);
+    }
+
+    /**
+     * @description 查询当前登录用户信息
+     * @author CyberCaelum
+     * @date 2025/10/23
+     * @return org.cybercaelum.household_management.pojo.vo.UserInfoVO
+     **/
+    @Override
+    public UserInfoVO getUserInfo() {
+        Long userId = BaseContext.getUserId();
+        User user = userMapper.getById(userId);
+        if (user == null) {
+            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
+        }
+        return UserInfoVO.builder()
+                .id(user.getId())
+                .phoneNumber(user.getPhoneNumber())
+                .username(user.getUsername())
+                .createTime(user.getCreateTime())
+                .status(user.getStatus())
+                .role(user.getRole())
+                .profileUrl(user.getProfileUrl())
+                .build();
     }
 }

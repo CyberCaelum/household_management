@@ -6,6 +6,7 @@ import org.cybercaelum.household_management.pojo.dto.UserLoginDTO;
 import org.cybercaelum.household_management.pojo.dto.UserRegisterDTO;
 import org.cybercaelum.household_management.pojo.dto.UserUpdateDTO;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
+import org.cybercaelum.household_management.pojo.vo.UserInfoVO;
 import org.cybercaelum.household_management.pojo.vo.UserLoginVO;
 import org.springframework.stereotype.Service;
 
@@ -69,4 +70,12 @@ public interface UserService {
      * @param status 账号状态
      **/
     void updateStatus(Long staffId, Integer status);
+
+    /**
+     * @description 查询当前登录用户信息
+     * @author CyberCaelum
+     * @date 2025/10/23
+     * @return org.cybercaelum.household_management.pojo.vo.UserInfoVO
+     **/
+    UserInfoVO getUserInfo();
 }
