@@ -73,4 +73,14 @@ public interface RecruitmentMapper {
      **/
     @Select("select recruitment.id, title, mine_salary, max_salary, start_time, end_time, requirement, recruitment.status, province_code, province_name, city_code, city_name, district_code, district_name, detail, user_id, recruitment.create_time, update_time,username,profile_url from recruitment,user where recruitment.id = #{id} and user.id = recruitment.user_id")
     RecruitmentVO selectRecruitmentUserInfoById(Long id);
+
+    /**
+     * @description 根据用户id查询用户对应的所有招募
+     * @author CyberCaelum
+     * @date 下午2:49 2026/5/6
+     * @param userId 用户id
+     * @return java.util.List<org.cybercaelum.household_management.pojo.vo.RecruitmentVO>
+     **/
+    @Select("select recruitment.id, title, mine_salary, max_salary, start_time, end_time, requirement, recruitment.status, province_code, province_name, city_code, city_name, district_code, district_name, detail, user_id, recruitment.create_time, update_time,username,profile_url from recruitment,user where recruitment.user_id = #{userId} and user.id = recruitment.user_id")
+    List<RecruitmentVO> selectRecruitmentByUserId(Long userId);
 }

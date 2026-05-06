@@ -19,4 +19,6 @@ public interface RecruitmentService {
     void deleteRecruitment(List<Long> ids);
 
     RecruitmentVO getRecruitment(Long id);
+
+    List<RecruitmentVO> getRecruitmentByUserId();
 }
