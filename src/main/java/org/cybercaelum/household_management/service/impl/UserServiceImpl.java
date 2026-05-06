@@ -193,7 +193,7 @@ public class UserServiceImpl implements UserService {
             // 记录日志，但不影响主流程
         }
         
-        return newLogin(user);
+        return newLogin(userMapper.getById(user.getId()));
     }
 
     /**
