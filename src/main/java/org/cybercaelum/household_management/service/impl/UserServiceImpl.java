@@ -174,10 +174,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserLoginVO updateUser(UserUpdateDTO userUpdateDTO) {
         User user = new User();
-        String password = userUpdateDTO.getPassword();
-        password = DigestUtils.md5DigestAsHex(password.getBytes());
         BeanUtils.copyProperties(userUpdateDTO, user);
-        user.setPassword(password);
+        if (userUpdateDTO.getPassword() != null && userUpdateDTO.getPassword().isEmpty()){
+            String password = userUpdateDTO.getPassword();
+            password = DigestUtils.md5DigestAsHex(password.getBytes());
+            user.setPassword(password);
+        }
         userMapper.updateUser(user);
         
         // 同步更新 OpenIM 用户信息
