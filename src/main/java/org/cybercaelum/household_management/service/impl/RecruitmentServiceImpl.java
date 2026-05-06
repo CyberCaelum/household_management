@@ -157,4 +157,17 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         }
         return recruitmentVO;
     }
+
+    /**
+     * @description 通过用户id查询用户发布过的所有招募
+     * @author CyberCaelum
+     * @date 下午2:45 2026/5/6
+     * @return java.util.List<org.cybercaelum.household_management.pojo.vo.RecruitmentVO>
+     **/
+    @Override
+    public List<RecruitmentVO> getRecruitmentByUserId() {
+        Long userId = BaseContext.getUserId();
+        List<RecruitmentVO> recruitmentVOS = recruitmentMapper.selectRecruitmentByUserId(userId);
+        return List.of();
+    }
 }

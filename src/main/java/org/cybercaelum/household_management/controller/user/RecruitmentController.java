@@ -137,4 +137,12 @@ public class RecruitmentController {
         RecruitmentVO recruitmentVO = recruitmentService.getRecruitment(id);
         return Result.success(recruitmentVO);
     }
+
+    @Operation(summary = "根据用户id查询用户的所有招募",description = "查询用户的所有招募")
+    @GetMapping("/user/total")
+    public Result getAllRecruitment(){
+        log.info("根据用户id查询对应用户的所有招募");
+        List<RecruitmentVO> recruitmentVOS = recruitmentService.getRecruitmentByUserId();
+        return Result.success(recruitmentVOS);
+    }
 }
