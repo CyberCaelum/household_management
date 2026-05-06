@@ -57,7 +57,6 @@ public interface UserMapper {
      * @date 下午7:50 2025/10/23
      * @param user 用户类
      **/
-    @Update("update user set phone_number = #{phoneNumber},username = #{username},password = #{password},profile_url = #{profileUrl} where id = #{id}")
     void updateUser(User user);
 
     /**
