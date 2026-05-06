@@ -167,7 +167,6 @@ public class RecruitmentServiceImpl implements RecruitmentService {
     @Override
     public List<RecruitmentVO> getRecruitmentByUserId() {
         Long userId = BaseContext.getUserId();
-        List<RecruitmentVO> recruitmentVOS = recruitmentMapper.selectRecruitmentByUserId(userId);
-        return List.of();
+        return recruitmentMapper.selectRecruitmentByUserId(userId);
     }
 }
