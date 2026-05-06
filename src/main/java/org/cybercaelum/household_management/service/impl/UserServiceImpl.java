@@ -176,7 +176,7 @@ public class UserServiceImpl implements UserService {
         User user = new User();
 
         BeanUtils.copyProperties(userUpdateDTO, user);
-        if (userUpdateDTO.getPassword() != null && userUpdateDTO.getPassword().isEmpty()){
+        if (userUpdateDTO.getPassword() != null && !userUpdateDTO.getPassword().isEmpty()){
             String password = userUpdateDTO.getPassword();
             password = DigestUtils.md5DigestAsHex(password.getBytes());
             user.setPassword(password);
