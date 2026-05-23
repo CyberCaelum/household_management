@@ -258,9 +258,12 @@ public class UserServiceImpl implements UserService {
      **/
     @Override
     public PageResult pageStaff(StaffPageDTO staffPageDTO) {
-        PageHelper.startPage(staffPageDTO.getPage(), staffPageDTO.getPageSize());
-        Page<User> page = (Page<User>) userMapper.pageStaff(staffPageDTO);
-        return new PageResult(page.getTotal(), page.getResult());
+        int page = Math.max(staffPageDTO.getPage(), 1);
+        int pageSize = staffPageDTO.getPageSize() > 0 && staffPageDTO.getPageSize() <= 100
+                ? staffPageDTO.getPageSize() : 10;
+        PageHelper.startPage(page, pageSize);
+        Page<User> result = userMapper.pageStaff(staffPageDTO);
+        return new PageResult(result.getTotal(), result.getResult());
     }
 
     /**

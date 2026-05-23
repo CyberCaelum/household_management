@@ -605,7 +605,9 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     public PageResult history(Integer page, Integer pageSize, Integer status) {
-        PageHelper.startPage(page, pageSize);
+        int p = page != null && page > 0 ? page : 1;
+        int ps = pageSize != null && pageSize > 0 && pageSize <= 100 ? pageSize : 10;
+        PageHelper.startPage(p, ps);
         Page<Order> orders = orderMapper.history(BaseContext.getUserId(), status);
         List<OrderVO> list = new ArrayList<>();
         if (orders != null && !orders.isEmpty()) {

@@ -105,10 +105,13 @@ public class RecruitmentServiceImpl implements RecruitmentService {
      **/
     @Override
     public PageResult pageRecruitment(RecruitmentPageDTO recruitmentPageDTO) {
-        PageHelper.startPage(recruitmentPageDTO.getPage(),recruitmentPageDTO.getPageSize());
-        Page<RecruitmentVO> page =recruitmentMapper.pageRecruitment(recruitmentPageDTO);
-        log.info("pageRecruitment:{}",page.getResult());
-        return new PageResult(page.getTotal(),page.getResult());
+        int page = Math.max(recruitmentPageDTO.getPage(), 1);
+        int pageSize = recruitmentPageDTO.getPageSize() > 0 && recruitmentPageDTO.getPageSize() <= 100
+                ? recruitmentPageDTO.getPageSize() : 10;
+        PageHelper.startPage(page, pageSize);
+        Page<RecruitmentVO> result = recruitmentMapper.pageRecruitment(recruitmentPageDTO);
+        log.info("pageRecruitment:{}", result.getResult());
+        return new PageResult(result.getTotal(), result.getResult());
     }
 
     /**

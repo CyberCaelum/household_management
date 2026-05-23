@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Update;
 import org.cybercaelum.household_management.pojo.dto.StaffPageDTO;
 import org.cybercaelum.household_management.pojo.entity.User;
 
+import com.github.pagehelper.Page;
 import java.util.List;
 
 @Mapper
@@ -73,9 +74,9 @@ public interface UserMapper {
      * @author CyberCaelum
      * @date 2026/3/24
      * @param staffPageDTO 分页查询条件
-     * @return java.util.List<org.cybercaelum.household_management.pojo.entity.User>
+     * @return com.github.pagehelper.Page<org.cybercaelum.household_management.pojo.entity.User>
      **/
-    List<User> pageStaff(StaffPageDTO staffPageDTO);
+    Page<User> pageStaff(StaffPageDTO staffPageDTO);
 
     /**
      * @description 重置员工密码
