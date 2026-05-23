@@ -76,22 +76,6 @@ public class GroupServiceImpl implements GroupService {
             throw new RecruitmentNotFoundException("招募对应用户错误");
         }
 
-        //先将用户加好友，方便前端获取好友信息更改的回调，更新群显示信息
-        ImportFriendDTO importFriendDTO = ImportFriendDTO.builder()
-                .ownerUserID(String.valueOf(initiatorId))
-                .friendUserIDs(new ArrayList<>(Arrays.asList(String.valueOf(accepterId))))
-                .build();
-        //调用openim添加好友
-        OpenimResult<Object> result = openimFeignClient.importFriend(
-                String.valueOf(System.currentTimeMillis()),
-                openImService.getAdminToken(),
-                importFriendDTO
-        );
-        //判断是否添加成功
-        if (result.getErrCode() != 1304 && result.getErrCode() != 0){
-            throw new OpenimRequestErrorException("用户好友添加失败");
-        }
-
         //设置群组信息，群ID为拼接发起人ID_招募id_接受人id
         String groupID = initiatorId+"_"+groupCreateDTO.getRecruitmentId()+"_"+accepterId;
         OpenimGroupCreateDTO.GroupInfo groupInfo = OpenimGroupCreateDTO.GroupInfo.builder()
@@ -123,7 +107,7 @@ public class GroupServiceImpl implements GroupService {
             OpenimResult<GroupListDTO> groupsInfo = openimFeignClient.getGroupsInfo(
                     String.valueOf(System.currentTimeMillis()),
                     openImService.getAdminToken()
-                    ,new ArrayList<>(Arrays.asList(groupID))
+                    ,new GroupInfoGetDTO(List.of(groupID))
             );
             if (groupsInfo.getErrCode() != 0){
                 throw new OpenimRequestErrorException("查询群组信息失败");
@@ -188,7 +172,7 @@ public class GroupServiceImpl implements GroupService {
             OpenimResult<GroupListDTO> groupsInfo = openimFeignClient.getGroupsInfo(
                     String.valueOf(System.currentTimeMillis()),
                     openImService.getAdminToken()
-                    ,new ArrayList<>(Arrays.asList(groupID))
+                    ,new GroupInfoGetDTO(List.of(groupID))
             );
             if (groupsInfo.getErrCode() != 0){
                 throw new OpenimRequestErrorException("查询客服群组信息失败");
@@ -267,7 +251,7 @@ public class GroupServiceImpl implements GroupService {
             OpenimResult<GroupListDTO> groupsInfo = openimFeignClient.getGroupsInfo(
                     String.valueOf(System.currentTimeMillis()),
                     openImService.getAdminToken()
-                    ,new ArrayList<>(Arrays.asList(groupID))
+                    ,new GroupInfoGetDTO(List.of(groupID))
             );
             if (groupsInfo.getErrCode() != 0){
                 throw new OpenimRequestErrorException("查询客服群组信息失败");

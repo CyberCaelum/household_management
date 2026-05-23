@@ -94,7 +94,7 @@ public interface OpenimFeignClient {
     OpenimResult<GroupListDTO> getGroupsInfo(
             @RequestHeader("operationID") String operationId,
             @RequestHeader("token") String token,
-            @RequestBody List<String> request
+            @RequestBody GroupInfoGetDTO request
     );
 
     /**
