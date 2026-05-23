@@ -122,6 +122,11 @@ household:
     admin-user-id: ${household.openim.admin-user-id:imAdmin}
     # 默认平台ID (1-9)
     default-platform-id: ${household.openim.default-platform-id:5}
+  robot:
+    # 机器人账号ID
+    id: ${household.robot.id:24}
+    # 机器人账号ID2
+    id2: ${household.robot.id2:25}
 
 rocketmq:
   producer:
