@@ -18,6 +18,10 @@ import java.time.LocalDateTime;
  * @date 2026/3/9 上午10:28
  */
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class OrderVO {
     private Long id;//主键
     private String orderNumber;//订单编号
