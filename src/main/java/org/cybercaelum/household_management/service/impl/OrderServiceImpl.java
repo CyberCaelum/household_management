@@ -630,14 +630,13 @@ public class OrderServiceImpl implements OrderService {
      * @return org.cybercaelum.household_management.pojo.vo.OrderVO
      **/
     @Override
-    public OrderVO detail(Long id) {
+    public Order detail(Long id) {
         Order order = orderMapper.getOrderById(id);
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
         }
-        OrderVO orderVO = new OrderVO();
-        BeanUtils.copyProperties(order,orderVO);
-        return orderVO;
+
+        return order;
     }
 
     /**
@@ -692,18 +691,18 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderStatusErrorException("订单状态错误，无法拒单");
         }
         
-        // 通过微信获得订单支付状态
-        WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
-        if (!"SUCCESS".equals(wxPayOrderQueryResult.getTradeState())){
-            throw new OrderStatusErrorException("订单未支付");
-        }
+//        // 通过微信获得订单支付状态
+//        WxPayOrderQueryResult wxPayOrderQueryResult = wechatPayUtil.queryOrder(order.getOrderNumber());
+//        if (!"SUCCESS".equals(wxPayOrderQueryResult.getTradeState())){
+//            throw new OrderStatusErrorException("订单未支付");
+//        }
         
         // 创建退款单号
         String refundNo = String.valueOf(System.currentTimeMillis()) + order.getRecruitmentId();
         
-        // 调用微信退款接口，全额退款
-        wechatPayUtil.refund(order.getOrderNumber(), refundNo, order.getTotal(), order.getTotal(), "家政人员拒绝订单");
-        
+//        // 调用微信退款接口，全额退款
+//        wechatPayUtil.refund(order.getOrderNumber(), refundNo, order.getTotal(), order.getTotal(), "家政人员拒绝订单");
+//
         // 发送退款超时消息，用于回调保底
         sendRefundTimeoutMessage(orderId, refundNo);
         

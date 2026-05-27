@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.annotation.RequireRole;
 import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.*;
+import org.cybercaelum.household_management.pojo.entity.Order;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.*;
@@ -128,10 +129,10 @@ public class OrderController {
     @Operation(summary = "订单详情",description = "订单详情")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/detail/{id}")
-    public Result<OrderVO> orderDetail(@PathVariable Long id){
+    public Result<Order> orderDetail(@PathVariable Long id){
         log.info("查看订单详情，orderId: {}",id);
-        OrderVO orderVO = orderService.detail(id);
-        return Result.success(orderVO);
+        Order order = orderService.detail(id);
+        return Result.success(order);
     }
 
     /**
