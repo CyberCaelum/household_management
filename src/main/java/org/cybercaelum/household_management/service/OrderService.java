@@ -38,7 +38,7 @@ public interface OrderService {
 //    void cancel(Long id,String reason);
 
     //查看订单详情
-    Order detail(Long id);
+    OrderVO detail(Long id);
 
     //接单（被雇者确认接单）
     void confirm(OrdersConfirmDTO ordersConfirmDTO);

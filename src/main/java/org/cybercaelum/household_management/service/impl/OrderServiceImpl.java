@@ -630,13 +630,14 @@ public class OrderServiceImpl implements OrderService {
      * @return org.cybercaelum.household_management.pojo.vo.OrderVO
      **/
     @Override
-    public Order detail(Long id) {
+    public OrderVO detail(Long id) {
         Order order = orderMapper.getOrderById(id);
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
         }
-
-        return order;
+        OrderVO orderVO = new OrderVO();
+        BeanUtils.copyProperties(order,orderVO);
+        return orderVO;
     }
 
     /**
