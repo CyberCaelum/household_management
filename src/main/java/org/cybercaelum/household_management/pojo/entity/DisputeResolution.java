@@ -26,7 +26,6 @@ public class DisputeResolution {
     private Long sourceId;//来源记录id，cancel_application_id或daily_confirmation_id
     private Integer defaultingParty;//平台裁定的违约方：1-雇主，2-雇员
     private Integer decision;// 平台裁决结果：1-同意取消，2-拒绝取消，3-部分结算等
-    private Long operatorId;//平台操作人
     private Long kefuId;//分配的客服id
     private String note;//平台备注
     private LocalDateTime createdTime;//创建时间
