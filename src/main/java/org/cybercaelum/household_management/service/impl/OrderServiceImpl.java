@@ -994,7 +994,7 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     @Transactional
-    public void applyCancel(Long orderId, Integer cancelType, String reason) {
+    public Long applyCancel(Long orderId, Integer cancelType, String reason) {
         Order order = orderMapper.getOrderById(orderId);
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
@@ -1040,6 +1040,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
         
         cancelApplicationMapper.insert(application);
+        return application.getId();
     }
 
     /**
@@ -1892,5 +1893,30 @@ public class OrderServiceImpl implements OrderService {
             log.error("查询支付状态失败，订单ID: {}，订单号: {}", orderId, orderNumber, e);
             // 不抛出异常，让消息消费成功，避免无限重试
         }
+    }
+
+    /**
+     * @description 查询订单取消信息
+     * @author CyberCaelum
+     * @date 上午10:26 2026/5/28
+     * @param id
+     * @return org.cybercaelum.household_management.pojo.entity.CancelApplication
+     **/
+    @Override
+    public CancelApplication selectCancel(Long id) {
+        CancelApplication cancelApplication = cancelApplicationMapper.selectById(id);
+        if (cancelApplication == null) {
+            throw new CancelApplicationIsNullException("取消请求不存在");
+        }
+
+        Order order = orderMapper.getOrderById(cancelApplication.getOrderId());
+        Long userId = BaseContext.getUserId();
+        if (BaseContext.getRole() == 1){
+            if (!Objects.equals(userId, order.getEmployeeId()) && !Objects.equals(userId, order.getEmployerId())){
+                throw new RoleErrorException("无权查看");
+            }
+        }
+
+        return cancelApplication;
     }
 }

@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.annotation.RequireRole;
 import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.*;
+import org.cybercaelum.household_management.pojo.entity.CancelApplication;
 import org.cybercaelum.household_management.pojo.entity.Order;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.entity.Result;
@@ -273,8 +274,24 @@ public class OrderController {
     @PostMapping("/applyCancel")
     public Result applyCancel(@RequestBody OrdersCancelDTO ordersCancelDTO) {
         log.info("发起取消申请，orderId: {}，cancelType: {}", ordersCancelDTO.getId(), ordersCancelDTO.getCancelType());
-        orderService.applyCancel(ordersCancelDTO.getId(), ordersCancelDTO.getCancelType(), ordersCancelDTO.getCancelReason());
-        return Result.success();
+        Long id = orderService.applyCancel(ordersCancelDTO.getId(), ordersCancelDTO.getCancelType(), ordersCancelDTO.getCancelReason());
+        return Result.success(id);
+    }
+
+    /**
+     * @description 查询订单取消信息
+     * @author CyberCaelum
+     * @date 上午10:27 2026/5/28
+     * @param id 取消信息id
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "查询订单取消信息", description = "查询订单取消信息")
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/applyCancel/{id}")
+    public  Result selectCancel(@PathVariable Long id) {
+        log.info("查询取消申请信息，CancelId: {}",id);
+        CancelApplication cancelApplication = orderService.selectCancel(id);
+        return Result.success(cancelApplication);
     }
 
     /**

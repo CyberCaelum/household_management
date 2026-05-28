@@ -1,6 +1,7 @@
 package org.cybercaelum.household_management.service;
 
 import org.cybercaelum.household_management.pojo.dto.*;
+import org.cybercaelum.household_management.pojo.entity.CancelApplication;
 import org.cybercaelum.household_management.pojo.entity.Order;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.vo.*;
@@ -84,7 +85,7 @@ public interface OrderService {
      * @param cancelType 取消类型：1-协商一致，2-雇主强制，3-家政人员强制
      * @param reason 申请理由
      */
-    void applyCancel(Long orderId, Integer cancelType, String reason);
+    Long applyCancel(Long orderId, Integer cancelType, String reason);
 
     /**
      * 响应取消申请（同意或拒绝）
@@ -182,4 +183,6 @@ public interface OrderService {
      * @param orderNumber 订单号
      */
     void handlePayTimeout(Long orderId, String orderNumber);
+
+    CancelApplication selectCancel(Long id);
 }
