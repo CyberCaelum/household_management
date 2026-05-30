@@ -28,5 +28,5 @@ public class DisputeResolution {
     private Integer decision;// 平台裁决结果：1-同意取消，2-拒绝取消，3-部分结算等
     private Long kefuId;//分配的客服id
     private String note;//平台备注
-    private LocalDateTime createdTime;//创建时间
+    private LocalDateTime createTime;//创建时间
 }

@@ -965,7 +965,7 @@ public class OrderServiceImpl implements OrderService {
                 .orderId(order.getId())
                 .sourceType(DisputeResolutionConstant.DAILY_CONFIRMATION)
                 .sourceId(confirmationId)
-                .createdTime(LocalDateTime.now())
+                .createTime(LocalDateTime.now())
                 .build();
         disputeResolutionMapper.insertDisputeResolution(disputeResolution);
         
@@ -1111,7 +1111,7 @@ public class OrderServiceImpl implements OrderService {
                     .orderId(order.getId())
                     .sourceType(DisputeResolutionConstant.CANCEL_APPLY)
                     .sourceId(application.getId())
-                    .createdTime(LocalDateTime.now())
+                    .createTime(LocalDateTime.now())
                     .build();
             disputeResolutionMapper.insertDisputeResolution(disputeResolution);
             
@@ -1181,7 +1181,6 @@ public class OrderServiceImpl implements OrderService {
         }
         
         disputeResolution.setDecision(decision);
-        disputeResolution.setOperatorId(BaseContext.getUserId());
         disputeResolution.setNote(note);
         disputeResolutionMapper.updateDisputeResolution(disputeResolution);
         
@@ -1248,7 +1247,6 @@ public class OrderServiceImpl implements OrderService {
         }
         
         disputeResolution.setDecision(decision);
-        disputeResolution.setOperatorId(BaseContext.getUserId());
         disputeResolution.setNote(note);
         if (defaultingParty != null) {
             disputeResolution.setDefaultingParty(defaultingParty);
@@ -1446,7 +1444,7 @@ public class OrderServiceImpl implements OrderService {
                     .orderId(application.getOrderId())
                     .sourceType(DisputeResolutionConstant.CANCEL_APPLY)
                     .sourceId(application.getId())
-                    .createdTime(LocalDateTime.now())
+                    .createTime(LocalDateTime.now())
                     .build();
             disputeResolutionMapper.insertDisputeResolution(disputeResolution);
             

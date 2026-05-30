@@ -58,7 +58,7 @@ public interface DisputeResolutionMapper {
      * @param sourceType 来源类型
      * @return org.cybercaelum.household_management.pojo.entity.DisputeResolution
      **/
-    @Select("select * from dispute_resolution where source_id = #{sourceId} and source_type = #{sourceType} order by created_time desc limit 1")
+    @Select("select * from dispute_resolution where source_id = #{sourceId} and source_type = #{sourceType} order by create_time desc limit 1")
     DisputeResolution selectBySourceId(Long sourceId, Integer sourceType);
 
     /**
@@ -67,7 +67,7 @@ public interface DisputeResolutionMapper {
      * @date 2026/4/18
      * @return java.util.List<org.cybercaelum.household_management.pojo.entity.DisputeResolution>
      **/
-    @Select("select * from dispute_resolution where decision is null order by created_time desc")
+    @Select("select * from dispute_resolution where decision is null order by create_time desc")
     List<DisputeResolution> selectPendingDisputes();
 
     /**
@@ -76,7 +76,7 @@ public interface DisputeResolutionMapper {
      * @date 2026/4/18
      * @return java.util.List<org.cybercaelum.household_management.pojo.entity.DisputeResolution>
      **/
-    @Select("select * from dispute_resolution where decision is null and kefu_id is null order by created_time desc")
+    @Select("select * from dispute_resolution where decision is null and kefu_id is null order by create_time desc")
     List<DisputeResolution> selectUnassignedPendingDisputes();
 
     /**
@@ -96,6 +96,6 @@ public interface DisputeResolutionMapper {
      * @param sourceType 争议来源
      * @return org.cybercaelum.household_management.pojo.entity.DisputeResolution
      **/
-    @Select("select * from dispute_resolution where order_id = #{id} and source_type = #{sourceType} order by created_time desc limit 1")
+    @Select("select * from dispute_resolution where order_id = #{id} and source_type = #{sourceType} order by create_time desc limit 1")
     DisputeResolution selectLatestByOrderId(Long id, Integer sourceType);
 }

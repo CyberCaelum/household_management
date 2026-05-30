@@ -832,7 +832,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                         .applicantRole(app.getApplicantRole())
                         .applicantRoleName(app.getApplicantRole() == 1 ? "雇主" : "家政人员")
                         .serviceDate(null)
-                        .createTime(dispute.getCreatedTime())
+                        .createTime(dispute.getCreateTime())
                         .build();
                 result.add(vo);
                 
@@ -859,7 +859,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                         .applicantRole(1)
                         .applicantRoleName("雇主")
                         .serviceDate(confirmation.getServiceDate())
-                        .createTime(dispute.getCreatedTime())
+                        .createTime(dispute.getCreateTime())
                         .build();
                 
                 // 补充申请人信息
@@ -977,7 +977,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         Map<String,String> msg = new HashMap<>();
         msg.put("sourceType",disputeResolution.getSourceType().toString());
         msg.put("sourceId",disputeResolution.getSourceId().toString());
-        msg.put("createTime",disputeResolution.getCreatedTime().toString());
+        msg.put("createTime",disputeResolution.getCreateTime().toString());
         String jsonMsg = JSON.toJSONString(msg);
         MessageSendDTO.Content content = MessageSendDTO.Content.builder()
                                                 .data(jsonMsg)
