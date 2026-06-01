@@ -8,10 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.annotation.RequireRole;
 import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.pojo.dto.*;
-import org.cybercaelum.household_management.pojo.entity.CancelApplication;
-import org.cybercaelum.household_management.pojo.entity.Order;
-import org.cybercaelum.household_management.pojo.entity.PageResult;
-import org.cybercaelum.household_management.pojo.entity.Result;
+import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.*;
 import org.cybercaelum.household_management.service.OrderService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -220,8 +217,8 @@ public class OrderController {
     public Result workerDailyConfirm(@RequestParam Long orderId, 
                                      @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate serviceDate) {
         log.info("家政人员确认服务完成，orderId: {}，serviceDate: {}", orderId, serviceDate);
-        orderService.workerDailyConfirm(orderId, serviceDate);
-        return Result.success();
+        DailyConfirmation dailyConfirmation = orderService.workerDailyConfirm(orderId, serviceDate);
+        return Result.success(dailyConfirmation);
     }
 
     /**

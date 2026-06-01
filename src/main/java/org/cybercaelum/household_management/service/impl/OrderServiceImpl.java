@@ -808,15 +808,16 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * @description 家政人员每日服务完成确认
+     * @description 家政人员发起每日确认
      * @author CyberCaelum
-     * @date 2026/3/16
+     * @date 上午9:58 2026/6/1
      * @param orderId 订单id
      * @param serviceDate 服务日期
+     * @return org.cybercaelum.household_management.pojo.entity.DailyConfirmation
      **/
     @Override
     @Transactional
-    public void workerDailyConfirm(Long orderId, LocalDate serviceDate) {
+    public DailyConfirmation workerDailyConfirm(Long orderId, LocalDate serviceDate) {
         Order order = orderMapper.getOrderById(orderId);
         if (order == null) {
             throw new OrderNotFoundException("订单不存在");
@@ -858,6 +859,7 @@ public class OrderServiceImpl implements OrderService {
         
         log.info("家政人员确认每日服务成功，确认记录ID: {}，订单ID: {}，服务日期: {}，已发送24小时延迟消息",
                 confirmation.getId(), orderId, serviceDate);
+        return dailyConfirmationMapper.selectById(confirmation.getId());
     }
     
     /**

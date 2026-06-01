@@ -2,6 +2,7 @@ package org.cybercaelum.household_management.service;
 
 import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.CancelApplication;
+import org.cybercaelum.household_management.pojo.entity.DailyConfirmation;
 import org.cybercaelum.household_management.pojo.entity.Order;
 import org.cybercaelum.household_management.pojo.entity.PageResult;
 import org.cybercaelum.household_management.pojo.vo.*;
@@ -64,7 +65,7 @@ public interface OrderService {
      * @param orderId 订单ID
      * @param serviceDate 服务日期
      */
-    void workerDailyConfirm(Long orderId, java.time.LocalDate serviceDate);
+    DailyConfirmation workerDailyConfirm(Long orderId, java.time.LocalDate serviceDate);
 
     /**
      * 雇主确认每日服务
