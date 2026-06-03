@@ -1,10 +1,7 @@
 package org.cybercaelum.household_management.service;
 
 import org.cybercaelum.household_management.pojo.dto.*;
-import org.cybercaelum.household_management.pojo.entity.CancelApplication;
-import org.cybercaelum.household_management.pojo.entity.DailyConfirmation;
-import org.cybercaelum.household_management.pojo.entity.Order;
-import org.cybercaelum.household_management.pojo.entity.PageResult;
+import org.cybercaelum.household_management.pojo.entity.*;
 import org.cybercaelum.household_management.pojo.vo.*;
 
 public interface OrderService {
@@ -78,7 +75,7 @@ public interface OrderService {
      * @param confirmationId 确认记录ID
      * @param reason 争议原因
      */
-    void employerDisputeDaily(Long confirmationId, String reason);
+    DisputeResolution employerDisputeDaily(Long confirmationId, String reason);
 
     /**
      * 发起取消申请
@@ -93,7 +90,7 @@ public interface OrderService {
      * @param applicationId 申请ID
      * @param agree 是否同意
      */
-    void respondCancelApplication(Long applicationId, Boolean agree);
+    DisputeResolution respondCancelApplication(Long applicationId, Boolean agree);
 
     /**
      * 平台裁决取消申请
@@ -188,4 +185,6 @@ public interface OrderService {
     CancelApplication selectCancel(Long id);
 
     DailyConfirmation selectDailyConfirm(Long confirmationId);
+
+    DisputeResolution selectDisputeResolutionId(Long disputeResolutionId);
 }

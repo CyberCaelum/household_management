@@ -261,8 +261,8 @@ public class OrderController {
     @PutMapping("/dailyConfirm/dispute/{confirmationId}")
     public Result employerDisputeDaily(@PathVariable Long confirmationId, @RequestParam String reason) {
         log.info("雇主提出服务争议，confirmationId: {}，reason: {}", confirmationId, reason);
-        orderService.employerDisputeDaily(confirmationId, reason);
-        return Result.success();
+        DisputeResolution disputeResolution = orderService.employerDisputeDaily(confirmationId, reason);
+        return Result.success(disputeResolution);
     }
 
     // ==================== 取消申请相关 ====================
@@ -314,7 +314,24 @@ public class OrderController {
     @PutMapping("/respondCancel/{applicationId}")
     public Result respondCancelApplication(@PathVariable Long applicationId, @RequestParam Boolean agree) {
         log.info("响应取消申请，applicationId: {}，agree: {}", applicationId, agree);
-        orderService.respondCancelApplication(applicationId, agree);
-        return Result.success();
+        DisputeResolution disputeResolution = orderService.respondCancelApplication(applicationId, agree);
+        return Result.success(disputeResolution);
+    }
+
+    /**
+     * @description 查询争议信息
+     * @author CyberCaelum
+     * @date 上午11:00 2026/6/3
+     * @param disputeResolutionId 争议信息id
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @RequireRole({RoleConstant.USER,RoleConstant.ADMIN,RoleConstant.CUSTOMER_SERVICE})
+    @Operation(summary = "查询争议信息", description = "查询争议信息")
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/DisputeResolution/{disputeResolutionId}")
+    public Result selectDisputeResolution(@PathVariable Long disputeResolutionId){
+        log.info("查询争议信息DisputeResolutionId: {}", disputeResolutionId);
+        DisputeResolution disputeResolution = orderService.selectDisputeResolutionId(disputeResolutionId);
+        return Result.success(disputeResolution);
     }
 }

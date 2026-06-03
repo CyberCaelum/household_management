@@ -937,7 +937,7 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     @Transactional
-    public void employerDisputeDaily(Long confirmationId, String reason) {
+    public DisputeResolution employerDisputeDaily(Long confirmationId, String reason) {
         DailyConfirmation confirmation = dailyConfirmationMapper.selectById(confirmationId);
         if (confirmation == null) {
             throw new OrderNotFoundException("确认记录不存在");
@@ -984,6 +984,7 @@ public class OrderServiceImpl implements OrderService {
         }
         
         log.info("雇主提出每日服务争议，确认记录ID: {}，争议记录ID: {}", confirmationId, disputeResolution.getId());
+        return disputeResolution;
     }
 
     /**
@@ -1054,7 +1055,7 @@ public class OrderServiceImpl implements OrderService {
      **/
     @Override
     @Transactional
-    public void respondCancelApplication(Long applicationId, Boolean agree) {
+    public DisputeResolution respondCancelApplication(Long applicationId, Boolean agree) {
         //获取申请信息
         CancelApplication application = cancelApplicationMapper.selectById(applicationId);
         if (application == null) {
@@ -1101,6 +1102,7 @@ public class OrderServiceImpl implements OrderService {
                     .cancelTime(LocalDateTime.now())
                     .build();
             orderMapper.updateOrder(updateOrder);
+            return null;
         } else {
             // 拒绝取消，转平台介入
             application.setStatus(CancelApplicationStatusConstant.PLATFORM_PROCESSING);
@@ -1130,6 +1132,7 @@ public class OrderServiceImpl implements OrderService {
             }
             
             log.info("取消申请被拒绝，已转平台介入，申请ID: {}，争议记录ID: {}", application.getId(), disputeResolution.getId());
+            return disputeResolution;
         }
     }
 
@@ -1935,5 +1938,21 @@ public class OrderServiceImpl implements OrderService {
         }
         log.info("每日确认：{}", dailyConfirmation);
         return dailyConfirmation;
+    }
+
+    /**
+     * @description 查询争议信息
+     * @author CyberCaelum
+     * @date 上午11:00 2026/6/3
+     * @param disputeResolutionId 争议信息id
+     * @return org.cybercaelum.household_management.pojo.entity.DisputeResolution
+     **/
+    @Override
+    public DisputeResolution selectDisputeResolutionId(Long disputeResolutionId) {
+        DisputeResolution disputeResolution =disputeResolutionMapper.selectById(disputeResolutionId);
+        if (disputeResolution == null) {
+            throw new DisputeResolutionIsNullException("争议信息为空");
+        }
+        return disputeResolution;
     }
 }
