@@ -1919,4 +1919,21 @@ public class OrderServiceImpl implements OrderService {
 
         return cancelApplication;
     }
+
+    /**
+     * @description 查询每日确认信息
+     * @author CyberCaelum
+     * @date 上午9:34 2026/6/3
+     * @param confirmationId id
+     * @return org.cybercaelum.household_management.pojo.entity.DailyConfirmation
+     **/
+    @Override
+    public DailyConfirmation selectDailyConfirm(Long confirmationId) {
+        DailyConfirmation dailyConfirmation = dailyConfirmationMapper.selectById(confirmationId);
+        if (dailyConfirmation == null) {
+            throw new OrderNotFoundException("每日确认不存在")
+        }
+        log.info("每日确认：{}", dailyConfirmation);
+        return dailyConfirmation;
+    }
 }

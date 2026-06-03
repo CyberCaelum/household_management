@@ -186,4 +186,6 @@ public interface OrderService {
     void handlePayTimeout(Long orderId, String orderNumber);
 
     CancelApplication selectCancel(Long id);
+
+    DailyConfirmation selectDailyConfirm(Long confirmationId);
 }

@@ -238,6 +238,15 @@ public class OrderController {
         return Result.success();
     }
 
+    @RequireRole(RoleConstant.USER)
+    @Operation(summary = "查询每日确认", description = "查询每日确认")
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/dailyConfirm/{confirmationId}")
+    public  Result selectDailyConfirm(@PathVariable Long confirmationId){
+        log.info("查询每日确认,confirmationId: {}", confirmationId);
+        DailyConfirmation dailyConfirmation = orderService.selectDailyConfirm(confirmationId);
+        return Result.success(dailyConfirmation);
+    }
     /**
      * @description 雇主对每日服务提出争议
      * @author CyberCaelum
