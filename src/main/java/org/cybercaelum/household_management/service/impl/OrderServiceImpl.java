@@ -1931,7 +1931,7 @@ public class OrderServiceImpl implements OrderService {
     public DailyConfirmation selectDailyConfirm(Long confirmationId) {
         DailyConfirmation dailyConfirmation = dailyConfirmationMapper.selectById(confirmationId);
         if (dailyConfirmation == null) {
-            throw new OrderNotFoundException("每日确认不存在")
+            throw new OrderNotFoundException("每日确认不存在");
         }
         log.info("每日确认：{}", dailyConfirmation);
         return dailyConfirmation;
