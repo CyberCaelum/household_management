@@ -7,10 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cybercaelum.household_management.constant.*;
 import org.cybercaelum.household_management.context.BaseContext;
-import org.cybercaelum.household_management.exception.DisputeResolutionIsNullException;
-import org.cybercaelum.household_management.exception.GroupCreateErrorException;
-import org.cybercaelum.household_management.exception.OrderNotFoundException;
-import org.cybercaelum.household_management.exception.SessionEndErrorException;
+import org.cybercaelum.household_management.exception.*;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.mapper.*;
 import org.cybercaelum.household_management.pojo.dto.*;
@@ -305,12 +302,15 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                     .joinSource(1) // 管理员邀请
                     .inviterUserID(csId)
                     .build();
-            
-            openimFeignClient.joinGroup(
+
+            OpenimResult<Object> obj = openimFeignClient.joinGroup(
                     String.valueOf(System.currentTimeMillis()),
                     openImService.getAdminToken(),
                     joinGroupDTO
             );
+            if (obj.getErrCode() != 0){
+                throw new OpenimRequestErrorException("用户加入群聊失败");
+            }
             log.info("客服 {} 已加入群聊 {}", csId, groupId);
         } catch (Exception e) {
             log.error("客服加入群聊失败，userId={}, csId={}", userId, csId, e);
@@ -331,12 +331,15 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                     .groupID(groupId)
                     .userID(String.valueOf(csId))
                     .build();
-            
-            openimFeignClient.quitGroup(
+
+            OpenimResult<Object> obj = openimFeignClient.quitGroup(
                     String.valueOf(System.currentTimeMillis()),
                     openImService.getAdminToken(),
                     quitGroupDTO
             );
+            if (obj.getErrCode() != 0){
+                throw new OpenimRequestErrorException("踢出客服失败");
+            }
             log.info("客服 {} 已退出群聊 {}", csId, groupId);
         } catch (Exception e) {
             log.error("客服退出群聊失败，userId={}, csId={}", userId, csId, e);
