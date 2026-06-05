@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -51,6 +53,16 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     private final OrderMapper orderMapper;
     private final DisputeResolutionMapper disputeResolutionMapper;
     private static final long TASK_TTL_MINUTES = 20;
+
+    /**
+     * 用于异步延迟任务的调度器（代替 Thread.sleep，避免阻塞请求线程）
+     */
+    private static final ScheduledExecutorService SCHEDULER =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "cs-online-checker");
+                t.setDaemon(true);
+                return t;
+            });
 
     /**
      * @description 用户登录状态回调，处理客服在线状态
@@ -129,47 +141,48 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
             return OpenimCallbackDTO.builder().build();
         }
         
-        // 延迟1秒后查询OpenIM确认用户真实状态，防止网络波动导致误判
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("客服离线处理线程被中断，csId={}", csId);
-        }
-        
-        // 查询OpenIM中的用户在线状态
-        GetUsersOnlineStatusDTO statusDTO = new GetUsersOnlineStatusDTO(
-                Arrays.asList(String.valueOf(csId))
-        );
-        OpenimResult<List<UserOnlineStatusDTO>> statusResult = openimFeignClient.getUsersOnlineStatus(
-                String.valueOf(System.currentTimeMillis()),
-                openImService.getAdminToken(),
-                statusDTO
-        );
-        
-        // 查询失败或用户实际仍在线，则不处理离线逻辑
-        if (statusResult.getErrCode() == 0 
-                && !statusResult.getData().isEmpty() 
-                && statusResult.getData().get(0).getStatus() == 1) {
-            log.info("客服 {} 实际仍在线，跳过离线处理", csId);
-            return OpenimCallbackDTO.builder().build();
-        }
-        
-        // 用户确实离线，继续处理离线逻辑
-        log.info("客服 {} 确认离线，开始处理离线逻辑", csId);
+        // 延迟1秒后异步查询OpenIM确认用户真实状态，防止网络波动导致误判
+        // 使用ScheduledExecutorService代替Thread.sleep，避免阻塞HTTP请求线程
+        SCHEDULER.schedule(() -> {
+            try {
+                // 查询OpenIM中的用户在线状态
+                GetUsersOnlineStatusDTO statusDTO = new GetUsersOnlineStatusDTO(
+                        Arrays.asList(String.valueOf(csId))
+                );
+                OpenimResult<List<UserOnlineStatusDTO>> statusResult = openimFeignClient.getUsersOnlineStatus(
+                        String.valueOf(System.currentTimeMillis()),
+                        openImService.getAdminToken(),
+                        statusDTO
+                );
 
-        // 1. 先从在线集合中移除客服，防止 processWaitingQueue 将其作为候选
-        stringRedisTemplate.opsForSet().remove(
-                CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
-                String.valueOf(csId));
-        
-        // 2. 结束该客服的所有会话（此时 processWaitingQueue 不会分配到这个已离线的客服）
-        endAllSessionsByCs(csId);
-        
-        // 3. 删除在线状态哈希
-        String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
-        stringRedisTemplate.delete(onlineKey);
-        
+                // 查询失败或用户实际仍在线，则不处理离线逻辑
+                if (statusResult.getErrCode() == 0
+                        && statusResult.getData() != null
+                        && !statusResult.getData().isEmpty()
+                        && statusResult.getData().get(0).getStatus() == 1) {
+                    log.info("客服 {} 实际仍在线，跳过离线处理", csId);
+                    return;
+                }
+
+                // 用户确实离线，继续处理离线逻辑
+                log.info("客服 {} 确认离线，开始处理离线逻辑", csId);
+
+                // 1. 先从在线集合中移除客服，防止 processWaitingQueue 将其作为候选
+                stringRedisTemplate.opsForSet().remove(
+                        CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
+                        String.valueOf(csId));
+
+                // 2. 结束该客服的所有会话（此时 processWaitingQueue 不会分配到这个已离线的客服）
+                endAllSessionsByCs(csId);
+
+                // 3. 删除在线状态哈希
+                String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
+                stringRedisTemplate.delete(onlineKey);
+            } catch (Exception e) {
+                log.error("异步处理客服 {} 离线逻辑失败", csId, e);
+            }
+        }, 1, TimeUnit.SECONDS);
+
         return OpenimCallbackDTO.builder().build();
     }
 
@@ -261,11 +274,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         csInfo.put("status", String.valueOf(1));
         //在redis中存储会话信息
         stringRedisTemplate.opsForHash().putAll(csSessionKey, csInfo);
-        //增加对应的客服的状态信息，会话数量加1
+        //增加对应的客服的状态信息，会话数量原子加1
         String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(csId));
-        String currentSessionsStr = (String) stringRedisTemplate.opsForHash().get(onlineKey, "currentSessions");
-        int currentSessions = currentSessionsStr != null ? Integer.parseInt(currentSessionsStr) : 0;
-        stringRedisTemplate.opsForHash().put(onlineKey, "currentSessions", String.valueOf(currentSessions + 1));
+        stringRedisTemplate.opsForHash().increment(onlineKey, "currentSessions", 1);
         //将会话信息添加到客服的会话集合中
         String csSessionsKey = CustomerServiceRedisKeyConstant.getCsSessionsKey(Long.valueOf(csId));
         stringRedisTemplate.opsForHash().put(csSessionsKey, groupId, String.valueOf(userId));
@@ -554,7 +565,21 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                 }
                 // 如果用户已有会话，不需要特殊处理，直接处理下一个（因为已经从Set中移除了）
             } catch (JsonProcessingException e) {
-                log.error("解析等待队列用户信息失败", e);
+                log.error("解析等待队列用户信息失败，userJson={}", userJson, e);
+                // 用户已从List中pop，需清理Set中的残留标记，防止用户永久丢失
+                try {
+                    java.util.regex.Matcher m = java.util.regex.Pattern
+                            .compile("\"userId\"\\s*:\\s*(\\d+)")
+                            .matcher(userJson);
+                    if (m.find()) {
+                        stringRedisTemplate.opsForSet().remove(
+                                CustomerServiceRedisKeyConstant.CS_WAITING_SET_KEY,
+                                m.group(1));
+                        log.info("已从Set中清理残留用户 {}", m.group(1));
+                    }
+                } catch (Exception ex) {
+                    log.error("清理Set中残留用户失败", ex);
+                }
             }
         }
     }
@@ -603,11 +628,11 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      **/
     public void releaseCsSession(Long csId, Long userId){
         String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
-        // 使用读取-计算-写入保证类型一致
-        String currentSessionsStr = (String) stringRedisTemplate.opsForHash().get(onlineKey, "currentSessions");
-        int currentSessions = currentSessionsStr != null ? Integer.parseInt(currentSessionsStr) : 0;
-        if (currentSessions > 0) {
-            stringRedisTemplate.opsForHash().put(onlineKey, "currentSessions", String.valueOf(currentSessions - 1));
+        // 原子减1会话计数，HINCRBY保证并发安全
+        Long newCount = stringRedisTemplate.opsForHash().increment(onlineKey, "currentSessions", -1);
+        if (newCount != null && newCount < 0) {
+            log.warn("客服 {} 会话计数异常为 {}，重置为0", csId, newCount);
+            stringRedisTemplate.opsForHash().put(onlineKey, "currentSessions", "0");
         }
         
         String csSessionKey = CustomerServiceRedisKeyConstant.getCsSessionKey(String.valueOf(userId));

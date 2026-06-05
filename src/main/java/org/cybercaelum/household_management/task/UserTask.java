@@ -19,6 +19,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author CyberCaelum
@@ -35,6 +38,16 @@ public class UserTask {
    private final OpenimFeignClient openimFeignClient;
    private final OpenImService openImService;
    private final CustomerServiceService customerServiceService;
+
+   /**
+    * 用于异步延迟任务的调度器（代替 Thread.sleep，避免阻塞定时任务线程）
+    */
+   private static final ScheduledExecutorService SCHEDULER =
+           Executors.newSingleThreadScheduledExecutor(r -> {
+               Thread t = new Thread(r, "cs-offline-cleaner");
+               t.setDaemon(true);
+               return t;
+           });
 
    /**
     * @description 定时清理不在线的客服
@@ -78,52 +91,54 @@ public class UserTask {
 
        log.info("检测到疑似离线客服: {}，等待3秒后二次确认", offlineUserIds);
 
-       // 延迟3秒后二次确认，避免OpenIM状态延迟导致的误判
-       try {
-           Thread.sleep(3000);
-       } catch (InterruptedException e) {
-           Thread.currentThread().interrupt();
-           return;
-       }
+       // 延迟3秒后异步二次确认，避免OpenIM状态延迟导致的误判
+       // 使用ScheduledExecutorService代替Thread.sleep，避免阻塞定时任务线程
+       final Set<String> suspectedOfflineIds = new HashSet<>(offlineUserIds);
+       SCHEDULER.schedule(() -> {
+           try {
+               // 二次确认：重新查询这些疑似离线的客服状态
+               GetUsersOnlineStatusDTO confirmDTO = new GetUsersOnlineStatusDTO(
+                       new ArrayList<>(suspectedOfflineIds));
+               OpenimResult<List<UserOnlineStatusDTO>> confirmResult = openimFeignClient.getUsersOnlineStatus(
+                       String.valueOf(System.currentTimeMillis()),
+                       openImService.getAdminToken(),
+                       confirmDTO);
 
-       // 二次确认：重新查询这些疑似离线的客服状态
-       GetUsersOnlineStatusDTO confirmDTO = new GetUsersOnlineStatusDTO(new ArrayList<>(offlineUserIds));
-       OpenimResult<List<UserOnlineStatusDTO>> confirmResult = openimFeignClient.getUsersOnlineStatus(
-               String.valueOf(System.currentTimeMillis()),
-               openImService.getAdminToken(),
-               confirmDTO);
+               if (confirmResult.getErrCode() != 0) {
+                   log.error("二次确认用户在线状态失败: {}", confirmResult.getErrMsg());
+                   return;
+               }
 
-       if (confirmResult.getErrCode() != 0) {
-           log.error("二次确认用户在线状态失败: {}", confirmResult.getErrMsg());
-           return;
-       }
+               // 最终确认离线的客服
+               Set<String> confirmedOfflineIds = new HashSet<>();
+               for (UserOnlineStatusDTO userStatus : confirmResult.getData()) {
+                   if (userStatus.getStatus() != 1) {
+                       confirmedOfflineIds.add(userStatus.getUserID());
+                   }
+               }
 
-       // 最终确认离线的客服
-       Set<String> confirmedOfflineIds = new HashSet<>();
-       for (UserOnlineStatusDTO userStatus : confirmResult.getData()) {
-           if (userStatus.getStatus() != 1) {
-               confirmedOfflineIds.add(userStatus.getUserID());
+               if (confirmedOfflineIds.isEmpty()) {
+                   log.info("二次确认后无离线客服，跳过清理");
+                   return;
+               }
+
+               log.info("二次确认后离线客服: {}，执行清理", confirmedOfflineIds);
+
+               //遍历离线客服清除会话信息
+               for (String userId : confirmedOfflineIds) {
+                   //将客服信息从set中删除
+                   stringRedisTemplate.opsForSet().remove(
+                           CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
+                           userId);
+                   //删除在线状态
+                   String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(userId));
+                   //结束客服的会话
+                   customerServiceService.endAllSessionsByCs(Long.valueOf(userId));
+                   stringRedisTemplate.delete(onlineKey);
+               }
+           } catch (Exception e) {
+               log.error("异步清理离线客服失败", e);
            }
-       }
-
-       if (confirmedOfflineIds.isEmpty()) {
-           log.info("二次确认后无离线客服，跳过清理");
-           return;
-       }
-
-       log.info("二次确认后离线客服: {}，执行清理", confirmedOfflineIds);
-
-       //遍历离线客服清除会话信息
-       for (String userId : confirmedOfflineIds){
-           //将客服信息从set中删除
-           stringRedisTemplate.opsForSet().remove(
-                   CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY,
-                   userId);
-           //删除在线状态
-           String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(Long.valueOf(userId));
-           //结束客服的会话
-           customerServiceService.endAllSessionsByCs(Long.valueOf(userId));
-           stringRedisTemplate.delete(onlineKey);
-       }
+       }, 3, TimeUnit.SECONDS);
    }
 }
