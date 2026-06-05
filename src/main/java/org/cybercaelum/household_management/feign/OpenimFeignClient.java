@@ -135,4 +135,11 @@ public interface OpenimFeignClient {
             @RequestHeader("token") String token,
             @RequestBody MessageSendDTO request
     );
+
+    @PostMapping("/group/invite_user_to_group")
+    OpenimResult<Object> inviteUserToGroup(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody InviteUserToGroupDTO request
+    );
 }

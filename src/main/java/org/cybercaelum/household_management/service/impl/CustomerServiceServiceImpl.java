@@ -297,17 +297,27 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      **/
     private void joinCsToGroup(Long userId, String csId,String groupId) {
         try {
-            JoinGroupDTO joinGroupDTO = JoinGroupDTO.builder()
-                    .groupID(groupId)
-                    .joinSource(1) // 管理员邀请
-                    .inviterUserID(csId)
+//            JoinGroupDTO joinGroupDTO = JoinGroupDTO.builder()
+//                    .groupID(groupId)
+//                    .joinSource(1) // 管理员邀请
+//                    .inviterUserID(csId)
+//                    .build();
+//
+//            OpenimResult<Object> obj = openimFeignClient.joinGroup(
+//                    String.valueOf(System.currentTimeMillis()),
+//                    openImService.getAdminToken(),
+//                    joinGroupDTO
+//            );
+            InviteUserToGroupDTO inviteUserToGroupDTO = InviteUserToGroupDTO.builder()
+                    .groupId(groupId)
+                    .invitedUserIDs(List.of(csId))
                     .build();
-
-            OpenimResult<Object> obj = openimFeignClient.joinGroup(
+            OpenimResult<Object> obj = openimFeignClient.inviteUserToGroup(
                     String.valueOf(System.currentTimeMillis()),
                     openImService.getAdminToken(),
-                    joinGroupDTO
+                    inviteUserToGroupDTO
             );
+            log.info("加入客服，{}",obj);
             if (obj.getErrCode() != 0){
                 throw new OpenimRequestErrorException("用户加入群聊失败");
             }
@@ -337,6 +347,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                     openImService.getAdminToken(),
                     quitGroupDTO
             );
+            log.info("提出客服，{}",obj);
             if (obj.getErrCode() != 0){
                 throw new OpenimRequestErrorException("踢出客服失败");
             }
@@ -772,9 +783,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         if (!currentUserId.equals(sessionEndDTO.getUserId()) && !currentUserId.equals(sessionEndDTO.getCsId())){
             throw new SessionEndErrorException("无权结束会话");
         }
-        String csUserSessionKey = CustomerServiceRedisKeyConstant.getCsUserSessionKey(currentUserId);
+        String csUserSessionKey = CustomerServiceRedisKeyConstant.getCsUserSessionKey(sessionEndDTO.getUserId());
         String csId = stringRedisTemplate.opsForValue().get(csUserSessionKey);
-        if (csId == null || csId != String.valueOf(sessionEndDTO.getCsId())){
+        if  (csId == null || csId != String.valueOf(sessionEndDTO.getCsId())){
             throw new SessionEndErrorException("客服id错误");
         }
         // 判断是用户结束还是会话结束

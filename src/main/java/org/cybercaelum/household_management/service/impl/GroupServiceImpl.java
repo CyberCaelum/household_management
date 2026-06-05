@@ -81,6 +81,7 @@ public class GroupServiceImpl implements GroupService {
         OpenimGroupCreateDTO.GroupInfo groupInfo = OpenimGroupCreateDTO.GroupInfo.builder()
                 .groupID(groupID)
                 .groupName(groupID)
+                .needVerification(2)
                 .build();
         List<String> memberUserIDs = new ArrayList<>();
         //设置拓展字段，设置成员id
