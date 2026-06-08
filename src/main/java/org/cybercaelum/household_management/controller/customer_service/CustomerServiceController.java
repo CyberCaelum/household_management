@@ -126,7 +126,7 @@ public class CustomerServiceController {
     @Operation(summary = "获取在线客服信息", description = "获取在线客服信息")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/online")
-    @RequireRole({RoleConstant.CUSTOMER_SERVICE})
+    @RequireRole(RoleConstant.ADMIN)
     public Result getOnlineCustomerService(){
         log.info("获取在线客服信息");
         List<CustomerServiceOnlineDTO> customerServiceOnlineDTOS = customerServiceService.getOnlineCustomerService();
