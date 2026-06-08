@@ -1,10 +1,9 @@
 package org.cybercaelum.household_management.service;
 
-import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
-import org.cybercaelum.household_management.pojo.dto.MessageCallbackDTO;
-import org.cybercaelum.household_management.pojo.dto.OpenimUserCallbackDTO;
-import org.cybercaelum.household_management.pojo.dto.OpenimCallbackDTO;
-import org.cybercaelum.household_management.pojo.dto.SessionEndDTO;
+import org.cybercaelum.household_management.pojo.dto.*;
+import org.cybercaelum.household_management.pojo.vo.CsStatisticsVO;
+
+import java.util.List;
 
 public interface CustomerServiceService {
     OpenimCallbackDTO afterOnline(OpenimUserCallbackDTO userCallbackDTO);
@@ -96,7 +95,9 @@ public interface CustomerServiceService {
      * @param csId 客服ID（可选，为null则只返回总体统计）
      * @return org.cybercaelum.household_management.pojo.vo.CsStatisticsVO
      **/
-    org.cybercaelum.household_management.pojo.vo.CsStatisticsVO getCsStatistics(Long csId);
+    CsStatisticsVO getCsStatistics(Long csId);
 
     void assignDispute(Long disputeId, Long kefuId);
+
+    List<CustomerServiceOnlineDTO> getOnlineCustomerService();
 }

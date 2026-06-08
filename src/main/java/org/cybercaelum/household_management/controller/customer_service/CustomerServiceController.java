@@ -11,6 +11,7 @@ import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.BaseException;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
 import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
+import org.cybercaelum.household_management.pojo.dto.CustomerServiceOnlineDTO;
 import org.cybercaelum.household_management.pojo.dto.JoinGroupDTO;
 import org.cybercaelum.household_management.pojo.dto.SessionEndDTO;
 import org.cybercaelum.household_management.pojo.entity.Result;
@@ -116,4 +117,19 @@ public class CustomerServiceController {
         return Result.success("cs_" + session.get("userId"));
     }
 
+    /**
+     * @description 获取在线客服信息，返回客服id，名字，进行中的会话数量
+     * @author CyberCaelum
+     * @date 上午10:19 2026/6/8
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "获取在线客服信息", description = "获取在线客服信息")
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/online")
+    @RequireRole({RoleConstant.CUSTOMER_SERVICE})
+    public Result getOnlineCustomerService(){
+        log.info("获取在线客服信息");
+        List<CustomerServiceOnlineDTO> customerServiceOnlineDTOS = customerServiceService.getOnlineCustomerService();
+        return Result.success(customerServiceOnlineDTOS);
+    }
 }

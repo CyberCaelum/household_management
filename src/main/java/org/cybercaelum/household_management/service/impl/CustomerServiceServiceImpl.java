@@ -209,15 +209,15 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
             
             // 检查会话是否存在
             if (!stringRedisTemplate.hasKey(csSessionKey)) {
-                // 会话不存在，需要重新匹配或加入排队
-                Long userId = Long.valueOf(userIdStr);
-                CsGroupAssignmentResult result = createCsGroup(userId);
-                
-                if (result.getStatus() == CsGroupAssignmentResult.Status.NO_AVAILABLE_CS) {
-                    // 没有可用客服，加入等待队列
-                    addToWaitingQueue(userId);
-                    log.info("用户 {} 加入等待队列", userId);
-                }
+//                // 会话不存在，需要重新匹配或加入排队
+//                Long userId = Long.valueOf(userIdStr);
+//                CsGroupAssignmentResult result = createCsGroup(userId);
+//
+//                if (result.getStatus() == CsGroupAssignmentResult.Status.NO_AVAILABLE_CS) {
+//                    // 没有可用客服，加入等待队列
+//                    addToWaitingQueue(userId);
+//                    log.info("用户 {} 加入等待队列", userId);
+//                }
             } else {
                 // 会话存在，刷新会话信息
                 stringRedisTemplate.opsForHash().put(csSessionKey, "lastActiveTime", String.valueOf(System.currentTimeMillis()));
@@ -810,7 +810,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         }
         String csUserSessionKey = CustomerServiceRedisKeyConstant.getCsUserSessionKey(sessionEndDTO.getUserId());
         String csId = stringRedisTemplate.opsForValue().get(csUserSessionKey);
-        if  (csId == null || csId != String.valueOf(sessionEndDTO.getCsId())){
+        if  (csId == null || !csId.equals(String.valueOf(sessionEndDTO.getCsId()))){
             throw new SessionEndErrorException("客服id错误");
         }
         // 判断是用户结束还是会话结束
@@ -1036,6 +1036,36 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                 openImService.getAdminToken(),
                 messageSendDTO
         );
+    }
+
+    /**
+     * @description 获取在线客服信息
+     * @author CyberCaelum
+     * @date 上午10:20 2026/6/8
+     * @return java.util.List<org.cybercaelum.household_management.pojo.dto.CustomerServiceOnlineDTO>
+     **/
+    @Override
+    public List<CustomerServiceOnlineDTO> getOnlineCustomerService() {
+        //获取所有在线客服id
+        Set<String> onlineCsIds = stringRedisTemplate.opsForSet().members(
+                CustomerServiceRedisKeyConstant.CS_ONLINE_ALL_KEY
+        );
+        List<CustomerServiceOnlineDTO> onlineCs = new ArrayList<>();
+        for (String onlineCsId : onlineCsIds) {
+            Long csId = Long.valueOf(onlineCsId);
+            //获取会话数量
+            String onlineKey = CustomerServiceRedisKeyConstant.getCsOnlineKey(csId);
+            String currentSessionsStr = (String) stringRedisTemplate.opsForHash().get(onlineKey, "currentSessions");
+            //获取客服名字
+            User cs = userMapper.getById(csId);
+            String csName = cs.getUsername();
+            CustomerServiceOnlineDTO serviceOnlineDTO = CustomerServiceOnlineDTO.builder()
+                    .customerId(csId)
+                    .customerName(csName)
+                    .session(Integer.parseInt(currentSessionsStr))
+                    .build();
+        }
+        return List.of();
     }
 
 }
