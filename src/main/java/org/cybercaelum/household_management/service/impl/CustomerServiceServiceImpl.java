@@ -1064,8 +1064,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                     .customerName(csName)
                     .session(Integer.parseInt(currentSessionsStr))
                     .build();
+            onlineCs.add(serviceOnlineDTO);
         }
-        return List.of();
+        return onlineCs;
     }
 
 }
