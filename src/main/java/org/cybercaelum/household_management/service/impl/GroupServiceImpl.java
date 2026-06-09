@@ -196,11 +196,12 @@ public class GroupServiceImpl implements GroupService {
         Long employerId = 0L;
         Long employeeId = 0L;
         OpenimGroupCreateDTO.GroupInfo groupInfo = new OpenimGroupCreateDTO.GroupInfo();
+        Order order = new Order();
         //订单争议
         if (disputeSessionDTO.getOrderId() != null
                 && disputeSessionDTO.getDailyConfirmationId() == null){
             //查找订单信息，确认聊天双方
-            Order order = orderMapper.getOrderById(disputeSessionDTO.getOrderId());
+            order = orderMapper.getOrderById(disputeSessionDTO.getOrderId());
             employerId = order.getEmployerId();
             employeeId = order.getEmployeeId();
         }
@@ -212,7 +213,7 @@ public class GroupServiceImpl implements GroupService {
             if (dailyConfirmation == null) {
                 throw new GroupCreateErrorException("每日确认记录不存在");
             }
-            Order order = orderMapper.getOrderById(dailyConfirmation.getOrderId());
+            order = orderMapper.getOrderById(dailyConfirmation.getOrderId());
             if (order == null) {
                 throw new GroupCreateErrorException("订单不存在");
             }
@@ -223,7 +224,7 @@ public class GroupServiceImpl implements GroupService {
             throw new GroupCreateErrorException("争议群组创建失败");
         }
         //创建群组id
-        String groupID = "dispute"+"_"+employeeId+"_"+employerId;
+        String groupID = "dispute"+"_"+employeeId+"_"+employerId + "_" + order.getId();
         //创建群组信息
         groupInfo.setGroupID(groupID);
         groupInfo.setGroupName("争议处理-" + disputeSessionDTO.getOrderId());

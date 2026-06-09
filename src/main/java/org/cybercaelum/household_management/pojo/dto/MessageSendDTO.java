@@ -12,10 +12,11 @@ import lombok.NoArgsConstructor;
  * @date 2026/4/9 上午9:15
  */
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class MessageSendDTO {
+
     private String sendID;
     private String recvID;
     private Content content;
@@ -26,14 +27,13 @@ public class MessageSendDTO {
     private Long sendTime;
     private OfflinePushInfo offlinePushInfo;
     private String ex;
+
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Content {
-        private String data;//用户自定义的消息内容
-        private String description;//扩展描述
-        private String extension;//扩展字段
+        private String content;
     }
 
     @Data

@@ -673,10 +673,6 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         // 如果提供了客服ID，直接使用；否则从会话中获取
         if (csId == null) {
             Object csIdObj = stringRedisTemplate.opsForHash().get(csSessionKey, "csId");
-            if (csIdObj == null) {
-                log.warn("结束会话失败，无法获取客服ID：userId={}", userId);
-                return false;
-            }
             csId = Long.valueOf(csIdObj.toString());
         }
         
@@ -1007,27 +1003,33 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         }
         Long employerId = order.getEmployerId();
         Long employeeId = order.getEmployeeId();
-        String groupId = "dispute"+"_"+employeeId+"_"+employerId;
+        String groupId = "dispute"+"_"+employeeId+"_"+employerId + "_" + order.getId();
         // 记录客服分配关系
         disputeResolutionMapper.assignKefu(disputeId, kefuId);
         //将客服加入群组
         joinCsToGroup(employeeId,kefuId.toString(),groupId);
         //创建消息
-        Map<String,String> msg = new HashMap<>();
-        msg.put("sourceType",disputeResolution.getSourceType().toString());
-        msg.put("sourceId",disputeResolution.getSourceId().toString());
-        msg.put("createTime",disputeResolution.getCreateTime().toString());
-        String jsonMsg = JSON.toJSONString(msg);
+        Integer sourceType = disputeResolution.getSourceType();
+        String msg = "争议来源：";
+        if (sourceType != null && sourceType == 1) {
+            msg = msg + "取消申请\n取消原因：";
+
+            msg = msg + cancelApplicationMapper.selectById(disputeResolution.getSourceId()).getReason();
+        } else if (sourceType != null && sourceType == 2) {
+            msg = msg + "每日确认\n每日确认争议原因";
+            msg = msg + dailyConfirmationMapper.selectById(disputeResolution.getSourceId()).getDisputeReason();
+        } else {
+            msg = msg + "其他\n";
+        }
+
         MessageSendDTO.Content content = MessageSendDTO.Content.builder()
-                                                .data(jsonMsg)
-                                                .description("争议信息")
-                                                .extension("争议信息")
+                                                .content(msg)
                                                 .build();
         MessageSendDTO messageSendDTO = MessageSendDTO.builder()
                         .sendID(RobotConstant.id.toString())
                         .recvID(groupId)
                         .content(content)
-                        .contentType(110)
+                        .contentType(101)
                         .sessionType(3)
                         .build();
         //发送消息
