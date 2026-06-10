@@ -1274,7 +1274,7 @@ public class OrderServiceImpl implements OrderService {
             orderMapper.updateOrder(updateOrder);
             
             // 执行实际退款
-            refund(order.getId(), application.getId());
+            //refund(order.getId(), application.getId());
         }
         // 如果拒绝取消，订单继续
     }

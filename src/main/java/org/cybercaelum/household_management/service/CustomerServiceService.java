@@ -100,4 +100,6 @@ public interface CustomerServiceService {
     void assignDispute(Long disputeId, Long kefuId);
 
     List<CustomerServiceOnlineDTO> getOnlineCustomerService();
+
+    void removeCustomerService(String groupID);
 }

@@ -1066,4 +1066,57 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         return onlineCs;
     }
 
+    /**
+     * @description 踢出客服
+     * @author CyberCaelum
+     * @date 下午4:47 2026/6/10
+     * @param groupID 群组id
+     **/
+    @Override
+    public void removeCustomerService(String groupID) {
+        //查询成员信息
+        GetGroupMemberDTO.pagination pagination = GetGroupMemberDTO.pagination.builder()
+                .pageNumber(1)
+                .showNumber(5)
+                .build();
+        GetGroupMemberDTO getGroupMemberDTO = GetGroupMemberDTO.builder()
+                .groupID(groupID)
+                .pagination(pagination)
+                .build();
+        OpenimResult<GroupMembersDTO> groupMembersDTOOpenimResult = openimFeignClient.getGroupMembers(
+                String.valueOf(System.currentTimeMillis()),
+                openImService.getAdminToken(),
+                getGroupMemberDTO
+        );
+        if (groupMembersDTOOpenimResult.getErrCode() != 0){
+            throw new OpenimRequestErrorException("获取群组成员信息失败");
+        }
+        //获取雇员和雇主的id
+        //解析groupId获得雇员id和雇主id
+        String[] parts = groupID.split("_");
+        String employeeId = parts[1];
+        String employerId = parts[2];
+        //踢出所有不是雇员雇主，不是机器人的用户
+        for (GroupMembersDTO.Member member : groupMembersDTOOpenimResult.getData().getMembers()){
+            String userID = member.getUserID();
+            if (userID != RobotConstant.id.toString() &&
+            userID != RobotConstant.id2.toString() &&
+            userID != employeeId &&
+            userID != employerId){
+
+                QuitGroupDTO quitGroupDTO = QuitGroupDTO.builder()
+                                                .userID(userID)
+                                                .groupID(groupID)
+                                                .build();
+                OpenimResult<Object> result = openimFeignClient.quitGroup(
+                        String.valueOf(System.currentTimeMillis()),
+                        openImService.getAdminToken(),
+                        quitGroupDTO
+                );
+                if (result.getErrCode() != 0){
+                    throw new OpenimRequestErrorException("踢出用户错误userID：" + userID);
+                }
+            }
+        }
+    }
 }
