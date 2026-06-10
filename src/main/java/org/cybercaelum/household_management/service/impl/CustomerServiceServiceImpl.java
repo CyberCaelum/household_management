@@ -1009,27 +1009,22 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         //将客服加入群组
         joinCsToGroup(employeeId,kefuId.toString(),groupId);
         //创建消息
-        Integer sourceType = disputeResolution.getSourceType();
-        String msg = "争议来源：";
-        if (sourceType != null && sourceType == 1) {
-            msg = msg + "取消申请\n取消原因：";
-
-            msg = msg + cancelApplicationMapper.selectById(disputeResolution.getSourceId()).getReason();
-        } else if (sourceType != null && sourceType == 2) {
-            msg = msg + "每日确认\n每日确认争议原因";
-            msg = msg + dailyConfirmationMapper.selectById(disputeResolution.getSourceId()).getDisputeReason();
-        } else {
-            msg = msg + "其他\n";
-        }
-
+        Map<String,String> msg = new HashMap<>();
+        msg.put("type",disputeResolution.getSourceType().toString());
+        msg.put("sourceId",disputeResolution.getSourceId().toString());
+        msg.put("createTime",disputeResolution.getCreateTime().toString());
+        msg.put("disputeResolutionID",disputeResolution.getId().toString());
+        String jsonMsg = JSON.toJSONString(msg);
         MessageSendDTO.Content content = MessageSendDTO.Content.builder()
-                                                .content(msg)
+                                                .data(jsonMsg)
+                                                .description("争议信息")
+                                                .extension("争议信息")
                                                 .build();
         MessageSendDTO messageSendDTO = MessageSendDTO.builder()
                         .sendID(RobotConstant.id.toString())
-                        .recvID(groupId)
+                        .groupID(groupId)
                         .content(content)
-                        .contentType(101)
+                        .contentType(110)
                         .sessionType(3)
                         .build();
         //发送消息

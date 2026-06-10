@@ -18,5 +18,5 @@ import lombok.NoArgsConstructor;
 public class MsgSendResultDTO {
     private String serverMsgID;
     private String clientMsgID;
-    private Integer sendTime;
+    private Long sendTime;
 }
