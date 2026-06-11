@@ -92,8 +92,10 @@ public class RecruitmentServiceImpl implements RecruitmentService {
         if (!Objects.equals(BaseContext.getUserId(), recruitment.getUserId())) {
             throw new PermissionException("没有权限");
         }
+        Recruitment recruitment1 = new Recruitment();
+        BeanUtils.copyProperties(recruitmentDTO,recruitment1);
         //修改招募
-        recruitmentMapper.updateRecruitment(recruitment);
+        recruitmentMapper.updateRecruitment(recruitment1);
     }
 
     /**
