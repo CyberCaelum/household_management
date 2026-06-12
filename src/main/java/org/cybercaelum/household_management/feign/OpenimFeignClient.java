@@ -142,4 +142,20 @@ public interface OpenimFeignClient {
             @RequestHeader("token") String token,
             @RequestBody InviteUserToGroupDTO request
     );
+
+    /**
+     * @description 获取群组成员信息
+     * @author CyberCaelum
+     * @date 下午4:22 2026/6/10
+     * @param operationId 用于全局链路追踪，建议使用时间戳，在每个请求中独立
+     * @param token 管理员token
+     * @param request 请求信息
+     * @return org.cybercaelum.household_management.pojo.entity.OpenimResult<org.cybercaelum.household_management.pojo.dto.GroupMembers>
+     **/
+    @PostMapping("/group/get_group_member_list")
+    OpenimResult<GroupMembersDTO> getGroupMembers(
+            @RequestHeader("operationID") String operationId,
+            @RequestHeader("token") String token,
+            @RequestBody GetGroupMemberDTO request
+    );
 }

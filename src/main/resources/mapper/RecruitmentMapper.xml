@@ -44,7 +44,7 @@
             <if test="cityCode != null">
                 city_code = #{cityCode},
             </if>
-            <if test="cityName = null and cityName != ''">
+            <if test="cityName != null and cityName != ''">
                 city_name = #{cityName},
             </if>
             <if test="districtCode != null">

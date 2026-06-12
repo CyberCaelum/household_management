@@ -10,10 +10,7 @@ import org.cybercaelum.household_management.constant.RoleConstant;
 import org.cybercaelum.household_management.context.BaseContext;
 import org.cybercaelum.household_management.exception.BaseException;
 import org.cybercaelum.household_management.feign.OpenimFeignClient;
-import org.cybercaelum.household_management.pojo.dto.CsGroupAssignmentResult;
-import org.cybercaelum.household_management.pojo.dto.CustomerServiceOnlineDTO;
-import org.cybercaelum.household_management.pojo.dto.JoinGroupDTO;
-import org.cybercaelum.household_management.pojo.dto.SessionEndDTO;
+import org.cybercaelum.household_management.pojo.dto.*;
 import org.cybercaelum.household_management.pojo.entity.Result;
 import org.cybercaelum.household_management.pojo.vo.CsStatisticsVO;
 import org.cybercaelum.household_management.pojo.vo.PendingDisputeVO;
@@ -131,5 +128,22 @@ public class CustomerServiceController {
         log.info("获取在线客服信息");
         List<CustomerServiceOnlineDTO> customerServiceOnlineDTOS = customerServiceService.getOnlineCustomerService();
         return Result.success(customerServiceOnlineDTOS);
+    }
+
+    /**
+     * @description 踢出客服
+     * @author CyberCaelum
+     * @date 下午4:47 2026/6/10
+     * @param groupID 群组id
+     * @return org.cybercaelum.household_management.pojo.entity.Result
+     **/
+    @Operation(summary = "将客服从争议群聊出踢出", description = "将客服从争议群聊出踢出")
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/removeCs")
+    @RequireRole({RoleConstant.CUSTOMER_SERVICE,RoleConstant.USER})
+    public  Result removeCustomerService(@RequestParam String groupID){
+        log.info("踢出客服");
+        customerServiceService.removeCustomerService(groupID);
+        return Result.success();
     }
 }

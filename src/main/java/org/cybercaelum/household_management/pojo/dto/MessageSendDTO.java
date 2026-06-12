@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public class MessageSendDTO {
 
     private String sendID;
-    private String recvID;
+    private String groupID;
     private Content content;
     private Integer contentType;
     private Integer sessionType;
@@ -33,7 +33,9 @@ public class MessageSendDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Content {
-        private String content;
+        private String data;//用户自定义的消息内容
+        private String description;//扩展描述
+        private String extension;//扩展字段
     }
 
     @Data
