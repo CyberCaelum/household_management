@@ -77,5 +77,23 @@
         where c.user_id = #{userId} and c.status = 1
         order by c.create_time desc
     </select>
-
+    <select id="getByOrderId" resultType="org.cybercaelum.household_management.pojo.vo.CommentVO">
+        select
+            c.id,
+            c.content,
+            c.create_time as createTime,
+            c.status,
+            c.user_id as userId,
+            u.username as username,
+            u.profile_url as profileUrl,
+            c.commented_user_id as commentedUserId,
+            cu.username as commentedUsername,
+            c.comment_level as commentLevel,
+            c.order_id as orderId
+        from comment c
+                 left join user u on c.user_id = u.id
+                 left join user cu on c.commented_user_id = cu.id
+        where order_id = #{orderId} and c.status = 1
+        order by c.create_time desc
+    </select>
 </mapper>

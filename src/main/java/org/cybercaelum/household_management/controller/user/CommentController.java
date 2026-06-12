@@ -140,7 +140,7 @@ public class CommentController {
     @Operation(summary = "查询订单评论", description = "根据订单id查询对应的评价")
     public Result getCommentByOrderId(@PathVariable Long orderId) {
         log.info("查询订单评论，orderId：{}", orderId);
-        CommentVO commentVO = commentService.getCommentByOrderId(orderId);
-        return Result.success(commentVO);
+        List<CommentVO> commentVOs = commentService.getCommentByOrderId(orderId);
+        return Result.success(commentVOs);
     }
 }

@@ -85,8 +85,8 @@ public interface CommentMapper {
      * @param orderId 订单id
      * @return org.cybercaelum.household_management.pojo.vo.CommentVO
      **/
-    @Select("select * from comment where order_id = #{orderId} and status = 1")
-    Comment getByOrderId(Long orderId);
+    //@Select("select * from comment where order_id = #{orderId} and status = 1")
+    List<CommentVO> getByOrderId(Long orderId);
 
     /**
      * @description 根据用户id和订单id查询评论（检查是否已评论）

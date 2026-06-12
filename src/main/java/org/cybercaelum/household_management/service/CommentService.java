@@ -70,5 +70,5 @@ public interface CommentService {
      * @param orderId 订单id
      * @return org.cybercaelum.household_management.pojo.vo.CommentVO
      **/
-    CommentVO getCommentByOrderId(Long orderId);
+    List<CommentVO> getCommentByOrderId(Long orderId);
 }

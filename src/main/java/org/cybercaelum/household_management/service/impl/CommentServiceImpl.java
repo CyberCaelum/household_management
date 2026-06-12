@@ -171,11 +171,7 @@ public class CommentServiceImpl implements CommentService {
      * @return org.cybercaelum.household_management.pojo.vo.CommentVO
      **/
     @Override
-    public CommentVO getCommentByOrderId(Long orderId) {
-        Comment comment = commentMapper.getByOrderId(orderId);
-        if (comment == null) {
-            return null;
-        }
-        return commentMapper.getCommentDetailById(comment.getId());
+    public List<CommentVO> getCommentByOrderId(Long orderId) {
+        return commentMapper.getByOrderId(orderId);
     }
 }
