@@ -170,8 +170,12 @@ public class RecruitmentServiceImpl implements RecruitmentService {
      * @return java.util.List<org.cybercaelum.household_management.pojo.vo.RecruitmentVO>
      **/
     @Override
-    public List<RecruitmentVO> getRecruitmentByUserId() {
+    public List<RecruitmentVO> getRecruitmentByUserId(Long id) {
         Long userId = BaseContext.getUserId();
-        return recruitmentMapper.selectRecruitmentByUserId(userId);
+        if (userId == null || !userId.equals(id)) {
+            return recruitmentMapper.selectRecruitmentByUserId(userId);
+        }else {
+            return recruitmentMapper.selectRecruitment(userId);
+        }
     }
 }

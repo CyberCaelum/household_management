@@ -141,10 +141,10 @@ public class RecruitmentController {
     @RequireRole(RoleConstant.USER)
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "根据用户id查询用户的所有招募",description = "查询用户的所有招募")
-    @GetMapping("/user/total")
-    public Result getAllRecruitment(){
+    @GetMapping("/user/total/{id}")
+    public Result getAllRecruitment(@PathVariable Long id){
         log.info("根据用户id查询对应用户的所有招募");
-        List<RecruitmentVO> recruitmentVOS = recruitmentService.getRecruitmentByUserId();
+        List<RecruitmentVO> recruitmentVOS = recruitmentService.getRecruitmentByUserId(id);
         return Result.success(recruitmentVOS);
     }
 }

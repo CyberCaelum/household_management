@@ -329,4 +329,27 @@ public class UserServiceImpl implements UserService {
                 .profileUrl(user.getProfileUrl())
                 .build();
     }
+
+    /**
+     * @description 通过id查询用户信息
+     * @author CyberCaelum
+     * @date 2026/6/14
+     * @param id
+     * @return org.cybercaelum.household_management.pojo.vo.UserInfoVO
+     **/
+    @Override
+    public UserInfoVO getUserInfoById(Long id) {
+        User user = userMapper.getById(id);
+        if (user == null) {
+            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
+        }
+        return UserInfoVO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .createTime(user.getCreateTime())
+                .status(user.getStatus())
+                .role(user.getRole())
+                .profileUrl(user.getProfileUrl())
+                .build();
+    }
 }

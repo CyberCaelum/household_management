@@ -20,5 +20,5 @@ public interface RecruitmentService {
 
     RecruitmentVO getRecruitment(Long id);
 
-    List<RecruitmentVO> getRecruitmentByUserId();
+    List<RecruitmentVO> getRecruitmentByUserId(Long id);
 }

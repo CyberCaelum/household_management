@@ -78,4 +78,6 @@ public interface UserService {
      * @return org.cybercaelum.household_management.pojo.vo.UserInfoVO
      **/
     UserInfoVO getUserInfo();
+
+    UserInfoVO getUserInfoById(Long id);
 }

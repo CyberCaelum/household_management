@@ -127,4 +127,19 @@ public class UserController {
         UserInfoVO userInfoVO = userService.getUserInfo();
         return Result.success(userInfoVO);
     }
+
+    /**
+     * @description 查看个人信息
+     * @author CyberCaelum
+     * @date 2026/6/14
+     * @return org.cybercaelum.household_management.pojo.entity.Result<org.cybercaelum.household_management.pojo.vo.UserInfoVO>
+     **/
+    @RequireRole(RoleConstant.USER)
+    @Operation(summary = "通过id查询用户信息",description = "通过id查询用户的所有信息")
+    @GetMapping("/info/{id}")
+    public Result<UserInfoVO> getUserInfoById(@PathVariable Long id){
+        log.info("查询用户信息:{}",id);
+        UserInfoVO userInfoVO = userService.getUserInfoById(id);
+        return Result.success(userInfoVO);
+    }
 }
