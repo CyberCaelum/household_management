@@ -172,10 +172,10 @@ public class RecruitmentServiceImpl implements RecruitmentService {
     @Override
     public List<RecruitmentVO> getRecruitmentByUserId(Long id) {
         Long userId = BaseContext.getUserId();
-        if (userId == null || !userId.equals(id)) {
+        if (userId.equals(id)) {
             return recruitmentMapper.selectRecruitmentByUserId(userId);
         }else {
-            return recruitmentMapper.selectRecruitment(userId);
+            return recruitmentMapper.selectRecruitment(id);
         }
     }
 }
