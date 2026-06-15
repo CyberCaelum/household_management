@@ -21,12 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -1099,10 +1094,10 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
         //踢出所有不是雇员雇主，不是机器人的用户
         for (GroupMembersDTO.Member member : groupMembersDTOOpenimResult.getData().getMembers()){
             String userID = member.getUserID();
-            if (userID != RobotConstant.id.toString() &&
-            userID != RobotConstant.id2.toString() &&
-            userID != employeeId &&
-            userID != employerId){
+            if (!Objects.equals(userID, RobotConstant.id.toString()) &&
+                    !Objects.equals(userID, RobotConstant.id2.toString()) &&
+                    !Objects.equals(userID, employeeId) &&
+                    !Objects.equals(userID, employerId)){
 
                 QuitGroupDTO quitGroupDTO = QuitGroupDTO.builder()
                                                 .userID(userID)
