@@ -11,7 +11,7 @@
 | Java | 17 |
 | Spring Boot | 3.5.6 |
 | MyBatis | 持久层框架 |
-| MariaDB | 关系型数据库 |
+| MySQL | 关系型数据库 |
 | Redis | 缓存与分布式锁 |
 | RocketMQ | 消息队列 |
 | OpenIM | 即时通讯 |
@@ -139,7 +139,7 @@ RedisKeyExpiredListener.onMessage() → releaseCsSession()
 
 - JDK 17+
 - Maven 3.6+
-- MariaDB / MySQL
+- MySQL
 - Redis
 - RocketMQ
 
@@ -157,7 +157,7 @@ cd household_management
 ```yaml
 spring:
   datasource:
-    url: jdbc:mariadb://localhost:3306/household_management
+    url: jdbc:mysql://localhost:3306/household_management
     username: your_username
     password: your_password
 ```
