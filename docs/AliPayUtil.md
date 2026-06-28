@@ -223,6 +223,8 @@ public void closeOrder(String orderNo) {
 
 ### 6. 申请退款
 
+> **注意：** 当前版本 `refund` 方法的 `refundNo` 参数已接收但尚未设置到支付宝请求模型（`outRequestNo`）中。这意味着支付宝侧无法通过退款单号精确追踪退款请求。如需完善，请参考下方"已知待完善项"。
+
 ```java
 /**
  * 申请退款
@@ -281,7 +283,7 @@ public void queryRefund(String orderNo, String refundNo) {
  * @param outBizNo 商户转账单号
  * @param payeeType 收款方类型：ALIPAY_LOGONID（登录号）或 ALIPAY_USERID（会员ID）
  * @param payeeAccount 收款方账号
- * @param amount 转账金额
+ * @param amount 转账金额（元）
  * @param remark 转账备注
  */
 public void transfer() {
@@ -422,7 +424,7 @@ BigDecimal b = new BigDecimal("99.99");
 // 比较（返回-1, 0, 1）
 int result = a.compareTo(b);  // 1
 
-// 判断是否相等（不要用equals）
+// 判断是否相等（不要用equals，要用compareTo）
 if (a.compareTo(b) == 0) {
     // 相等
 }
@@ -487,7 +489,14 @@ alipay:
 
 ---
 
-## 九、相关文档
+## 九、已知待完善项
+
+1. **退款单号未设置到支付宝请求**：`refund()` 方法接收了 `refundNo` 参数但在 `AlipayTradeRefundModel` 中未调用 `setOutRequestNo(refundNo)`，导致支付宝侧无法关联退款单号。建议补充该设置。
+2. **PC网页支付使用了 WapPayModel**：`createPcPayPage()` 方法内部使用了 `AlipayTradeWapPayModel`，建议替换为 `AlipayTradePagePayModel` 以匹配PC场景。
+
+---
+
+## 十、相关文档
 
 - [支付宝开放平台](https://open.alipay.com/)
 - [支付宝沙箱环境](https://sandbox.alipaydev.com/)
@@ -497,8 +506,9 @@ alipay:
 
 ---
 
-## 十、版本记录
+## 十一、版本记录
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | 1.0 | 2026-03-17 | 初始版本，实现基础支付功能 |
+| 1.1 | 2026-06-28 | 新增已知待完善项说明 |

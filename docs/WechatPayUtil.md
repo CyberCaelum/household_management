@@ -4,6 +4,8 @@
 
 `WechatPayUtil` 是基于 [binarywang/weixin-java-pay](https://github.com/binarywang/weixin-java-pay) SDK 封装的微信支付工具类，提供了统一下单、订单查询、关闭订单、退款、回调处理等常用功能。
 
+**金额单位：元（使用 `BigDecimal` 类型，工具类内部自动转换为分）**
+
 ---
 
 ## 目录
@@ -46,6 +48,7 @@ wechat:
     notify-url: https://your-domain.com/pay/callback      # 支付结果通知地址
     refund-notify-url: https://your-domain.com/pay/refund/callback  # 退款通知地址
     sandbox: false                           # 是否使用沙箱环境
+    mock: false                              # 是否Mock模式（开发测试用，不调用真实接口）
 ```
 
 ### 3. 注入使用
@@ -73,6 +76,7 @@ private WechatPayUtil wechatPayUtil;
 | `notify-url` | 是 | 支付结果通知地址 |
 | `refund-notify-url` | 否 | 退款结果通知地址 |
 | `sandbox` | 否 | 是否使用沙箱环境，默认 `false` |
+| `mock` | 否 | 是否启用Mock模式（开发测试用），默认 `false`。启用后不调用真实微信接口，直接返回模拟数据 |
 
 ---
 
@@ -104,10 +108,10 @@ public Result<String> createNativeOrder(@RequestBody OrdersPaymentDTO dto) {
     // 生成订单号
     String orderNo = generateOrderNo();
     
-    // 创建Native支付订单（金额单位：分）
+    // 创建Native支付订单（金额单位：元，BigDecimal类型）
     String codeUrl = wechatPayUtil.createNativeOrder(
         orderNo,
-        dto.getAmount() * 100,  // 元转分
+        BigDecimal.valueOf(dto.getAmount()),
         "家政服务订单"
     );
     
@@ -126,10 +130,10 @@ public Result<String> createJsapiOrder(@RequestBody OrdersPaymentDTO dto, @Reque
     // 获取用户OpenID（需提前获取并存储）
     String openId = userService.getOpenId(userId);
     
-    // 创建JSAPI支付订单
+    // 创建JSAPI支付订单（金额单位：元，BigDecimal类型）
     String prepayId = wechatPayUtil.createJsapiOrder(
         dto.getOrderNumber(),
-        dto.getAmount() * 100,
+        BigDecimal.valueOf(dto.getAmount()),
         "家政服务订单",
         openId
     );
@@ -165,7 +169,7 @@ wx.requestPayment({
 public Result<String> createAppOrder(@RequestBody OrdersPaymentDTO dto) {
     String prepayId = wechatPayUtil.createAppOrder(
         dto.getOrderNumber(),
-        dto.getAmount() * 100,
+        BigDecimal.valueOf(dto.getAmount()),
         "家政服务订单"
     );
     
@@ -183,7 +187,7 @@ public Result<String> createH5Order(@RequestBody OrdersPaymentDTO dto) {
     // 场景类型：iOS, Android, WAP
     String mwebUrl = wechatPayUtil.createH5Order(
         dto.getOrderNumber(),
-        dto.getAmount() * 100,
+        BigDecimal.valueOf(dto.getAmount()),
         "家政服务订单",
         "iOS"
     );
@@ -239,11 +243,11 @@ public Result<Void> refund(@RequestBody RefundDTO dto) {
     String refundNo = generateRefundNo();
     
     WxPayRefundResult result = wechatPayUtil.refund(
-        dto.getOrderNo(),           // 原订单号
-        refundNo,                   // 退款单号
-        dto.getTotalAmount() * 100, // 订单总金额（分）
-        dto.getRefundAmount() * 100,// 退款金额（分）
-        dto.getReason()             // 退款原因
+        dto.getOrderNo(),                   // 原订单号
+        refundNo,                           // 退款单号
+        BigDecimal.valueOf(dto.getTotalAmount()),   // 订单总金额（元）
+        BigDecimal.valueOf(dto.getRefundAmount()),  // 退款金额（元）
+        dto.getReason()                     // 退款原因
     );
     
     return Result.success();
@@ -329,24 +333,24 @@ public String refundCallback(@RequestBody String xmlData) {
 
 ### 核心方法
 
-#### `createNativeOrder(String orderNo, int amount, String description)`
+#### `createNativeOrder(String orderNo, BigDecimal amount, String description)`
 创建 Native 支付订单（扫码支付）。
 
 **参数：**
 - `orderNo` - 商户订单号（32字符内）
-- `amount` - 金额（单位：分）
+- `amount` - 金额（单位：**元**，BigDecimal类型）
 - `description` - 商品描述
 
 **返回：** 支付二维码链接（`code_url`），前端生成二维码供用户扫码
 
 ---
 
-#### `createJsapiOrder(String orderNo, int amount, String description, String openId)`
+#### `createJsapiOrder(String orderNo, BigDecimal amount, String description, String openId)`
 创建 JSAPI 支付订单（公众号/小程序）。
 
 **参数：**
 - `orderNo` - 商户订单号
-- `amount` - 金额（单位：分）
+- `amount` - 金额（单位：**元**，BigDecimal类型）
 - `description` - 商品描述
 - `openId` - 用户在当前公众号/小程序的 OpenID
 
@@ -354,24 +358,24 @@ public String refundCallback(@RequestBody String xmlData) {
 
 ---
 
-#### `createAppOrder(String orderNo, int amount, String description)`
+#### `createAppOrder(String orderNo, BigDecimal amount, String description)`
 创建 APP 支付订单。
 
 **参数：**
 - `orderNo` - 商户订单号
-- `amount` - 金额（单位：分）
+- `amount` - 金额（单位：**元**，BigDecimal类型）
 - `description` - 商品描述
 
 **返回：** 预支付交易会话标识（`prepay_id`）
 
 ---
 
-#### `createH5Order(String orderNo, int amount, String description, String sceneType)`
+#### `createH5Order(String orderNo, BigDecimal amount, String description, String sceneType)`
 创建 H5 支付订单。
 
 **参数：**
 - `orderNo` - 商户订单号
-- `amount` - 金额（单位：分）
+- `amount` - 金额（单位：**元**，BigDecimal类型）
 - `description` - 商品描述
 - `sceneType` - 场景类型：`iOS`、`Android`、`WAP`
 
@@ -399,14 +403,14 @@ public String refundCallback(@RequestBody String xmlData) {
 
 ---
 
-#### `refund(String orderNo, String refundNo, int totalAmount, int refundAmount, String reason)`
+#### `refund(String orderNo, String refundNo, BigDecimal totalAmount, BigDecimal refundAmount, String reason)`
 申请退款。
 
 **参数：**
 - `orderNo` - 原支付订单号
 - `refundNo` - 商户退款单号
-- `totalAmount` - 订单总金额（分）
-- `refundAmount` - 退款金额（分）
+- `totalAmount` - 订单总金额（元，BigDecimal类型）
+- `refundAmount` - 退款金额（元，BigDecimal类型）
 - `reason` - 退款原因
 
 **返回：** `WxPayRefundResult` 退款结果
@@ -464,14 +468,14 @@ public String refundCallback(@RequestBody String xmlData) {
 
 ### 1. 金额单位
 
-微信支付接口中，**金额单位为分**，调用方法前需要将元转换为分：
+微信支付底层接口要求金额单位为**分**，但 `WechatPayUtil` 已做了封装，**调用时传入元（BigDecimal类型）即可**，工具类内部会自动将元转换为分。
 
 ```java
-// 错误：直接传元
-wechatPayUtil.createNativeOrder(orderNo, 100, "商品");  // 实际只收1元
+// ✅ 正确：传入元（BigDecimal类型）
+wechatPayUtil.createNativeOrder(orderNo, new BigDecimal("100.00"), "商品");  // 收100元
 
-// 正确：元转分
-wechatPayUtil.createNativeOrder(orderNo, 100 * 100, "商品");  // 收100元
+// ✅ 也可以使用 BigDecimal.valueOf()
+wechatPayUtil.createNativeOrder(orderNo, BigDecimal.valueOf(99.99), "商品");  // 收99.99元
 ```
 
 ### 2. 订单号规则
@@ -483,7 +487,7 @@ wechatPayUtil.createNativeOrder(orderNo, 100 * 100, "商品");  // 收100元
 ```java
 // 推荐订单号生成方式
 String orderNo = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-        + String.format("%04d", (int)(Math.random() * 10000))
+        + String.format("%04d", ThreadLocalRandom.current().nextInt(10000))
         + "PAY";
 // 示例：202603121030451234PAY
 ```
@@ -549,7 +553,19 @@ wechat:
 
 沙箱环境地址：https://api.mch.weixin.qq.com/sandboxnew/
 
-### 8. 安全建议
+### 8. Mock模式
+
+开发测试时不希望调用真实微信接口，可启用Mock模式：
+
+```yaml
+wechat:
+  pay:
+    mock: true
+```
+
+Mock模式下，Native支付会返回模拟二维码链接 `weixin://wxpay/bizpayurl?pr=MOCK<订单号>`，不会发起真实请求。
+
+### 9. 安全建议
 
 - 不要在客户端暴露商户密钥
 - 回调接口需要验证签名（工具类已自动处理）
@@ -594,7 +610,8 @@ A: 检查以下几点：
 A: 有以下几种方式：
 1. **沙箱环境**：使用微信提供的测试商户号和金额（如 1.01元）
 2. **扫码支付**：使用微信扫描生成的二维码，支付 0.01 元测试
-3. **模拟回调**：调用回调接口模拟微信支付通知
+3. **Mock模式**：启用 `mock: true` 配置，不调用真实接口
+4. **模拟回调**：调用回调接口模拟微信支付通知
 
 ---
 
@@ -606,5 +623,5 @@ A: 有以下几种方式：
 
 ---
 
-**文档版本：** 1.0  
-**最后更新：** 2026-03-12
+**文档版本：** 1.1  
+**最后更新：** 2026-06-28
