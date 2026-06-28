@@ -45,7 +45,8 @@ src/main/java/org/cybercaelum/household_management/
 ├── service/       # 业务逻辑层
 ├── task/          # 定时任务
 └── utils/         # 工具类（支付、文件等）
-docs/              # 项目文档
+sql/                # 数据库建表脚本
+docs/               # 项目文档
 ```
 
 ---
@@ -150,9 +151,17 @@ git clone <repository-url>
 cd household_management
 ```
 
-### 2. 配置数据库
+### 2. 初始化数据库
 
-修改 `src/main/resources/application-dev.yml` 中的数据库连接信息：
+先执行建表脚本：
+
+```bash
+mysql -u root -p < sql/schema.sql
+```
+
+或在 MySQL 客户端中执行 `source sql/schema.sql`。
+
+然后修改 `src/main/resources/application-dev.yml` 中的数据库连接信息：
 
 ```yaml
 spring:
