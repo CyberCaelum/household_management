@@ -159,43 +159,123 @@ cd household_management
 mysql -u root -p < sql/schema.sql
 ```
 
-或在 MySQL 客户端中执行 `source sql/schema.sql`。
+### 3. 配置文件
 
-然后修改 `src/main/resources/application-dev.yml` 中的数据库连接信息：
+所有配置集中在 `application.yml`（模板）和 `application-dev.yml`（本地值）中，详见下方 [配置参考](#配置参考)。
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/household_management
-    username: your_username
-    password: your_password
-```
-
-### 3. 配置 Redis
-
-```yaml
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
-```
-
-### 4. 配置支付（可选，开发阶段可跳过）
-
-参考以下文档进行支付配置：
-- [docs/WechatPayUtil.md](docs/WechatPayUtil.md) — 微信支付配置与使用说明
-- [docs/AliPayUtil.md](docs/AliPayUtil.md) — 支付宝支付配置与使用说明
-
-> **开发提示**：微信支付工具类支持 Mock 模式，设置 `wechat.pay.mock: true` 即可在不配置真实商户号的情况下进行开发调试。
-
-### 5. 启动项目
+### 4. 启动项目
 
 ```bash
 mvn spring-boot:run
 ```
 
 或使用 IDE 运行 `HouseholdManagementApplication` 主类。
+
+---
+
+## 配置参考
+
+项目配置分为 `application.yml`（模板，所有值用 `${...}` 占位）和 `application-dev.yml`（本地开发环境实际值）。
+
+### 数据源（必填）
+
+| 属性 | 说明 | 示例值 |
+|------|------|--------|
+| `household.datasource.driver-class-name` | JDBC 驱动类 | `com.mysql.cj.jdbc.Driver` |
+| `household.datasource.host` | 数据库地址 | `localhost` |
+| `household.datasource.port` | 数据库端口 | `3306` |
+| `household.datasource.database` | 数据库名 | `household_management` |
+| `household.datasource.username` | 数据库用户名 | `root` |
+| `household.datasource.password` | 数据库密码 | — |
+
+### Redis（必填）
+
+| 属性 | 说明 | 示例值 |
+|------|------|--------|
+| `spring.data.redis.host` | Redis 地址 | `localhost` |
+| `spring.data.redis.port` | Redis 端口 | `6379` |
+| `spring.data.redis.password` | Redis 密码 | — |
+| `spring.data.redis.database` | Redis 库号 | `0` |
+| `spring.data.redis.timeout` | 连接超时 | `5000ms` |
+
+> **注意**：客服会话超时依赖 Redis 键过期事件，需在 `redis.conf` 中配置 `notify-keyspace-events Ex`。
+
+### JWT（必填）
+
+| 属性 | 说明 | 示例值 |
+|------|------|--------|
+| `household.jwt.user-secret-key` | JWT 签名密钥 | 长度 ≥ 32 的随机字符串 |
+| `household.jwt.user-ttl` | Token 过期时间（毫秒）| `7200000`（2小时）|
+| `household.jwt.user-token-name` | HTTP Header 中的 Token 名称 | `Authorization` |
+
+### RocketMQ（必填）
+
+| 属性 | 说明 | 示例值 |
+|------|------|--------|
+| `rocketmq.producer.endpoints` | RocketMQ Producer 地址 | `localhost:8081` |
+
+### AI 模型（必填）
+
+项目使用 DeepSeek 作为对话模型，Ollama 提供本地 Embedding。
+
+| 属性 | 说明 | 示例值 |
+|------|------|--------|
+| `spring.ai.deepseek.api-key` | DeepSeek API 密钥 | [platform.deepseek.com](https://platform.deepseek.com/) 获取 |
+| `spring.ai.deepseek.chat.options.model` | 对话模型名 | `deepseek-reasoner` / `deepseek-chat` |
+| `spring.ai.deepseek.chat.options.temperature` | 生成温度（0~1）| `0.3` |
+| `spring.ai.deepseek.chat.options.max-tokens` | 最大输出 Token 数 | `300` |
+| `spring.ai.retry.max-attempts` | API 调用重试次数 | `5` |
+| `spring.ai.ollama.base-url` | Ollama 服务地址 | `http://localhost:11434` |
+| `spring.ai.ollama.embedding.options.model` | Embedding 模型 | `embeddinggemma:300m` |
+
+### 向量数据库 — Milvus（必填，AI 客服依赖）
+
+| 属性 | 说明 | 示例值 |
+|------|------|--------|
+| `spring.ai.vectorstore.milvus.database-name` | Milvus 数据库名 | `customer_service_knowledge` |
+| `spring.ai.vectorstore.milvus.collection-name` | 集合名 | `question_answer` |
+| `spring.ai.vectorstore.milvus.embedding-dimension` | 向量维度 | `768` |
+| `spring.ai.vectorstore.milvus.client.host` | Milvus 地址 | `localhost` |
+| `spring.ai.vectorstore.milvus.client.port` | Milvus 端口 | `19530` |
+
+### 微信支付（可选）
+
+| 属性 | 说明 | 获取方式 |
+|------|------|----------|
+| `wechat.pay.app-id` | 微信应用 AppID | [微信支付商户平台](https://pay.weixin.qq.com/) |
+| `wechat.pay.mch-id` | 商户号 | 同上 |
+| `wechat.pay.api-v3-key` | API v3 密钥 | 商户平台 → API 安全 |
+| `wechat.pay.mch-serial-no` | 商户证书序列号 | 同上 |
+| `wechat.pay.private-key-path` | 商户私钥文件路径 | `apiclient_key.pem` |
+| `wechat.pay.notify-url` | 支付结果回调地址 | 必须是外网可访问的 HTTPS URL |
+| `wechat.pay.refund-notify-url` | 退款结果回调地址 | 同上 |
+| `wechat.pay.sandbox` | 是否沙箱环境 | 开发测试用 `true` |
+| `wechat.pay.mock` | Mock 模式（不调用真实接口）| 本地开发用 `true` |
+
+### 阿里云 OSS（必填，文件上传依赖）
+
+| 属性 | 说明 | 获取方式 |
+|------|------|----------|
+| `household.alioss.endpoint` | OSS 地域端点 | 阿里云 OSS 控制台 |
+| `household.alioss.access-key-id` | AccessKey ID | 阿里云 RAM 访问控制 |
+| `household.alioss.access-key-secret` | AccessKey Secret | 同上 |
+| `household.alioss.bucket-name` | OSS Bucket 名称 | 阿里云 OSS 控制台 |
+
+### OpenIM（必填，即时通讯依赖）
+
+| 属性 | 说明 | 默认值 |
+|------|------|--------|
+| `household.openim.api-address` | OpenIM API 地址 | `http://localhost:10002` |
+| `household.openim.secret` | OpenIM 管理员密钥 | — |
+| `household.openim.admin-user-id` | 管理员账号 | `imAdmin` |
+| `household.openim.default-platform-id` | 平台 ID | `5` |
+
+### 机器人账号（必填，群组创建依赖）
+
+| 属性 | 说明 | 获取方式 |
+|------|------|--------|
+| `household.robot.id` | AI 客服机器人 ID（OpenIM 中注册）| `需要自己注册` |
+| `household.robot.id2` | 备用机器人 ID | `需要自己注册` |
 
 ---
 
@@ -208,24 +288,4 @@ mvn spring-boot:run
 
 ## 许可证
 
-MIT License
-
-Copyright (c) 2026 CyberCaelum
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+本项目基于 [MIT License](LICENSE) 开源。Copyright (c) 2026 CyberCaelum.
